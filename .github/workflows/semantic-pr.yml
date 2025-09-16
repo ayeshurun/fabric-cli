@@ -1,0 +1,58 @@
+# Linter to enforce semantic pull request titles (see https://www.conventionalcommits.org/)
+---
+name: 🔍 Semantic PR
+
+on:
+  pull_request:
+    branches: 
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  pull-requests: read
+  issues: write
+
+jobs:
+  check_pr_title:
+    name: Check Pull Request Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Semantic PR Validation
+        id: validation
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prTitle = github.event.pull_request.title;
+            const regex = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!?): .+/;
+
+            if (!regex.test(prTitle)) {
+              core.setFailed('Pull request title does not follow Conventional Commits specification.');
+            }
+      - name: Handle Invalid Title
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const message = `Hey there and thank you for opening this pull request! 👋🏼
+
+            We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.`;
+            const invalidLabel = 'invalid';
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [invalidLabel]
+            });
