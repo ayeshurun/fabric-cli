@@ -30,16 +30,43 @@ jobs:
             const regex = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!?): .+/;
 
             if (!regex.test(prTitle)) {
-              core.setFailed('Pull request title does not follow Conventional Commits specification.');
+              core.setFailed('Pull request title does not follow Conventional Commits specification. See PR comment for details.');
             }
       - name: Handle Invalid Title
         if: failure()
         uses: actions/github-script@v6
         with:
           script: |
-            const message = `Hey there and thank you for opening this pull request! 👋🏼
+            const message = `Hey there and thank you for your contribution! 👋🏼
 
-            We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.`;
+              We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.
+
+              A valid title has the format: \`type(scope): subject\`
+
+              **type**: Must be one of the following:
+              - \`feat\`: A new feature
+              - \`fix\`: A bug fix
+              - \`docs\`: Documentation only changes
+              - \`style\`: Changes that do not affect the meaning of the code (e.g., formatting)
+              - \`refactor\`: A code change that neither fixes a bug nor adds a feature
+              - \`perf\`: A code change that improves performance
+              - \`test\`: Adding missing tests or correcting existing tests
+              - \`chore\`: Changes to the build process or auxiliary tools
+              - \`build\`: Changes that affect the build system or external dependencies
+              - \`ci\`: Changes to CI configuration files and scripts
+              - \`revert\`: Reverts a previous commit
+
+              **scope** (optional): A noun describing a section of the codebase.
+
+              **subject**: A short description of the code changes.
+
+              Examples:
+              - \`feat(api): add new endpoint for users\`
+              - \`fix: correct a typo in the documentation\`
+              - \`docs(readme): update installation instructions\`
+
+              Please update your pull request title to match this format.`;
+
             const invalidLabel = 'invalid';
 
             await github.rest.issues.createComment({
