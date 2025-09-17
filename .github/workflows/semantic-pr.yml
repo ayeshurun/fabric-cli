@@ -32,9 +32,8 @@ jobs:
             if (!regex.test(prTitle)) {
               core.setFailed('Pull request title does not follow Conventional Commits specification. See PR comment for details.');
             }
-      - name: Find Previous Comment
-        if: always()
-        id: find_comment
+      - name: Handle Invalid Title
+        if: failure()
         uses: actions/github-script@v6
         with:
           script: |
@@ -45,18 +44,16 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
-            console.log('>>>>> comments', comments);
-            const existingComment = comments.find(comment => comment.body.includes(commentMarker));
 
-            console.log('>>>>> existingComment', existingComment);
-            if (existingComment) {
-              core.setOutput('comment_id', existingComment.id);
+            const existingComment = comments.find(comment => comment.body.includes(commentMarker));
+            if (existingComment?.id) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+              });
             }
-      - name: Handle Invalid Title
-        if: failure()
-        uses: actions/github-script@v6
-        with:
-          script: |
+
             const message = `<!-- semantic-pr-comment -->
               Hey there and thank you for your contribution! 👋🏼
 
@@ -88,17 +85,6 @@ jobs:
 
               Please update your pull request title to match this format.`;
 
-            const invalidLabel = 'invalid';
-            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
-            console.log('>>>>> commentId', commentId);
-            if (commentId) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: commentId,
-              });
-            }
-
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -110,22 +96,19 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              labels: [invalidLabel]
+              labels: ['invalid']
             });
       - name: Handle Valid Title
         if: success()
         uses: actions/github-script@v6
         with:
           script: |
-            const invalidLabel = 'invalid';
-            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
-            console.log('>>>>> commentId', commentId);
             try {
               await github.rest.issues.removeLabel({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                name: invalidLabel,
+                name: 'invalid',
               });
             } catch (error) {
               if (error.status !== 404) {
