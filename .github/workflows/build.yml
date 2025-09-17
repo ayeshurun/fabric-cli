@@ -1,0 +1,39 @@
+name: Build CLI Package Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+    contents: read
+
+jobs:
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs:
+      - test  # Ensure all test jobs complete successfully
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Create and activate Virtual Environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Validate build package
+        run: |
+          source venv/bin/activate
+          python -m build

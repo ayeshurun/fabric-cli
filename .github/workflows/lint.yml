@@ -1,0 +1,42 @@
+name: Lint Code
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+    contents: read
+
+jobs:
+  lint:
+      name: Lint Code
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+
+        - name: Set up Python 3.12
+          uses: actions/setup-python@v4
+          with:
+            python-version: "3.12"  # Use any stable Python version for linting
+
+        - name: Install Tox
+          run: |
+            python -m pip install --upgrade pip
+            pip install tox
+
+        - name: Cache Tox environments
+          uses: actions/cache@v3
+          with:
+            path: .tox
+            key: ${{ runner.os }}-tox-lint-${{ hashFiles('**/tox.toml') }}
+            restore-keys: |
+              ${{ runner.os }}-tox-lint-
+
+        - name: Run Linting
+          run: tox -e lint
