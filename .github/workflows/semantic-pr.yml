@@ -35,7 +35,6 @@ jobs:
         if: failure()
         uses: actions/github-script@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const commentMarker = '<!-- semantic-pr-comment -->';
 
