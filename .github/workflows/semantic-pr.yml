@@ -45,9 +45,10 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
-
+            console.log('>>>>> comments', comments);
             const existingComment = comments.find(comment => comment.body.includes(commentMarker));
 
+            console.log('>>>>> existingComment', existingComment);
             if (existingComment) {
               core.setOutput('comment_id', existingComment.id);
             }
@@ -89,7 +90,7 @@ jobs:
 
             const invalidLabel = 'invalid';
             const commentId = '${{ steps.find_comment.outputs.comment_id }}';
-
+            console.log('>>>>> commentId', commentId);
             if (commentId) {
               await github.rest.issues.deleteComment({
                 owner: context.repo.owner,
@@ -118,22 +119,7 @@ jobs:
           script: |
             const invalidLabel = 'invalid';
             const commentId = '${{ steps.find_comment.outputs.comment_id }}';
-
-            if (commentId) {
-              const { data: comment } = await github.rest.issues.getComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: commentId,
-              });
-
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: commentId,
-                body: `**UPDATE:** The pull request title has been corrected. ✅\n\n${comment.body}`
-              });
-            }
-
+            console.log('>>>>> commentId', commentId);
             try {
               await github.rest.issues.removeLabel({
                 issue_number: context.issue.number,
