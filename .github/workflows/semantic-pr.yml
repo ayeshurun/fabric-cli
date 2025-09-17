@@ -46,51 +46,46 @@ jobs:
             });
 
             const existingComment = comments.find(comment => comment.body.includes(commentMarker));
-            if (existingComment?.id) {
-              await github.rest.issues.deleteComment({
+
+            if (!existingComment) {
+              const message = `<!-- semantic-pr-comment -->
+                Hey there and thank you for your contribution! 👋🏼
+
+                We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.
+
+                A valid title has the format: \`type(scope): subject\`
+
+                **type**: Must be one of the following:
+                - \`feat\`: A new feature
+                - \`fix\`: A bug fix
+                - \`docs\`: Documentation only changes
+                - \`style\`: Changes that do not affect the meaning of the code (e.g., formatting)
+                - \`refactor\`: A code change that neither fixes a bug nor adds a feature
+                - \`perf\`: A code change that improves performance
+                - \`test\`: Adding missing tests or correcting existing tests
+                - \`chore\`: Changes to the build process or auxiliary tools
+                - \`build\`: Changes that affect the build system or external dependencies
+                - \`ci\`: Changes to CI configuration files and scripts
+                - \`revert\`: Reverts a previous commit
+
+                **scope** (optional): A noun describing a section of the codebase.
+
+                **subject**: A short description of the code changes.
+
+                Examples:
+                - \`feat(api): add new endpoint for users\`
+                - \`fix: correct a typo in the documentation\`
+                - \`docs(readme): update installation instructions\`
+
+                Please update your pull request title to match this format.`;
+
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingComment.id,
+                body: message
               });
             }
-
-            const message = `<!-- semantic-pr-comment -->
-              Hey there and thank you for your contribution! 👋🏼
-
-              We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.
-
-              A valid title has the format: \`type(scope): subject\`
-
-              **type**: Must be one of the following:
-              - \`feat\`: A new feature
-              - \`fix\`: A bug fix
-              - \`docs\`: Documentation only changes
-              - \`style\`: Changes that do not affect the meaning of the code (e.g., formatting)
-              - \`refactor\`: A code change that neither fixes a bug nor adds a feature
-              - \`perf\`: A code change that improves performance
-              - \`test\`: Adding missing tests or correcting existing tests
-              - \`chore\`: Changes to the build process or auxiliary tools
-              - \`build\`: Changes that affect the build system or external dependencies
-              - \`ci\`: Changes to CI configuration files and scripts
-              - \`revert\`: Reverts a previous commit
-
-              **scope** (optional): A noun describing a section of the codebase.
-
-              **subject**: A short description of the code changes.
-
-              Examples:
-              - \`feat(api): add new endpoint for users\`
-              - \`fix: correct a typo in the documentation\`
-              - \`docs(readme): update installation instructions\`
-
-              Please update your pull request title to match this format.`;
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
 
             await github.rest.issues.addLabels({
               issue_number: context.issue.number,
@@ -103,6 +98,23 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const commentMarker = '<!-- semantic-pr-comment -->';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const existingComment = comments.find(comment => comment.body.includes(commentMarker));
+            if (existingComment?.id) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+              });
+            }
+
             try {
               await github.rest.issues.removeLabel({
                 issue_number: context.issue.number,
