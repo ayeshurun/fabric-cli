@@ -32,12 +32,32 @@ jobs:
             if (!regex.test(prTitle)) {
               core.setFailed('Pull request title does not follow Conventional Commits specification. See PR comment for details.');
             }
+      - name: Find Previous Comment
+        if: always()
+        id: find_comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const commentMarker = '<!-- semantic-pr-comment -->';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const existingComment = comments.find(comment => comment.body.includes(commentMarker));
+
+            if (existingComment) {
+              core.setOutput('comment_id', existingComment.id);
+            }
       - name: Handle Invalid Title
         if: failure()
         uses: actions/github-script@v6
         with:
           script: |
-            const message = `Hey there and thank you for your contribution! 👋🏼
+            const message = `<!-- semantic-pr-comment -->
+              Hey there and thank you for your contribution! 👋🏼
 
               We require pull request titles to follow the [Conventional Commits](https://www.conventionalcommits.org/) specification and it looks like your proposed title needs to be adjusted.
 
@@ -68,6 +88,15 @@ jobs:
               Please update your pull request title to match this format.`;
 
             const invalidLabel = 'invalid';
+            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
+
+            if (commentId) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+              });
+            }
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
@@ -82,3 +111,38 @@ jobs:
               repo: context.repo.repo,
               labels: [invalidLabel]
             });
+      - name: Handle Valid Title
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const invalidLabel = 'invalid';
+            const commentId = '${{ steps.find_comment.outputs.comment_id }}';
+
+            if (commentId) {
+              const { data: comment } = await github.rest.issues.getComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+              });
+
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: commentId,
+                body: `**UPDATE:** The pull request title has been corrected. ✅\n\n${comment.body}`
+              });
+            }
+
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: invalidLabel,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
