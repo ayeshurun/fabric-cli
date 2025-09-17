@@ -26,7 +26,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const prTitle = github.context.payload.pull_request.title;
+            const prTitle = context.payload.pull_request.title;
             const regex = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!?): .+/;
 
             if (!regex.test(prTitle)) {
