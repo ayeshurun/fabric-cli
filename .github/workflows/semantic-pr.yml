@@ -98,23 +98,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const commentMarker = '<!-- semantic-pr-comment -->';
-
-            const { data: comments } = await github.rest.issues.listComments({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-
-            const existingComment = comments.find(comment => comment.body.includes(commentMarker));
-            if (existingComment?.id) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-              });
-            }
-
             try {
               await github.rest.issues.removeLabel({
                 issue_number: context.issue.number,
