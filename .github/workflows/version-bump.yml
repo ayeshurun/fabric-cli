@@ -30,7 +30,7 @@ on:
   # Please remove it before creating a pull request to the main repository.
   push:
     branches:
-      - test-workflow
+      - test-version-bump-workflow
 
 jobs:
   bump-version:
