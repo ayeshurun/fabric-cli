@@ -24,7 +24,7 @@ on:
         description: 'Run without creating a commit or PR to test version calculation.'
         required: false
         type: boolean
-        default: false
+        default: true
 
   # NOTE: The 'push' trigger is for testing in a fork.
   # Please remove it before creating a pull request to the main repository.
