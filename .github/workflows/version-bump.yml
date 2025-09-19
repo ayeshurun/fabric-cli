@@ -148,7 +148,7 @@ jobs:
         shell: python
 
       - name: Create Fork
-        if: '${{ github.event.inputs.dry_run }}' == 'false'
+        if: ${{ github.event.inputs.dry_run }} == false
         id: create_fork
         uses: actions/github-script@v6
         with:
@@ -173,7 +173,7 @@ jobs:
             }
 
       - name: Commit and Push Changes to Fork
-        if: '${{ github.event.inputs.dry_run }}' == 'false'
+        if: ${{ github.event.inputs.dry_run }} == false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -186,7 +186,7 @@ jobs:
           git push --set-upstream fork chore/version-bump-${{ steps.version.outputs.new_version }}
 
       - name: Create Pull Request
-        if: '${{ github.event.inputs.dry_run }}' == 'false'
+        if: ${{ github.event.inputs.dry_run }} == false
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
