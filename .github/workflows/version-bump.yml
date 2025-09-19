@@ -5,7 +5,7 @@ on:
     inputs:
       version_part:
         description: 'The part of the version to bump'
-        required: true
+        required: false
         type: choice
         default: 'patch'
         options:
@@ -20,6 +20,17 @@ on:
         required: false
         type: boolean
         default: false
+      dry_run:
+        description: 'Run without creating a commit or PR to test version calculation.'
+        required: false
+        type: boolean
+        default: false
+
+  # NOTE: The 'push' trigger is for testing in a fork.
+  # Please remove it before creating a pull request to the main repository.
+  push:
+    branches:
+      - test-workflow
 
 jobs:
   bump-version:
@@ -40,12 +51,33 @@ jobs:
         run: |
           import re
           import os
+          import subprocess
 
           files_to_update = [
               'pyproject.toml',
               'src/fabric_cli/__init__.py',
               'src/fabric_cli/core/fab_constant.py'
           ]
+
+          def get_version_part_from_commits():
+              try:
+                  last_tag = subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0']).decode().strip()
+              except subprocess.CalledProcessError:
+                  last_tag = None
+
+              if last_tag:
+                  commits = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--oneline']).decode().strip()
+              else:
+                  commits = subprocess.check_output(['git', 'log', '--oneline']).decode().strip()
+
+              if any(commit.startswith('feat!:') or commit.startswith('feat!(') for commit in commits.split('\n')):
+                  return 'major'
+              elif any(commit.startswith('feat:') or commit.startswith('feat(') for commit in commits.split('\n')):
+                  return 'minor'
+              elif any(commit.startswith('fix:') or commit.startswith('fix(') for commit in commits.split('\n')):
+                  return 'patch'
+              else:
+                  return None
 
           def increment_version(version, part):
               if 'rc' in version:
@@ -93,6 +125,12 @@ jobs:
                   file.write(content)
 
           part = "${{ github.event.inputs.version_part }}"
+          if not part:
+              part = get_version_part_from_commits()
+
+          if not part:
+              print("No version bump needed based on commit messages.")
+              exit()
 
           with open('pyproject.toml', 'r') as file:
               content = file.read()
@@ -108,6 +146,7 @@ jobs:
         shell: python
 
       - name: Create Fork
+        if: github.event.inputs.dry_run == false
         id: create_fork
         uses: actions/github-script@v6
         with:
@@ -132,6 +171,7 @@ jobs:
             }
 
       - name: Commit and Push Changes to Fork
+        if: github.event.inputs.dry_run == false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -144,6 +184,7 @@ jobs:
           git push --set-upstream fork chore/version-bump-${{ steps.version.outputs.new_version }}
 
       - name: Create Pull Request
+        if: github.event.inputs.dry_run == false
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
