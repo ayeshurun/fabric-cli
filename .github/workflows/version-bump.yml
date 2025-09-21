@@ -112,3 +112,17 @@ jobs:
               draft: true
             });
             
+      - name: Tag new version
+        if: false || steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const new_version = "v${{ steps.increment_version.outputs.new_version }}";
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${new_version}`,
+              sha: context.sha
+            });
