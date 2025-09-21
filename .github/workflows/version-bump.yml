@@ -62,6 +62,11 @@ jobs:
               'src/fabric_cli/core/fab_constant.py'
           ]
 
+          # Regex patterns for Conventional Commits
+          feat_pattern = re.compile(r"^feat(\([^)]+\))?:", re.IGNORECASE)
+          feat_breaking_pattern = re.compile(r"^feat!|^feat!\([^)]*\):", re.IGNORECASE)
+          fix_pattern = re.compile(r"^fix(\([^)]+\))?:", re.IGNORECASE)
+
           def get_version_part_from_commits():
               try:
                   last_tag = subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0']).decode().strip()
@@ -72,9 +77,9 @@ jobs:
               print(f"Last tag: {last_tag}")
               try:
                 if last_tag:
-                    commits = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--oneline']).decode().strip()
+                    commits = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--merges', '--pretty=format:%B'], text=True).strip()
                 else:
-                    commits = subprocess.check_output(['git', 'log', '--oneline']).decode().strip()
+                    commits = subprocess.check_output(['git', 'log', '--merges', '--pretty=format:%B'], text=True).strip()
               except Exception as exc:
                   print(f"Error getting commits: {exc}")
                   commits = ""
@@ -83,17 +88,26 @@ jobs:
               if not commits:
                   return None
 
-              # print for each commit in the log
-              for commit in commits.split('\n'):
-                  print(f">>> this is a commit: '{commit}' <<<")
-              if any(commit.startswith('feat!:') or commit.startswith('feat!(') for commit in commits.split('\n')):
-                  return 'major'
-              elif any(commit.startswith('feat:') or commit.startswith('feat(') for commit in commits.split('\n')):
-                  return 'minor'
-              elif any(commit.startswith('fix:') or commit.startswith('fix(') for commit in commits.split('\n')):
-                  return 'patch'
+              bump_type = get_version_bump(commits)
+              print(f"Version bump type: {bump_type}")
+
+          # Determine version bump
+          def get_version_bump(commit_messages: str) -> str | None:
+              # Split commits by line and strip whitespace
+              commit_lines = [c.strip() for c in commits.splitlines() if c.strip()]
+
+              # Determine version bump
+              if any(feat_breaking_pattern.match(c) for c in commit_lines):
+                  bump_type = "major"
+              elif any(feat_pattern.match(c) for c in commit_lines):
+                  bump_type = "minor"
+              elif any(fix_pattern.match(c) for c in commit_lines):
+                  bump_type = "patch"
               else:
-                  return None
+                  bump_type = None
+              
+              print(f"bump_type: {bump_type}")
+              return bump_type
 
           def increment_version(version, part):
               if 'rc' in version:
