@@ -1,0 +1,128 @@
+name: Bump Version test
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_part:
+        description: 'The part of the version to bump'
+        required: false
+        type: choice
+        default: 'patch'
+        options:
+          - major
+          - minor
+          - patch
+          - rc
+          - release
+
+      dry_run:
+        description: 'Run without creating a commit or PR to test version calculation.'
+        required: false
+        type: boolean
+        default: false
+
+  # NOTE: The 'push' trigger is for testing in a fork.
+  # Please remove it before creating a pull request to the main repository.
+  push:
+    branches:
+      - test-version-bump-workflow
+
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Get version info
+        id: version_info
+        run: python .github/scripts/get_version_info.py
+        env:
+          VERSION_PART_INPUT: ${{ github.event.inputs.version_part }}
+
+      - name: Prepare Inputs
+        id: prep_inputs
+        run: |
+          # For push events, github.event.inputs is empty. We need to provide default values.
+          # For workflow_dispatch, we'll use the provided inputs or the defaults.
+          VERSION_PART="${{ github.event.inputs.version_part || 'patch' }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          echo "version_part=${VERSION_PART}" >> $GITHUB_OUTPUT
+          echo "dry_run=${DRY_RUN}" >> $GITHUB_OUTPUT
+
+      - name: Increment version
+        if: steps.version_info.outputs.bump_needed == 'true'
+        id: increment_version
+        run: python .github/scripts/increment_version.py
+        env:
+          PART: ${{ steps.version_info.outputs.part }}
+
+
+      - name: Update files
+        # if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        if: steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        id: update_files
+        run: python .github/scripts/update_files.py
+        env:
+          OLD_VERSION: ${{ steps.increment_version.outputs.current_version }}
+          NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
+
+      - name: Commit and Push Changes
+        if: steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        id: commit_and_push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b chore/version-bump-${{ steps.increment_version.outputs.new_version }}
+          git add pyproject.toml src/fabric_cli/__init__.py src/fabric_cli/core/fab_constant.py
+          git commit -m "chore(version): bump '${{ steps.version_info.outputs.part }}' version to ${{ steps.increment_version.outputs.new_version }}"
+          git push --set-upstream origin chore/version-bump-${{ steps.increment_version.outputs.new_version }}
+
+      - name: Create Pull Request
+        # if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        if: steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const new_version = "${{ steps.increment_version.outputs.new_version }}";
+            const branch = `chore/version-bump-${new_version}`;
+
+            await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `chore(version): bump version to ${new_version}`,
+              head: branch,
+              base: 'main',
+              body: `This PR bumps the version to ${new_version}`,
+              draft: true
+            });
+            
+      - name: Tag new version
+        if: false || steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const new_version = "v${{ steps.increment_version.outputs.new_version }}";
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/tags/${new_version}`,
+              sha: context.sha
+            });

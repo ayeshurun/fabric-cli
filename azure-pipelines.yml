@@ -1,0 +1,103 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: none # This pipeline is manually triggered
+
+parameters:
+- name: version_part
+  displayName: 'The part of the version to bump'
+  type: string
+  default: 'patch'
+  values:
+  - major
+  - minor
+  - patch
+  - rc
+  - release
+- name: dry_run
+  displayName: 'Run without creating a commit or PR to test version calculation.'
+  type: boolean
+  default: false
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # For push events, github.event.inputs is empty. We need to provide default values.
+  # For workflow_dispatch, we'll use the provided inputs or the defaults.
+  VERSION_PART: ${{ parameters.version_part }}
+  DRY_RUN: ${{ parameters.dry_run }}
+
+jobs:
+- job: BumpVersion
+  displayName: 'Bump Version'
+  steps:
+  - checkout: self
+    persistCredentials: true # Needed to push changes back to the repo
+    fetchDepth: 0 # Equivalent to fetch-depth: 0 in GitHub Actions
+
+  - task: UsePythonVersion@0
+    displayName: 'Set up Python 3.12'
+    inputs:
+      versionSpec: '3.12'
+
+  - script: python .github/scripts/get_version_info.py
+    displayName: 'Get version info'
+    name: version_info
+    env:
+      VERSION_PART_INPUT: $(VERSION_PART)
+
+  - script: python .github/scripts/increment_version.py
+    displayName: 'Increment version'
+    name: increment_version
+    condition: and(succeeded(), eq(variables['version_info.bump_needed'], 'true'))
+    env:
+      PART: $(version_info.part)
+
+  - script: python .github/scripts/update_files.py
+    displayName: 'Update files'
+    name: update_files
+    condition: and(succeeded(), eq(variables.DRY_RUN, 'false'), eq(variables['version_info.bump_needed'], 'true'))
+    env:
+      OLD_VERSION: $(increment_version.current_version)
+      NEW_VERSION: $(increment_version.new_version)
+
+  - bash: |
+      git config --global user.name "fabric-cli-bot"
+      git config --global user.email "fabric-cli-bot@users.noreply.github.com"
+      BRANCH_NAME="chore/version-bump-$(increment_version.new_version)"
+      git checkout -b $BRANCH_NAME
+      git add pyproject.toml src/fabric_cli/__init__.py src/fabric_cli/core/fab_constant.py
+      git commit -m "chore(version): bump '$(version_info.part)' version to $(increment_version.new_version)"
+      git push --set-upstream origin $BRANCH_NAME
+      echo "##vso[task.setvariable variable=branchName;isOutput=true]$BRANCH_NAME"
+    displayName: 'Commit and Push Changes'
+    name: commit_and_push
+    condition: and(succeeded(), eq(variables.DRY_RUN, 'false'), eq(variables['version_info.bump_needed'], 'true'))
+    env:
+      # The System.AccessToken is a special variable that provides a token for the build service
+      # Ensure the "Project Collection Build Service" has "Contribute" and "Create branch" permissions on the repository
+      GIT_HTTP_USER_AGENT: "git/2.22.0 (linux)"
+      GIT_AUTHORIZATION_HEADER: "Authorization: Bearer $(System.AccessToken)"
+
+
+  - bash: |
+      echo "Creating PR for branch $(commit_and_push.branchName)"
+      curl -X POST \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $(System.AccessToken)" \
+      -d '{
+        "sourceRefName": "refs/heads/$(commit_and_push.branchName)",
+        "targetRefName": "refs/heads/main",
+        "title": "chore(version): bump version to $(increment_version.new_version)",
+        "description": "This PR bumps the version to $(increment_version.new_version)",
+        "isDraft": true
+      }' \
+      "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullrequests?api-version=6.0"
+    displayName: 'Create Pull Request'
+    condition: and(succeeded(), eq(variables.DRY_RUN, 'false'), eq(variables['version_info.bump_needed'], 'true'))
+    env:
+      # Ensure the "Project Collection Build Service" has "Contribute to pull requests" permission
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
