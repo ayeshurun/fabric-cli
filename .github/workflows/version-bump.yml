@@ -83,6 +83,9 @@ jobs:
               if not commits:
                   return None
 
+              # print for each commit in the log
+              for commit in commits.split('\n'):
+                  print(f">>> this is a commit: '{commit}' <<<")
               if any(commit.startswith('feat!:') or commit.startswith('feat!(') for commit in commits.split('\n')):
                   return 'major'
               elif any(commit.startswith('feat:') or commit.startswith('feat(') for commit in commits.split('\n')):
