@@ -59,7 +59,10 @@ def main():
     new_version = increment_version(current_version, part)
 
     with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        f.write(f"current_version={current_version}\n")
         f.write(f"new_version={new_version}\n")
+
+    print(f"new_version: {new_version}")
 
 
 if __name__ == "__main__":
