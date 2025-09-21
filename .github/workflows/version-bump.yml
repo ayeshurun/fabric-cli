@@ -55,6 +55,7 @@ jobs:
           import re
           import os
           import subprocess
+          from collections import defaultdict
 
           files_to_update = [
               'pyproject.toml',
@@ -93,21 +94,35 @@ jobs:
 
           # Determine version bump
           def get_version_bump(commits: str) -> str | None:
-              # Split commits by line and strip whitespace
-              commit_lines = [c.strip() for c in commits.splitlines() if c.strip()]
+              # Collect commits by bump type
+              bump_commits = defaultdict(list)
 
-              # Determine version bump
-              if any(feat_breaking_pattern.match(c) for c in commit_lines):
-                  bump_type = "major"
-              elif any(feat_pattern.match(c) for c in commit_lines):
-                  bump_type = "minor"
-              elif any(fix_pattern.match(c) for c in commit_lines):
-                  bump_type = "patch"
+              for c in commit_lines:
+                  if feat_breaking_pattern.match(c):
+                      bump_commits['major'].append(c)
+                  elif feat_pattern.match(c):
+                      bump_commits['minor'].append(c)
+                  elif fix_pattern.match(c):
+                      bump_commits['patch'].append(c)
+
+              # Determine bump type: major > minor > patch
+              if bump_commits['major']:
+                  bump_type = 'major'
+              elif bump_commits['minor']:
+                  bump_type = 'minor'
+              elif bump_commits['patch']:
+                  bump_type = 'patch'
               else:
                   bump_type = None
-              
-              print(f"bump_type: {bump_type}")
-              return bump_type
+
+              # Output results
+              print(f"Version bump type: {bump_type}")
+
+              for bt in ['major', 'minor', 'patch']:
+                  if bump_commits[bt]:
+                      print(f"\n{bt.upper()} commits ({len(bump_commits[bt])}):")
+                      for commit in bump_commits[bt]:
+                          print(f"  {commit}")
 
           def increment_version(version, part):
               if 'rc' in version:
