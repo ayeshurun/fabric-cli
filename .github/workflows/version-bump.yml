@@ -58,6 +58,7 @@ jobs:
       - name: Create Fork
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
         id: create_fork
+        needs: version_info
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -86,19 +87,24 @@ jobs:
       - name: Increment version
         if: steps.version_info.outputs.bump_needed == 'true'
         id: increment_version
+        needs: [version_info, create_fork]
         run: python .github/scripts/increment_version.py
         env:
           PART: ${{ steps.version_info.outputs.part }}
 
       - name: Update files
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        id: update_files
         run: python .github/scripts/update_files.py
+        needs: [version_info, create_fork, increment_version]
         env:
           OLD_VERSION: ${{ steps.version_info.outputs.current_version }}
           NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
 
       - name: Commit and Push Changes to Fork
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        id: commit_and_push
+        needs: [version_info, create_fork, increment_version, update_files]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -112,6 +118,7 @@ jobs:
 
       - name: Create Pull Request
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        needs: [version_info, create_fork, increment_version, update_files, commit_and_push]
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
