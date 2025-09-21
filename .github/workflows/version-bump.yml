@@ -69,6 +69,13 @@ jobs:
           echo "dry_run=${DRY_RUN}" >> $GITHUB_OUTPUT
           echo "create_pr_in_fork=${CREATE_PR_IN_FORK}" >> $GITHUB_OUTPUT
 
+      - name: Increment version
+        if: steps.version_info.outputs.bump_needed == 'true'
+        id: increment_version
+        run: python .github/scripts/increment_version.py
+        env:
+          PART: ${{ steps.version_info.outputs.part }}
+
       - name: Create Fork
         # if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
         if: steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
@@ -81,11 +88,12 @@ jobs:
             // We'll just use the current repo as the 'fork' for testing purposes.
             const { owner, repo } = context.repo;
             console.log(`Forking ${owner}/${repo}...`);
-            // return `${owner}/${repo}`;
-            /* try {
+            const new_version = "${{ steps.increment_version.outputs.new_version }}";
+            try {
                const fork = await github.rest.repos.createFork({
                  owner,
                  repo,
+                 name: `version-bump-${new_version}`
                });
                return fork.data.full_name;
              } catch (error) {
@@ -96,14 +104,6 @@ jobs:
                }
                throw error;
              }
-            */
-
-      - name: Increment version
-        if: steps.version_info.outputs.bump_needed == 'true'
-        id: increment_version
-        run: python .github/scripts/increment_version.py
-        env:
-          PART: ${{ steps.version_info.outputs.part }}
 
       - name: Update files
         # if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
@@ -111,7 +111,7 @@ jobs:
         id: update_files
         run: python .github/scripts/update_files.py
         env:
-          OLD_VERSION: ${{ steps.version_info.outputs.current_version }}
+          OLD_VERSION: ${{ steps.increment_version.outputs.current_version }}
           NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
 
       - name: Commit and Push Changes to Fork
@@ -124,7 +124,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git checkout -b chore/version-bump-${{ steps.increment_version.outputs.new_version }}
           git add pyproject.toml src/fabric_cli/__init__.py src/fabric_cli/core/fab_constant.py
-          git commit -m "chore(version): bump version to ${{ steps.increment_version.outputs.new_version }}"
+          git commit -m "chore(version): bump '${{ steps.version_info.outputs.part }}' version to ${{ steps.increment_version.outputs.new_version }}"
           git remote add fork https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ steps.create_fork.outputs.result }}.git
           git push --set-upstream fork chore/version-bump-${{ steps.increment_version.outputs.new_version }}
 
@@ -144,7 +144,7 @@ jobs:
             console.log(`Fork full name ${fork_full_name}...`);
             const pr_owner = create_pr_in_fork ? fork_owner : upstream_owner;
             console.log(`Creating PR in ${pr_owner}/${repo}...`);
-            /*
+            
             await github.rest.pulls.create({
               owner: pr_owner,
               repo,
@@ -154,4 +154,4 @@ jobs:
               body: `This PR bumps the version to ${new_version}`,
               draft: true
             });
-            */
+            
