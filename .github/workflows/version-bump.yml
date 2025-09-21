@@ -69,6 +69,7 @@ jobs:
                   print(f"Could not get last tag, probably because there are no tags yet. Error: {exc}")
                   last_tag = None
 
+              print(f"Last tag: {last_tag}")
               try:
                 if last_tag:
                     commits = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--oneline']).decode().strip()
@@ -78,6 +79,7 @@ jobs:
                   print(f"Error getting commits: {exc}")
                   commits = ""
 
+              print(f"Commits: {commits}")
               if not commits:
                   return None
 
