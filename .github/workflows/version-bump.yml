@@ -19,12 +19,12 @@ on:
         description: 'Create PR in fork'
         required: false
         type: boolean
-        default: false
+        default: true
       dry_run:
         description: 'Run without creating a commit or PR to test version calculation.'
         required: false
         type: boolean
-        default: true
+        default: false
 
   # NOTE: The 'push' trigger is for testing in a fork.
   # Please remove it before creating a pull request to the main repository.
@@ -122,9 +122,10 @@ jobs:
             const fork_full_name = "${{ steps.create_fork.outputs.result }}";
             const fork_owner = fork_full_name.split('/')[0];
             const create_pr_in_fork = ${{ github.event.inputs.create_pr_in_fork }};
-
+            console.log(`Fork full name ${fork_full_name}...`);
             const pr_owner = create_pr_in_fork ? fork_owner : upstream_owner;
-
+            console.log(`Creating PR in ${pr_owner}/${repo}...`);
+            /*
             await github.rest.pulls.create({
               owner: pr_owner,
               repo,
@@ -134,3 +135,4 @@ jobs:
               body: `This PR bumps the version to ${new_version}`,
               draft: true
             });
+            */
