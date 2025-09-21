@@ -1,7 +1,8 @@
 name: "🚀 Feature request"
 description: Suggest an idea or enhancement for fabric-cli
-title: "[FEATURE] "
+title: "[feature] "
 labels: ["enhancement"]
+assignees: ["@microsoft/fabric-cli-dev"]
 body:
   - type: markdown
     attributes:

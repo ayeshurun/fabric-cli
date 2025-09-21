@@ -1,7 +1,8 @@
 name: "❓ General question"
 description: Ask a question about using fabric-cli
-title: "[QUESTION] "
+title: "[question] "
 labels: ["question"]
+assignees: ["@microsoft/fabric-cli-dev"]
 body:
   - type: markdown
     attributes:

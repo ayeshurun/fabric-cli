@@ -1,7 +1,8 @@
 name: "🐛 Bug report"
 description: Create a report to help us improve fabric-cli
-title: "[BUG] "
+title: "[bug] "
 labels: ["bug"]
+assignees: ["@microsoft/fabric-cli-dev"]
 body:
   - type: markdown
     attributes:
