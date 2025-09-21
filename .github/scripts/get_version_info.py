@@ -88,6 +88,7 @@ def main():
         if part:
             f.write(f"part={part}\n")
             f.write("bump_needed=true\n")
+            print(f"Version bump part: {part} and bump_needed=true")
         else:
             f.write("bump_needed=false\n")
             print("No version bump needed.")
