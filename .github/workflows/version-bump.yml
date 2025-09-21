@@ -31,6 +31,28 @@ on:
   push:
     branches:
       - test-version-bump-workflow
+    inputs:
+      version_part:
+        description: 'The part of the version to bump'
+        required: false
+        type: choice
+        default: 'patch'
+        options:
+          - major
+          - minor
+          - patch
+          - rc
+          - release
+      create_pr_in_fork:
+        description: 'Create PR in fork'
+        required: false
+        type: boolean
+        default: true
+      dry_run:
+        description: 'Run without creating a commit or PR to test version calculation.'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   bump-version:
@@ -58,7 +80,6 @@ jobs:
       - name: Create Fork
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
         id: create_fork
-        needs: version_info
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -87,7 +108,6 @@ jobs:
       - name: Increment version
         if: steps.version_info.outputs.bump_needed == 'true'
         id: increment_version
-        needs: [version_info, create_fork]
         run: python .github/scripts/increment_version.py
         env:
           PART: ${{ steps.version_info.outputs.part }}
@@ -96,15 +116,13 @@ jobs:
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
         id: update_files
         run: python .github/scripts/update_files.py
-        needs: [version_info, create_fork, increment_version]
         env:
           OLD_VERSION: ${{ steps.version_info.outputs.current_version }}
           NEW_VERSION: ${{ steps.increment_version.outputs.new_version }}
 
       - name: Commit and Push Changes to Fork
-        if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
+        if: steps.prep_inputs.outputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
         id: commit_and_push
-        needs: [version_info, create_fork, increment_version, update_files]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -118,7 +136,6 @@ jobs:
 
       - name: Create Pull Request
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
-        needs: [version_info, create_fork, increment_version, update_files, commit_and_push]
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
