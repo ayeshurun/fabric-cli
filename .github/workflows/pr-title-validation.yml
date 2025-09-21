@@ -1,0 +1,28 @@
+# Linter to enforce semantic pull request titles (see https://www.conventionalcommits.org/)
+---
+name: 🔍 Semantic PR Title Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - edited
+      - reopened
+      - ready_for_review
+
+jobs:
+  check_pr_title:
+    name: Check Pull Request Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Semantic PR Validation
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const regex = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!?): .+/;
+            if (!regex.test(prTitle)) {
+              core.setFailed('Pull request title does not follow Conventional Commits specification.');
+            }

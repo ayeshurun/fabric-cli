@@ -1,45 +1,41 @@
-# Linter to enforce semantic pull request titles (see https://www.conventionalcommits.org/)
+# This workflow is triggered when the 'Semantic PR Title Validation' workflow completes.
+# It provides feedback on the pull request based on the validation result.
 ---
-name: 🔍 Semantic PR Validation
+name: ✍️ Semantic PR Feedback
 
 on:
-  pull_request_target:
-    branches: 
-      - main
+  workflow_run:
+    workflows: ["🔍 Semantic PR Title Validation"]
     types:
-      - opened
-      - edited
-      - reopened
-      - ready_for_review
+      - completed
 
 permissions:
   issues: write
 
 jobs:
-  check_pr_title:
-    name: Check Pull Request Title
+  feedback:
+    name: Provide Feedback
     runs-on: ubuntu-latest
-    steps:
-      - name: Run Semantic PR Validation
-        id: validation
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const prTitle = context.payload.pull_request.title;
-            const regex = /^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!?): .+/;
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
 
-            if (!regex.test(prTitle)) {
-              core.setFailed('Pull request title does not follow Conventional Commits specification. See PR comment for details.');
-            }
-      - name: Handle Invalid Title
-        if: failure()
+    steps:
+      - name: Get PR Number
+        id: get_pr_number
         uses: actions/github-script@v6
         with:
           script: |
+            return github.context.payload.workflow_run.pull_requests[0].number
+
+      - name: Handle Invalid Title
+        if: github.event.workflow_run.conclusion == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prNumber = ${{ steps.get_pr_number.outputs.result }};
             const commentMarker = '<!-- semantic-pr-comment -->';
 
             const { data: comments } = await github.rest.issues.listComments({
-              issue_number: context.issue.number,
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
@@ -80,7 +76,7 @@ jobs:
             Please update your pull request title to match this format.`;
 
               await github.rest.issues.createComment({
-                issue_number: context.issue.number,
+                issue_number: prNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: message
@@ -88,27 +84,29 @@ jobs:
             }
 
             await github.rest.issues.addLabels({
-              issue_number: context.issue.number,
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               labels: ['invalid']
             });
+
       - name: Handle Valid Title
-        if: success()
+        if: github.event.workflow_run.conclusion == 'success'
         uses: actions/github-script@v6
         with:
           script: |
+            const prNumber = ${{ steps.get_pr_number.outputs.result }};
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
             });
 
             const invalidLabel = labels.find(label => label.name === 'invalid');
 
             if (invalidLabel) {
               await github.rest.issues.removeLabel({
-                issue_number: context.issue.number,
+                issue_number: prNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 name: 'invalid',
