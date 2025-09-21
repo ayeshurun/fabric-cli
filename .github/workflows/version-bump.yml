@@ -94,7 +94,8 @@ jobs:
 
           # Determine version bump
           def get_version_bump(commits: str) -> str | None:
-              # Collect commits by bump type
+
+              commit_lines = [c.strip() for c in commits.splitlines() if c.strip()]
               bump_commits = defaultdict(list)
 
               for c in commit_lines:
@@ -105,7 +106,6 @@ jobs:
                   elif fix_pattern.match(c):
                       bump_commits['patch'].append(c)
 
-              # Determine bump type: major > minor > patch
               if bump_commits['major']:
                   bump_type = 'major'
               elif bump_commits['minor']:
