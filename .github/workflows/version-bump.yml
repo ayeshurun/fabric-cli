@@ -92,7 +92,7 @@ jobs:
               print(f"Version bump type: {bump_type}")
 
           # Determine version bump
-          def get_version_bump(commit_messages: str) -> str | None:
+          def get_version_bump(commits: str) -> str | None:
               # Split commits by line and strip whitespace
               commit_lines = [c.strip() for c in commits.splitlines() if c.strip()]
 
