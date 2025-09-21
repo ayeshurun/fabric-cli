@@ -65,11 +65,10 @@ jobs:
           def get_version_part_from_commits():
               try:
                   last_tag = subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0']).decode().strip()
-              except Exception as exc:
-                  print(f"Error getting last tag: {exc}")
+              except subprocess.CalledProcessError as exc:
+                  print(f"Could not get last tag, probably because there are no tags yet. Error: {exc}")
                   last_tag = None
 
-              
               try:
                 if last_tag:
                     commits = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--oneline']).decode().strip()
@@ -77,7 +76,10 @@ jobs:
                     commits = subprocess.check_output(['git', 'log', '--oneline']).decode().strip()
               except Exception as exc:
                   print(f"Error getting commits: {exc}")
-                  commits = []
+                  commits = ""
+
+              if not commits:
+                  return None
 
               if any(commit.startswith('feat!:') or commit.startswith('feat!(') for commit in commits.split('\n')):
                   return 'major'
