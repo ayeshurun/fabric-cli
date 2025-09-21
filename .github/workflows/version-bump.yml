@@ -61,23 +61,27 @@ jobs:
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          result-encoding: string
           script: |
+            // When running in a fork, we can't fork it again.
+            // We'll just use the current repo as the 'fork' for testing purposes.
             const { owner, repo } = context.repo;
-            try {
-              const fork = await github.rest.repos.createFork({
-                owner,
-                repo,
-              });
-              return fork.data.full_name;
-            } catch (error) {
-              if (error.message.includes('fork exists')) {
-                console.log('Fork already exists, proceeding.');
-                const user = await github.rest.users.getAuthenticated();
-                return `${user.data.login}/${repo}`;
-              }
-              throw error;
-            }
+            console.log(`Forking ${owner}/${repo}...`);
+            // return `${owner}/${repo}`;
+            /* try {
+               const fork = await github.rest.repos.createFork({
+                 owner,
+                 repo,
+               });
+               return fork.data.full_name;
+             } catch (error) {
+               if (error.message.includes('fork exists')) {
+                 console.log('Fork already exists, proceeding.');
+                 const user = await github.rest.users.getAuthenticated();
+                 return `${user.data.login}/${repo}`;
+               }
+               throw error;
+             }
+            */
 
       - name: Increment version
         if: steps.version_info.outputs.bump_needed == 'true'
@@ -100,11 +104,11 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote add fork "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ steps.create_fork.outputs.result }}.git"
           git checkout -b chore/version-bump-${{ steps.increment_version.outputs.new_version }}
           git add pyproject.toml src/fabric_cli/__init__.py src/fabric_cli/core/fab_constant.py
           git commit -m "chore(version): bump version to ${{ steps.increment_version.outputs.new_version }}"
-          git push --set-upstream fork chore/version-bump-${{ steps.increment_version.outputs.new_version }}
+          # git push --set-upstream fork chore/version-bump-${{ steps.increment_version.outputs.new_version }}
+          git push --set-upstream origin chore/version-bump-${{ steps.increment_version.outputs.new_version }}
 
       - name: Create Pull Request
         if: github.event.inputs.dry_run == 'false' && steps.version_info.outputs.bump_needed == 'true'
