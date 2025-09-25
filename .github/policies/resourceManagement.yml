@@ -50,51 +50,51 @@ configuration:
     # :::
 
     # ---------- Scheduled jobs (stale + close) ----------
-    scheduledSearches:
-      # Mark "need more info" issues as stale after 7 days
-      - description: Mark need-more-info issues as no-recent-activity after 7 days
-        frequencies:
-          - hourly:
-              hour: 6
-        filters:
-          - isIssue
-          - isOpen
-          - hasLabel:
-              label: need more info
-          - noActivitySince:
-              days: 7
-          - isNotLabeledWith:
-              label: no recent activity
-        actions:
-          - addLabel:
-              label: no recent activity
-          - addReply:
-              reply: >
-                Friendly reminder: we're still missing details to proceed.
-                Please reply with the requested information within **7 days**,
-                or this issue will be closed automatically.
+    # scheduledSearches:
+    #   # Mark "need more info" issues as stale after 7 days
+    #   - description: Mark need-more-info issues as no-recent-activity after 7 days
+    #     frequencies:
+    #       - hourly:
+    #           hour: 6
+    #     filters:
+    #       - isIssue
+    #       - isOpen
+    #       - hasLabel:
+    #           label: need more info
+    #       - noActivitySince:
+    #           days: 7
+    #       - isNotLabeledWith:
+    #           label: no recent activity
+    #     actions:
+    #       - addLabel:
+    #           label: no recent activity
+    #       - addReply:
+    #           reply: >
+    #             Friendly reminder: we're still missing details to proceed.
+    #             Please reply with the requested information within **7 days**,
+    #             or this issue will be closed automatically.
 
-      # Close if still inactive for another 7 days
-      - description: Close issues that are both need-more-info and no-recent-activity after 14 days total
-        frequencies:
-          - daily:
-              time: 1:00
-        filters:
-          - isIssue
-          - isOpen
-          - hasLabel:
-              label: need more info
-          - hasLabel:
-              label: no recent activity
-          - noActivitySince:
-              days: 14
-        actions:
-          - closeIssue
-          - addReply:
-              reply: >
-                Closing due to **no activity** after requesting more information.
-                If you still need help, please comment with the missing details
-                and we'll happily reopen.
+    #   # Close if still inactive for another 7 days
+    #   - description: Close issues that are both need-more-info and no-recent-activity after 14 days total
+    #     frequencies:
+    #       - daily:
+    #           time: 1:00
+    #     filters:
+    #       - isIssue
+    #       - isOpen
+    #       - hasLabel:
+    #           label: need more info
+    #       - hasLabel:
+    #           label: no recent activity
+    #       - noActivitySince:
+    #           days: 14
+    #     actions:
+    #       - closeIssue
+    #       - addReply:
+    #           reply: >
+    #             Closing due to **no activity** after requesting more information.
+    #             If you still need help, please comment with the missing details
+    #             and we'll happily reopen.
 
       # Optional: consider closing Questions/Enhancements with no activity for 14 days
       # Uncomment and adjust type labels if you want this behavior
