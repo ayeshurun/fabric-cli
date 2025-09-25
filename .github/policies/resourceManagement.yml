@@ -1,293 +1,314 @@
-id: issue-triage
+# id: issue-triage
+# name: GitOps.PullRequestIssueManagement
+# description: Issue triage workflow matching the team policy
+# owner:
+# resource: repository
+# disabled: false
+
+# where:
+# configuration:
+#   resourceManagementConfiguration:
+
+#     # ::: mermaid
+#     # flowchart TD
+
+#     # A[Issue was opened by contributor]
+
+#     # B['Needs Triage' label should be set automatically]
+
+#     # C[Assignee from Dev/Product should be set]
+
+#     # D[Assignee review the issue, remove 'Needs Triage' or' need more info' label if exists]
+
+#     # E{Missing info?}
+
+#     # F[Set 'need more info' label and inform contributor]
+
+#     # G[Close the issue]
+
+#     # H{Bug/Feature accepted?}
+
+#     # I[Set relevant labels 'help wanted' / 'good first issue']
+
+#     # J[Set 'wontfix' / 'duplicate' label and add explanation comment]
+
+#     # A --> B --> C --> D --> E
+
+#     # E --Yes--> F
+
+#     # F --Info provided--> D
+
+#     # E --Nope--> H
+
+#     # H --Yes--> I
+
+#     # H --Nope--> J
+
+#     # J --> G
+
+#     # G --Ask/Enhancement 14 days of inactivity. Consider closing bug--> F
+#     # :::
+
+#     # ---------- Scheduled jobs (stale + close) ----------
+#     # scheduledSearches:
+#     #   # Mark "need more info" issues as stale after 7 days
+#     #   - description: Mark need-more-info issues as no-recent-activity after 7 days
+#     #     frequencies:
+#     #       - hourly:
+#     #           hour: 6
+#     #     filters:
+#     #       - isIssue
+#     #       - isOpen
+#     #       - hasLabel:
+#     #           label: need more info
+#     #       - noActivitySince:
+#     #           days: 7
+#     #       - isNotLabeledWith:
+#     #           label: no recent activity
+#     #     actions:
+#     #       - addLabel:
+#     #           label: no recent activity
+#     #       - addReply:
+#     #           reply: >
+#     #             Friendly reminder: we're still missing details to proceed.
+#     #             Please reply with the requested information within **7 days**,
+#     #             or this issue will be closed automatically.
+
+#     #   # Close if still inactive for another 7 days
+#     #   - description: Close issues that are both need-more-info and no-recent-activity after 14 days total
+#     #     frequencies:
+#     #       - daily:
+#     #           time: 1:00
+#     #     filters:
+#     #       - isIssue
+#     #       - isOpen
+#     #       - hasLabel:
+#     #           label: need more info
+#     #       - hasLabel:
+#     #           label: no recent activity
+#     #       - noActivitySince:
+#     #           days: 14
+#     #     actions:
+#     #       - closeIssue
+#     #       - addReply:
+#     #           reply: >
+#     #             Closing due to **no activity** after requesting more information.
+#     #             If you still need help, please comment with the missing details
+#     #             and we'll happily reopen.
+
+#       # Optional: consider closing Questions/Enhancements with no activity for 14 days
+#       # Uncomment and adjust type labels if you want this behavior
+#       # - description: Mark enhancement/question as no-recent-activity after 14 days
+#       #   frequencies:
+#       #     - hourly:
+#       #         hour: 6
+#       #   filters:
+#       #     - isIssue
+#       #     - isOpen
+#       #     - or:
+#       #         - hasLabel:
+#       #             label: enhancement
+#       #         - hasLabel:
+#       #             label: question
+#       #   actions:
+#       #     - addLabel:
+#       #         label: no-recent-activity
+#       #     - addReply:
+#       #         reply: >
+#       #           Heads-up: this has been inactive for **14 days**.
+#       #           If no updates arrive soon, we may close to keep the backlog healthy.
+
+#     # ---------- Event responders (real-time) ----------
+#     eventResponderTasks:
+
+#       # (A→B) New issue opened → add "Needs Triage"
+#       - description: Label new issues for triage
+#         if:
+#           - payloadType: Issues
+#           - isAction:
+#               action: Opened
+#         then:
+#           - addLabel:
+#               label: triage
+#           - addReply:
+#               reply: >
+#                 Thanks for opening this issue! A maintainer will review it shortly.
+
+#       # (D→E→F) Maintainer requests more info
+#       - description: Maintainer command to request more info
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '^/needinfo'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - addLabel:
+#               label: need more info
+#           - addReply:
+#               reply: >
+#                 Hi @${issueAuthor} — we need **more information** to proceed.
+#                 Please add the requested details and we'll continue the triage.
+#           - removeLabel:
+#               label: triage
+
+#       # (F→D) Author replies → remove "need more info" & "no recent activity", re-triage
+#       - description: Author replied; clear "need more info" and stale label
+#         if:
+#           - payloadType: Issue_Comment
+#           - isAction:
+#               action: Created
+#           - isActivitySender:
+#               issueAuthor: true
+#           - or:
+#               - hasLabel:
+#                   label: need more info
+#               - hasLabel:
+#                   label: no recent activity
+#         then:
+#           - removeLabel:
+#               label: need more info
+#           - removeLabel:
+#               label: no recent activity
+#           - addLabel:
+#               label: triage
+
+#       # (D) Maintainer acknowledges triage complete
+#       - description: Maintainer marks triage complete (/triaged)
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '^/triaged'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - removeLabel:
+#               label: triage
+
+#       # (H→I) Accept issue and label as help-wanted/good-first-issue
+#       - description: Accept as help wanted
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '^/help-wanted'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - addLabel:
+#               label: help wanted
+#           - removeLabel:
+#               label: triage
+#           - addReply:
+#               reply: >
+#                 Marked as **help wanted**. Contributions welcome!
+
+#       - description: Accept as good first issue
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '^/good-first-issue'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - addLabel:
+#               label: good first issue
+#           - addLabel:
+#               label: help wanted
+#           - removeLabel:
+#               label: triage
+#           - addReply:
+#               reply: >
+#                 Marked as **good first issue**. Great starter task for new contributors.
+
+#       # (H→J→G) Reject (wontfix) and close
+#       - description: Mark wontfix and close
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '^/wontfix'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - addLabel:
+#               label: wontfix
+#           - removeLabel:
+#               label: triage
+#           - addReply:
+#               reply: >
+#                 Closing as **wontfix**. Thank you for the suggestion and discussion.
+#           - closeIssue
+
+#       # (H→J→G) Detect duplicate via command and close (e.g., "/duplicate #123")
+#       - description: Duplicate command → label, reply, and close
+#         if:
+#           - payloadType: Issue_Comment
+#           - commentContains:
+#               pattern: '\/dup(licate|e)?(\s+of)?\s+\#[\d]+'
+#               isRegex: true
+#           - or:
+#               - activitySenderHasPermission:
+#                   permission: Admin
+#               - activitySenderHasPermission:
+#                   permission: Write
+#         then:
+#           - addLabel:
+#               label: duplicate
+#           - addReply:
+#               reply: >
+#                 This looks like a **duplicate** of the referenced issue. Closing
+#                 to consolidate the discussion and tracking. Thanks!
+#           - closeIssue
+
+#       # If any activity happens on an open issue, remove "no-recent-activity"
+#       - description: Remove stale label when new activity occurs
+#         if:
+#           - payloadType: Issues
+#           - not:
+#               isAction:
+#                 action: Closed
+#           - hasLabel:
+#               label: no recent activity
+#         then:
+#           - removeLabel:
+#               label: no recent activity
+
+
+id: minimal-issue-triage-test
 name: GitOps.PullRequestIssueManagement
-description: Issue triage workflow matching the team policy
-owner:
+description: Minimal, event-driven test policy for issues
 resource: repository
 disabled: false
 
 where:
 configuration:
   resourceManagementConfiguration:
-
-    # ::: mermaid
-    # flowchart TD
-
-    # A[Issue was opened by contributor]
-
-    # B['Needs Triage' label should be set automatically]
-
-    # C[Assignee from Dev/Product should be set]
-
-    # D[Assignee review the issue, remove 'Needs Triage' or' need more info' label if exists]
-
-    # E{Missing info?}
-
-    # F[Set 'need more info' label and inform contributor]
-
-    # G[Close the issue]
-
-    # H{Bug/Feature accepted?}
-
-    # I[Set relevant labels 'help wanted' / 'good first issue']
-
-    # J[Set 'wontfix' / 'duplicate' label and add explanation comment]
-
-    # A --> B --> C --> D --> E
-
-    # E --Yes--> F
-
-    # F --Info provided--> D
-
-    # E --Nope--> H
-
-    # H --Yes--> I
-
-    # H --Nope--> J
-
-    # J --> G
-
-    # G --Ask/Enhancement 14 days of inactivity. Consider closing bug--> F
-    # :::
-
-    # ---------- Scheduled jobs (stale + close) ----------
-    # scheduledSearches:
-    #   # Mark "need more info" issues as stale after 7 days
-    #   - description: Mark need-more-info issues as no-recent-activity after 7 days
-    #     frequencies:
-    #       - hourly:
-    #           hour: 6
-    #     filters:
-    #       - isIssue
-    #       - isOpen
-    #       - hasLabel:
-    #           label: need more info
-    #       - noActivitySince:
-    #           days: 7
-    #       - isNotLabeledWith:
-    #           label: no recent activity
-    #     actions:
-    #       - addLabel:
-    #           label: no recent activity
-    #       - addReply:
-    #           reply: >
-    #             Friendly reminder: we're still missing details to proceed.
-    #             Please reply with the requested information within **7 days**,
-    #             or this issue will be closed automatically.
-
-    #   # Close if still inactive for another 7 days
-    #   - description: Close issues that are both need-more-info and no-recent-activity after 14 days total
-    #     frequencies:
-    #       - daily:
-    #           time: 1:00
-    #     filters:
-    #       - isIssue
-    #       - isOpen
-    #       - hasLabel:
-    #           label: need more info
-    #       - hasLabel:
-    #           label: no recent activity
-    #       - noActivitySince:
-    #           days: 14
-    #     actions:
-    #       - closeIssue
-    #       - addReply:
-    #           reply: >
-    #             Closing due to **no activity** after requesting more information.
-    #             If you still need help, please comment with the missing details
-    #             and we'll happily reopen.
-
-      # Optional: consider closing Questions/Enhancements with no activity for 14 days
-      # Uncomment and adjust type labels if you want this behavior
-      # - description: Mark enhancement/question as no-recent-activity after 14 days
-      #   frequencies:
-      #     - hourly:
-      #         hour: 6
-      #   filters:
-      #     - isIssue
-      #     - isOpen
-      #     - or:
-      #         - hasLabel:
-      #             label: enhancement
-      #         - hasLabel:
-      #             label: question
-      #   actions:
-      #     - addLabel:
-      #         label: no-recent-activity
-      #     - addReply:
-      #         reply: >
-      #           Heads-up: this has been inactive for **14 days**.
-      #           If no updates arrive soon, we may close to keep the backlog healthy.
-
-    # ---------- Event responders (real-time) ----------
     eventResponderTasks:
-
-      # (A→B) New issue opened → add "Needs Triage"
-      - description: Label new issues for triage
+      - description: Respond on new issues (smoke)
         if:
           - payloadType: Issues
           - isAction:
               action: Opened
         then:
-          - addLabel:
-              label: triage
           - addReply:
               reply: >
-                Thanks for opening this issue! A maintainer will review it shortly.
-
-      # (D→E→F) Maintainer requests more info
-      - description: Maintainer command to request more info
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '^/needinfo'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: need more info
-          - addReply:
-              reply: >
-                Hi @${issueAuthor} — we need **more information** to proceed.
-                Please add the requested details and we'll continue the triage.
-          - removeLabel:
-              label: triage
-
-      # (F→D) Author replies → remove "need more info" & "no recent activity", re-triage
-      - description: Author replied; clear "need more info" and stale label
-        if:
-          - payloadType: Issue_Comment
-          - isAction:
-              action: Created
-          - isActivitySender:
-              issueAuthor: true
-          - or:
-              - hasLabel:
-                  label: need more info
-              - hasLabel:
-                  label: no recent activity
-        then:
-          - removeLabel:
-              label: need more info
-          - removeLabel:
-              label: no recent activity
-          - addLabel:
-              label: triage
-
-      # (D) Maintainer acknowledges triage complete
-      - description: Maintainer marks triage complete (/triaged)
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '^/triaged'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - removeLabel:
-              label: triage
-
-      # (H→I) Accept issue and label as help-wanted/good-first-issue
-      - description: Accept as help wanted
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '^/help-wanted'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: help wanted
-          - removeLabel:
-              label: triage
-          - addReply:
-              reply: >
-                Marked as **help wanted**. Contributions welcome!
-
-      - description: Accept as good first issue
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '^/good-first-issue'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: good first issue
-          - addLabel:
-              label: help wanted
-          - removeLabel:
-              label: triage
-          - addReply:
-              reply: >
-                Marked as **good first issue**. Great starter task for new contributors.
-
-      # (H→J→G) Reject (wontfix) and close
-      - description: Mark wontfix and close
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '^/wontfix'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: wontfix
-          - removeLabel:
-              label: triage
-          - addReply:
-              reply: >
-                Closing as **wontfix**. Thank you for the suggestion and discussion.
-          - closeIssue
-
-      # (H→J→G) Detect duplicate via command and close (e.g., "/duplicate #123")
-      - description: Duplicate command → label, reply, and close
-        if:
-          - payloadType: Issue_Comment
-          - commentContains:
-              pattern: '\/dup(licate|e)?(\s+of)?\s+\#[\d]+'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: duplicate
-          - addReply:
-              reply: >
-                This looks like a **duplicate** of the referenced issue. Closing
-                to consolidate the discussion and tracking. Thanks!
-          - closeIssue
-
-      # If any activity happens on an open issue, remove "no-recent-activity"
-      - description: Remove stale label when new activity occurs
-        if:
-          - payloadType: Issues
-          - not:
-              isAction:
-                action: Closed
-          - hasLabel:
-              label: no recent activity
-        then:
-          - removeLabel:
-              label: no recent activity
+                Policy Service OK ✅ — new issue event responder fired.
