@@ -307,7 +307,7 @@ configuration:
         if:
           - payloadType: Issues
           - isAction:
-              action: Opened
+              action: Reopened
         then:
           - addReply:
               reply: >
