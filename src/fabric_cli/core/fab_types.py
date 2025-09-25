@@ -4,6 +4,8 @@
 from enum import Enum, auto
 from typing import List
 
+from pytest import Item
+
 import fabric_cli.core.fab_constant as fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors import ErrorMessages
@@ -235,7 +237,7 @@ VICMap: dict[VirtualItemContainerType, VirtualItemType] = {
     VirtualItemContainerType.SPARK_POOL: VirtualItemType.SPARK_POOL,
     VirtualItemContainerType.MANAGED_IDENTITY: VirtualItemType.MANAGED_IDENTITY,
     VirtualItemContainerType.MANAGED_PRIVATE_ENDPOINT: VirtualItemType.MANAGED_PRIVATE_ENDPOINT,
-    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE
+    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE,
 }
 
 ################
@@ -283,6 +285,7 @@ class ItemType(_BaseItemType):
     GRAPHQLAPI = "GraphQLApi"
     MOUNTED_DATA_FACTORY = "MountedDataFactory"
     SQL_DATABASE = "SQLDatabase"
+    MIRRORED_AZURE_DATABRICKS_CATALOG = "MirroredAzureDatabricksCatalog"
 
     def __str__(self):
         return self.value
@@ -510,6 +513,7 @@ format_mapping = {
     ItemType.COPYJOB: "copyJobs",
     ItemType.GRAPHQLAPI: "graphqlapis",
     ItemType.MOUNTED_DATA_FACTORY: "mounteddatafactories",
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG: "mirroredazuredatabrickscatalogs",
 }
 
 # Item URI in the Fabric Portal
@@ -552,6 +556,7 @@ uri_mapping = {
     ItemType.COPYJOB: "copyjobs",
     ItemType.GRAPHQLAPI: "graphql",
     ItemType.MOUNTED_DATA_FACTORY: "mounteddatafactories",
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG: "mirroredazuredatabrickscatalogs",
 }
 
 # Item Payload definition

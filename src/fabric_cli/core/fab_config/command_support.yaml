@@ -165,6 +165,7 @@ commands:
           - copy_job
           - variable_library
           - graph_ql_api
+          - mirrored_azure_databricks_catalog
           #- lakehouse # this is included just to support underlying /Files
       cp:
         supported_elements:
@@ -189,6 +190,7 @@ commands:
           - copy_job
           - variable_library
           - graph_ql_api
+          - mirrored_azure_databricks_catalog
           #- lakehouse # this is included just to support underlying /Files
       ln:
         supported_elements:
@@ -239,6 +241,7 @@ commands:
           - copy_job
           - variable_library
           - graph_ql_api
+          - mirrored_azure_databricks_catalog
       import:
         supported_items:
           - report
@@ -258,6 +261,7 @@ commands:
           - copy_job
           - variable_library
           - graph_ql_api
+          - mirrored_azure_databricks_catalog
       get:
         supported_elements:
           - workspace
