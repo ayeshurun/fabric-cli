@@ -556,7 +556,7 @@ uri_mapping = {
     ItemType.COPYJOB: "copyjobs",
     ItemType.GRAPHQLAPI: "graphql",
     ItemType.MOUNTED_DATA_FACTORY: "mounteddatafactories",
-    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG: "mirroredazuredatabrickscatalogs",
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG: "databricks",
 }
 
 # Item Payload definition
