@@ -8,9 +8,7 @@ disabled: false
 where:
 configuration:
   resourceManagementConfiguration:
-
     eventResponderTasks:
-
       - description: Label new issues for triage
         if:
           - payloadType: Issues
@@ -22,14 +20,14 @@ configuration:
           - addReply:
               reply: >
                 Thank you for submitting this issue, @${issueAuthor}.
-                
+
                 A member of the Fabric CLI team will review your submission and provide feedback shortly.
 
       - description: Maintainer command to request more info
         if:
           - payloadType: Issue_Comment
           - commentContains:
-              pattern: '^/needinfo'
+              pattern: "^/needinfo"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -42,7 +40,7 @@ configuration:
           - addReply:
               reply: >
                 @${issueAuthor}, we require additional information to properly evaluate this issue.
-                
+
                 Please provide the requested details so we can continue with the review process.
           - removeLabel:
               label: needs triage
@@ -69,14 +67,14 @@ configuration:
           - addReply:
               reply: >
                 Thank you for replying with additional information, @${issueAuthor}.
-                
+
                 A member of the Fabric CLI team will continue reviewing this issue.
 
       - description: Maintainer marks triage complete (/triaged)
         if:
           - payloadType: Issue_Comment
           - commentContains:
-              pattern: '^/triaged'
+              pattern: "^/triaged"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -91,7 +89,7 @@ configuration:
         if:
           - payloadType: Issue_Comment
           - commentContains:
-              pattern: '^/help-wanted'
+              pattern: "^/help-wanted"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -106,14 +104,14 @@ configuration:
           - addReply:
               reply: >
                 This issue has been marked as **help wanted**. 
-                
+
                 Community contributions are welcome and appreciated.
 
       - description: Accept as good first issue
         if:
           - payloadType: Issue_Comment
           - commentContains:
-              pattern: '^/good-first-issue'
+              pattern: "^/good-first-issue"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -130,14 +128,14 @@ configuration:
           - addReply:
               reply: >
                 This issue has been marked as a **good first issue**.
-                
+
                 This represents an excellent opportunity for new contributors to get involved with the project.
 
       - description: Mark wontfix and close
         if:
           - payloadType: Issue_Comment
           - commentContains:
-              pattern: '^/wontfix'
+              pattern: "^/wontfix"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -152,7 +150,7 @@ configuration:
           - addReply:
               reply: >
                 This issue is being closed as **wontfix**.
-                
+
                 We appreciate your feedback and the time you took to report this issue.
           - closeIssue
 
@@ -173,12 +171,11 @@ configuration:
           - addReply:
               reply: >
                 This issue appears to be a **duplicate** of the referenced issue and will be closed.
-                
+
                 Please continue discussion in the original issue to consolidate tracking and avoid fragmentation.
           - closeIssue
 
       # Pull Request Triage Tasks
-
       - description: Check new PR has linked help wanted issue
         if:
           - payloadType: Pull_Request
@@ -187,17 +184,15 @@ configuration:
         then:
           - addReply:
               reply: >
-                Thank you for your contribution, @${pullRequestAuthor}!
-                
+                Thank you for your contribution, @${issueAuthor}!
                 Please ensure this PR is linked to an issue labeled "help wanted" following our [contribution guidelines](https://github.com/microsoft/fabric-cli/blob/main/CONTRIBUTING.md).
-                
                 A maintainer will review this PR and verify the linked issue requirements.
 
       - description: Maintainer command to reject PR without help wanted issue
         if:
           - payloadType: Pull_Request_Review_Comment
           - commentContains:
-              pattern: '^/reject-no-issue'
+              pattern: "^/reject-no-issue"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -210,40 +205,18 @@ configuration:
           - addReply:
               reply: >
                 This pull request is being closed as it does not reference a "help wanted" issue.
-                
                 Please follow our [contribution process](https://github.com/microsoft/fabric-cli/blob/main/CONTRIBUTING.md):
                 1. Find or create an issue labeled "help wanted"
                 2. Get approval from maintainers 
                 3. Submit your PR with a reference to the approved issue
-                
                 Thank you for your interest in contributing!
           - closeIssue
-
-      - description: Maintainer assigns reviewer and categorizes PR
-        if:
-          - payloadType: Pull_Request_Review_Comment
-          - commentContains:
-              pattern: '^/triage (tech debt|bug|enhancement|documentation)'
-              isRegex: true
-          - or:
-              - activitySenderHasPermission:
-                  permission: Admin
-              - activitySenderHasPermission:
-                  permission: Write
-        then:
-          - addLabel:
-              label: ${commentMatch}
-          - addReply:
-              reply: >
-                This PR has been triaged and categorized as **${commentMatch}**.
-                
-                Review process will begin shortly. Please ensure all CI checks pass.
 
       - description: Maintainer requests changes from author
         if:
           - payloadType: Pull_Request_Review_Comment
           - commentContains:
-              pattern: '^/needswork'
+              pattern: "^/needswork"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -255,10 +228,8 @@ configuration:
               label: needs author feedback
           - addReply:
               reply: >
-                @${pullRequestAuthor}, changes have been requested for this pull request.
-                
+                @${issueAuthor}, changes have been requested for this pull request.
                 Please address the feedback provided and update your PR. The review will continue once changes are made.
-
       - description: Author updated PR; clear needs feedback label
         if:
           - payloadType: Pull_Request
@@ -271,33 +242,13 @@ configuration:
               label: needs author feedback
           - addReply:
               reply: >
-                Thank you for updating the PR, @${pullRequestAuthor}.
-                
+                Thank you for updating the PR, @${issueAuthor}.
                 The changes will be reviewed by the maintainers.
-
-      - description: Close stale PR after 14 days of inactivity
-        if:
-          - payloadType: Pull_Request
-          - isOpen: true
-          - hasLabel:
-              label: needs author feedback
-          - noActivitySince:
-              days: 14
-        then:
-          - addLabel:
-              label: no recent activity
-          - addReply:
-              reply: >
-                This pull request is being closed due to 14 days of inactivity after feedback was requested.
-                
-                @${pullRequestAuthor}, if you'd like to continue with this contribution, please feel free to reopen when you're ready to address the feedback.
-          - closeIssue
-
       - description: Maintainer approves PR
         if:
           - payloadType: Pull_Request_Review_Comment
           - commentContains:
-              pattern: '^/approve'
+              pattern: "^/approve"
               isRegex: true
           - or:
               - activitySenderHasPermission:
@@ -310,7 +261,5 @@ configuration:
           - addReply:
               reply: >
                 This pull request has been **approved**! 🎉
-                
-                @${pullRequestAuthor}, thank you for your contribution.
-                
+                @${issueAuthor}, thank you for your contribution.
                 **Note**: This PR will not be automatically merged. A maintainer will determine the appropriate timing for merge based on release planning and change impact.
