@@ -176,3 +176,141 @@ configuration:
                 
                 Please continue discussion in the original issue to consolidate tracking and avoid fragmentation.
           - closeIssue
+
+      # Pull Request Triage Tasks
+
+      - description: Check new PR has linked help wanted issue
+        if:
+          - payloadType: Pull_Request
+          - isAction:
+              action: Opened
+        then:
+          - addReply:
+              reply: >
+                Thank you for your contribution, @${pullRequestAuthor}!
+                
+                Please ensure this PR is linked to an issue labeled "help wanted" following our [contribution guidelines](https://github.com/microsoft/fabric-cli/blob/main/CONTRIBUTING.md).
+                
+                A maintainer will review this PR and verify the linked issue requirements.
+
+      - description: Maintainer command to reject PR without help wanted issue
+        if:
+          - payloadType: Pull_Request_Review_Comment
+          - commentContains:
+              pattern: '^/reject-no-issue'
+              isRegex: true
+          - or:
+              - activitySenderHasPermission:
+                  permission: Admin
+              - activitySenderHasPermission:
+                  permission: Write
+        then:
+          - addLabel:
+              label: invalid
+          - addReply:
+              reply: >
+                This pull request is being closed as it does not reference a "help wanted" issue.
+                
+                Please follow our [contribution process](https://github.com/microsoft/fabric-cli/blob/main/CONTRIBUTING.md):
+                1. Find or create an issue labeled "help wanted"
+                2. Get approval from maintainers 
+                3. Submit your PR with a reference to the approved issue
+                
+                Thank you for your interest in contributing!
+          - closeIssue
+
+      - description: Maintainer assigns reviewer and categorizes PR
+        if:
+          - payloadType: Pull_Request_Review_Comment
+          - commentContains:
+              pattern: '^/triage (tech debt|bug|enhancement|documentation)'
+              isRegex: true
+          - or:
+              - activitySenderHasPermission:
+                  permission: Admin
+              - activitySenderHasPermission:
+                  permission: Write
+        then:
+          - addLabel:
+              label: ${commentMatch}
+          - addReply:
+              reply: >
+                This PR has been triaged and categorized as **${commentMatch}**.
+                
+                Review process will begin shortly. Please ensure all CI checks pass.
+
+      - description: Maintainer requests changes from author
+        if:
+          - payloadType: Pull_Request_Review_Comment
+          - commentContains:
+              pattern: '^/needswork'
+              isRegex: true
+          - or:
+              - activitySenderHasPermission:
+                  permission: Admin
+              - activitySenderHasPermission:
+                  permission: Write
+        then:
+          - addLabel:
+              label: needs author feedback
+          - addReply:
+              reply: >
+                @${pullRequestAuthor}, changes have been requested for this pull request.
+                
+                Please address the feedback provided and update your PR. The review will continue once changes are made.
+
+      - description: Author updated PR; clear needs feedback label
+        if:
+          - payloadType: Pull_Request
+          - isAction:
+              action: Synchronize
+          - hasLabel:
+              label: needs author feedback
+        then:
+          - removeLabel:
+              label: needs author feedback
+          - addReply:
+              reply: >
+                Thank you for updating the PR, @${pullRequestAuthor}.
+                
+                The changes will be reviewed by the maintainers.
+
+      - description: Close stale PR after 14 days of inactivity
+        if:
+          - payloadType: Pull_Request
+          - isOpen: true
+          - hasLabel:
+              label: needs author feedback
+          - noActivitySince:
+              days: 14
+        then:
+          - addLabel:
+              label: no recent activity
+          - addReply:
+              reply: >
+                This pull request is being closed due to 14 days of inactivity after feedback was requested.
+                
+                @${pullRequestAuthor}, if you'd like to continue with this contribution, please feel free to reopen when you're ready to address the feedback.
+          - closeIssue
+
+      - description: Maintainer approves PR
+        if:
+          - payloadType: Pull_Request_Review_Comment
+          - commentContains:
+              pattern: '^/approve'
+              isRegex: true
+          - or:
+              - activitySenderHasPermission:
+                  permission: Admin
+              - activitySenderHasPermission:
+                  permission: Write
+        then:
+          - removeLabel:
+              label: needs author feedback
+          - addReply:
+              reply: >
+                This pull request has been **approved**! 🎉
+                
+                @${pullRequestAuthor}, thank you for your contribution.
+                
+                **Note**: This PR will not be automatically merged. A maintainer will determine the appropriate timing for merge based on release planning and change impact.
