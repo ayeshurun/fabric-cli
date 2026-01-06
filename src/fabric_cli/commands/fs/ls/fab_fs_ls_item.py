@@ -15,7 +15,24 @@ def exec(workspace: Workspace, args):
     show_details = bool(args.long)
     show_all = bool(args.all)
     ws_elements: list[Union[Item, Folder]] = utils_fs.get_ws_elements(workspace)
-    sorted_elements_dict = utils_fs.sort_ws_elements(ws_elements, show_details)
+    
+    # Check if folder listing is enabled
+    folder_listing_enabled = (
+        fab_state_config.get_config(fab_constant.FAB_FOLDER_LISTING_ENABLED) == "true"
+    )
+    
+    # Get output format from args or config
+    output_format = getattr(args, "output_format", None) or fab_state_config.get_config(
+        fab_constant.FAB_OUTPUT_FORMAT
+    )
+    
+    # Use separation if folder listing is enabled, output is text format, and --long is not provided
+    if folder_listing_enabled and output_format == "text" and not show_details:
+        sorted_elements_dict = utils_fs.sort_ws_elements_with_seperation_by_type_order(
+            ws_elements, show_details, type_order=[Folder, Item]
+        )
+    else:
+        sorted_elements_dict = utils_fs.sort_ws_elements(ws_elements, show_details)
 
     show_hidden = (
         show_all or fab_state_config.get_config(fab_constant.FAB_SHOW_HIDDEN) == "true"
