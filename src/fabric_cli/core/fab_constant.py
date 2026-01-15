@@ -44,21 +44,21 @@ AUTH_DEFAULT_AUTHORITY = "https://login.microsoftonline.com/common"
 AUTH_DEFAULT_CLIENT_ID = "5814bfb4-2705-4994-b8d6-39aabeb5eaeb"
 AUTH_TENANT_AUTHORITY = "https://login.microsoftonline.com/"
 
-# Env variables
-FAB_TOKEN = "fab_token"
-FAB_TOKEN_ONELAKE = "fab_token_onelake"
-FAB_TOKEN_AZURE = "fab_token_azure"
-FAB_SPN_CLIENT_ID = "fab_spn_client_id"
-FAB_SPN_CLIENT_SECRET = "fab_spn_client_secret"
-FAB_SPN_CERT_PATH = "fab_spn_cert_path"
-FAB_SPN_CERT_PASSWORD = "fab_spn_cert_password"
-FAB_SPN_FEDERATED_TOKEN = "fab_spn_federated_token"
-FAB_TENANT_ID = "fab_tenant_id"
+# Env variables (POSIX compliant: uppercase with underscores)
+FAB_TOKEN = "FAB_TOKEN"
+FAB_TOKEN_ONELAKE = "FAB_TOKEN_ONELAKE"
+FAB_TOKEN_AZURE = "FAB_TOKEN_AZURE"
+FAB_SPN_CLIENT_ID = "FAB_SPN_CLIENT_ID"
+FAB_SPN_CLIENT_SECRET = "FAB_SPN_CLIENT_SECRET"
+FAB_SPN_CERT_PATH = "FAB_SPN_CERT_PATH"
+FAB_SPN_CERT_PASSWORD = "FAB_SPN_CERT_PASSWORD"
+FAB_SPN_FEDERATED_TOKEN = "FAB_SPN_FEDERATED_TOKEN"
+FAB_TENANT_ID = "FAB_TENANT_ID"
 
-FAB_REFRESH_TOKEN = "fab_refresh_token"
-IDENTITY_TYPE = "identity_type"
-FAB_AUTH_MODE = "fab_auth_mode"  # Kept for backward compatibility
-FAB_AUTHORITY = "fab_authority"
+FAB_REFRESH_TOKEN = "FAB_REFRESH_TOKEN"
+IDENTITY_TYPE = "IDENTITY_TYPE"
+FAB_AUTH_MODE = "FAB_AUTH_MODE"  # Kept for backward compatibility
+FAB_AUTHORITY = "FAB_AUTHORITY"
 
 AUTH_KEYS = {
     FAB_TENANT_ID: [],
@@ -282,11 +282,18 @@ ERROR_UNIVERSAL_SECURITY_DISABLED = "UniversalSecurityDisabled"
 ERROR_SPN_AUTH_MISSING = "ServicePrincipalAuthMissing"
 ERROR_JOB_FAILED = "JobFailed"
 
-# Exit codes
+# Exit codes (POSIX compliant)
+# 0 - Success
+# 1 - General errors
+# 2 - Misuse of shell builtins
+# 126 - Command cannot execute
+# 127 - Command not found
+# 128+n - Fatal error signal "n"
 EXIT_CODE_SUCCESS = 0
 EXIT_CODE_ERROR = 1
 EXIT_CODE_CANCELLED_OR_MISUSE_BUILTINS = 2
-EXIT_CODE_AUTHORIZATION_REQUIRED = 4
+EXIT_CODE_CANNOT_EXECUTE = 126  # Used for authorization/permission errors
+EXIT_CODE_COMMAND_NOT_FOUND = 127
 
 # Contextual commands
 OS_COMMANDS = {

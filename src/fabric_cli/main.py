@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+import signal
 import sys
 
 import argcomplete
@@ -16,7 +17,55 @@ from fabric_cli.utils import fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
 
 
+# POSIX-compliant signal handler
+def _signal_handler(signum, frame):
+    """
+    Handle POSIX signals gracefully.
+    
+    Args:
+        signum: Signal number
+        frame: Current stack frame
+    """
+    signal_names = {
+        signal.SIGINT: "SIGINT",
+        signal.SIGTERM: "SIGTERM",
+        signal.SIGHUP: "SIGHUP",
+        signal.SIGQUIT: "SIGQUIT",
+    }
+    
+    signal_name = signal_names.get(signum, f"Signal {signum}")
+    
+    # Print to stderr as per POSIX
+    sys.stderr.write(f"\n{signal_name} received, exiting gracefully...\n")
+    sys.stderr.flush()
+    
+    # Exit with 128 + signal number (POSIX convention)
+    sys.exit(128 + signum)
+
+
+def _setup_signal_handlers():
+    """
+    Setup POSIX-compliant signal handlers.
+    Handles SIGINT, SIGTERM, SIGHUP, and SIGQUIT.
+    """
+    # Handle SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, _signal_handler)
+    
+    # Handle SIGTERM (termination request)
+    signal.signal(signal.SIGTERM, _signal_handler)
+    
+    # Handle SIGQUIT (Ctrl+\)
+    signal.signal(signal.SIGQUIT, _signal_handler)
+    
+    # Handle SIGHUP (terminal disconnect) - only on Unix-like systems
+    if hasattr(signal, 'SIGHUP'):
+        signal.signal(signal.SIGHUP, _signal_handler)
+
+
 def main():
+    # Setup POSIX-compliant signal handlers
+    _setup_signal_handlers()
+    
     parser, subparsers = get_global_parser_and_subparsers()
     
     argcomplete.autocomplete(parser, default_completer=None)

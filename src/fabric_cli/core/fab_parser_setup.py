@@ -67,6 +67,8 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         help_message = help_message.replace("positional arguments:", "Arg(s):")
         help_message = help_message.replace("options:", "Flags:")
 
+        # Remove help flag from output (it's implicit)
+        # Note: We now use standard -h/--help instead of -help
         help_message = re.sub(
             r"\s*-h, --help\s*(Show help for command|show this help message and exit)?",
             "",
@@ -76,6 +78,8 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         help_message = help_message.replace("[-h] ", "")
         help_message = help_message.replace("[-help] ", "")
         help_message = help_message.replace("[-help]", "")
+        help_message = help_message.replace("[--help] ", "")
+        help_message = help_message.replace("[--help]", "")
 
         if "Flags:" in help_message:
             flags_section = help_message.split("Flags:")[1].strip()
@@ -181,8 +185,8 @@ def create_parser_and_subparsers():
         help="Run commands in non-interactive mode",
     )
 
-    # -version and --version
-    parser.add_argument("-v", "--version", action="store_true")
+    # -v/-V and --version (POSIX compliant: both short and long forms)
+    parser.add_argument("-v", "-V", "--version", action="store_true")
 
     subparsers = parser.add_subparsers(dest="command", required=False)
 
