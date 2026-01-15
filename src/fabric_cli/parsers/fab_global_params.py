@@ -9,8 +9,8 @@ def add_global_flags(parser) -> None:
     Args:
         parser: The argparse parser to add flags to.
     """
-    # Add help flag
-    parser.add_argument("-help", action="help")
+    # Add help flag (POSIX compliant: -h for short, --help for long)
+    parser.add_argument("-h", "--help", action="help")
     
     # Add format flag to override output format
     parser.add_argument(
