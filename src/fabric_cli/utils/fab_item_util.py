@@ -182,46 +182,22 @@ def build_item_payload(
     # Add definition with appropriate format handling
     item_type = item.item_type
 
-    # Special handling for SPARK_JOB_DEFINITION
-    if item_type == ItemType.SPARK_JOB_DEFINITION:
-        base_payload["definition"] = {
-            "format": "SparkJobDefinitionV1",
-            "parts": definition["parts"],
-        }
-    # Special handling for NOTEBOOK
-    elif item_type == ItemType.NOTEBOOK:
-        if input_format == ".py":
-            # Python format doesn't include format key
-            base_payload["definition"] = {"parts": definition["parts"]}
-        else:
-            # Default to ipynb format
-            base_payload["definition"] = {
-                "format": "ipynb",
-                "parts": definition["parts"],
-            }
-    # All other supported item types
-    elif item_type in (
-        ItemType.REPORT,
-        ItemType.SEMANTIC_MODEL,
-        ItemType.KQL_DASHBOARD,
-        ItemType.DATA_PIPELINE,
-        ItemType.KQL_QUERYSET,
-        ItemType.EVENTHOUSE,
-        ItemType.KQL_DATABASE,
-        ItemType.MIRRORED_DATABASE,
-        ItemType.REFLEX,
-        ItemType.EVENTSTREAM,
-        ItemType.MOUNTED_DATA_FACTORY,
-        ItemType.COPYJOB,
-        ItemType.VARIABLE_LIBRARY,
-        ItemType.GRAPHQLAPI,
-        ItemType.DATAFLOW,
-        ItemType.SQL_DATABASE,
-    ):
-        # These item types use definition directly without format wrapper
-        base_payload["definition"] = definition
-    else:
-        # Unsupported item type for definition payloads
+    # Item types that don't support definition payloads
+    unsupported_types = (
+        ItemType.LAKEHOUSE,
+        ItemType.WAREHOUSE,
+        ItemType.ML_EXPERIMENT,
+        ItemType.ML_MODEL,
+        ItemType.DASHBOARD,
+        ItemType.PAGINATED_REPORT,
+        ItemType.SQL_ENDPOINT,
+        ItemType.MIRRORED_WAREHOUSE,
+        ItemType.DATAMART,
+        ItemType.ENVIRONMENT,  # Environment has custom handling
+    )
+
+    # Check if item type is not supported
+    if item_type in unsupported_types:
         from fabric_cli.errors import ErrorMessages
 
         raise FabricCLIError(
@@ -230,5 +206,43 @@ def build_item_payload(
             ),
             fab_constant.ERROR_UNSUPPORTED_COMMAND,
         )
+
+    # Special handling for NOTEBOOK
+    if item_type == ItemType.NOTEBOOK:
+        if input_format == ".py":
+            # Python format doesn't include format key
+            base_payload["definition"] = {"parts": definition["parts"]}
+        else:
+            # Get format from definition_format_mapping or default to ipynb
+            format_config = definition_format_mapping.get(item_type, {})
+            format_value = format_config.get(input_format or "default", "?format=ipynb")
+            # Extract format name from query param format (e.g., "?format=ipynb" -> "ipynb")
+            format_name = (
+                format_value.split("format=")[1]
+                if "format=" in format_value
+                else "ipynb"
+            )
+            base_payload["definition"] = {
+                "format": format_name,
+                "parts": definition["parts"],
+            }
+    # Special handling for SPARK_JOB_DEFINITION
+    elif item_type == ItemType.SPARK_JOB_DEFINITION:
+        # Get format from definition_format_mapping or default
+        format_config = definition_format_mapping.get(item_type, {})
+        format_value = format_config.get("default", "?format=SparkJobDefinitionV1")
+        # Extract format name from query param format
+        format_name = (
+            format_value.split("format=")[1]
+            if "format=" in format_value
+            else "SparkJobDefinitionV1"
+        )
+        base_payload["definition"] = {
+            "format": format_name,
+            "parts": definition["parts"],
+        }
+    else:
+        # All other item types use definition directly without format wrapper
+        base_payload["definition"] = definition
 
     return base_payload
