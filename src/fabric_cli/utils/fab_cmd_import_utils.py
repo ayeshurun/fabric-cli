@@ -24,15 +24,15 @@ def get_payload_for_item_type(
 ) -> dict:
     """
     Build complete item payload including definition for import operations.
-    
+
     For Environment items, uses custom payload structure (not yet supporting updateDefinition).
     For all other items, uses centralized payload builder with definition parts.
-    
+
     Args:
         path: File path to the item definition directory
         item: Item object to build payload for
         input_format: Optional format specifier (e.g., ".py", ".ipynb")
-        
+
     Returns:
         dict: Complete item payload ready for API call
     """
@@ -42,26 +42,26 @@ def get_payload_for_item_type(
     else:
         definition = _build_definition(path)
         return fab_item_util.build_item_payload(
-            item, 
-            definition=definition, 
+            item,
+            definition=definition,
             description="Imported from fab",
-            input_format=input_format
+            input_format=input_format,
         )
 
 
 def _build_definition(input_path: Any) -> dict:
     """
     Build the definition structure from a directory containing item files.
-    
+
     This function traverses the directory and encodes all files as base64 parts.
     It does NOT include the format wrapper - that's handled by build_item_payload.
-    
+
     Args:
         input_path: Path to the directory containing item definition files
-        
+
     Returns:
         dict: Definition structure with 'parts' array containing encoded files
-        
+
     Raises:
         FabricCLIError: If definition.pbir contains unsupported byPath reference
     """

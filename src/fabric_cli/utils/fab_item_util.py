@@ -27,7 +27,11 @@ from fabric_cli.commands.fs.export import fab_fs_export_item as export_item
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.core.fab_types import ItemType, definition_format_mapping, format_mapping
+from fabric_cli.core.fab_types import (
+    ItemType,
+    definition_format_mapping,
+    format_mapping,
+)
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, OneLakeItem
 from fabric_cli.utils import fab_ui
@@ -137,10 +141,10 @@ def build_item_payload(
 ) -> dict[str, Any]:
     """
     Build a standardized payload for creating or updating a Fabric item.
-    
+
     This is the single source of truth for item payload construction, eliminating
     redundant code across import, mkdir, and other commands.
-    
+
     Args:
         item: The Item object containing type, name, and folder information
         definition: Optional definition structure with 'parts' array. If provided,
@@ -148,17 +152,17 @@ def build_item_payload(
         description: Description for the item (default: "Imported from fab")
         input_format: Optional format override (e.g., ".py", ".ipynb"). If not provided,
                      uses default format from definition_format_mapping.
-    
+
     Returns:
         dict: Complete payload ready for create/update API calls
-        
+
     Raises:
         FabricCLIError: If the item type doesn't support definition payloads
-    
+
     Examples:
         >>> # Create payload without definition (for mkdir)
         >>> payload = build_item_payload(item, description="Created by fab")
-        
+
         >>> # Create payload with definition (for import)
         >>> definition = {"parts": [{"path": "file.py", "payload": "base64..."}]}
         >>> payload = build_item_payload(item, definition=definition, input_format=".py")
@@ -170,14 +174,14 @@ def build_item_payload(
         "folderId": item.folder_id,
         "displayName": item.short_name,
     }
-    
+
     # If no definition provided, return base payload (used by mkdir)
     if definition is None:
         return base_payload
-    
+
     # Add definition with appropriate format handling
     item_type = item.item_type
-    
+
     # Special handling for SPARK_JOB_DEFINITION
     if item_type == ItemType.SPARK_JOB_DEFINITION:
         base_payload["definition"] = {
@@ -219,11 +223,12 @@ def build_item_payload(
     else:
         # Unsupported item type for definition payloads
         from fabric_cli.errors import ErrorMessages
+
         raise FabricCLIError(
             ErrorMessages.Hierarchy.item_type_doesnt_support_definition_payload(
                 str(item.item_type)
             ),
             fab_constant.ERROR_UNSUPPORTED_COMMAND,
         )
-    
+
     return base_payload

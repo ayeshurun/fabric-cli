@@ -204,13 +204,11 @@ def _copy_item_with_definition(
     args.ws_id = from_item.workspace.id
     args.format = ""
     item = item_api.get_item_withdefinition(args)
-    
+
     # Use centralized payload builder
     # For copy, we preserve the description from the source item
     payload = item_utils.build_item_payload(
-        to_item,
-        definition=item["definition"],
-        description=item["description"]
+        to_item, definition=item["definition"], description=item["description"]
     )
     payload_json = json.dumps(payload)
 
