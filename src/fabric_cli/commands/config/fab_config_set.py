@@ -3,6 +3,7 @@
 
 import json
 import os
+import sys
 from argparse import Namespace
 from typing import Any
 
@@ -115,4 +116,4 @@ def _handle_fab_config_mode(previous_mode: str, current_mode: str) -> None:
             
             if previous_mode == fab_constant.FAB_MODE_INTERACTIVE:
                 utils_ui.print("Exiting interactive mode. Goodbye!")
-                os._exit(0)
+                sys.exit(fab_constant.EXIT_CODE_SUCCESS)

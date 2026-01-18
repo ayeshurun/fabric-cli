@@ -166,7 +166,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
             fab_logger.log_warning(message)
 
         if self.fab_mode == fab_constant.FAB_MODE_COMMANDLINE:
-            sys.exit(2)
+            sys.exit(fab_constant.EXIT_CODE_CANCELLED_OR_MISUSE_BUILTINS)
 
 
 # Global parser instances
