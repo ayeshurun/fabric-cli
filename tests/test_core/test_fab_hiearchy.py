@@ -8,6 +8,7 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import *
 from fabric_cli.core.hiearchy.fab_hiearchy import *
+from fabric_cli.utils import fab_item_util
 
 
 def test_create_tenant():
@@ -373,12 +374,13 @@ def test_create_virtual_item_container():
 
 
 def test_get_item_payloads():
+    """Test that build_item_payload constructs payloads correctly for different item types"""
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
     )
 
-    _base_payload = {
+    _base_definition = {
         "parts": {
             "key": "value",
         }
@@ -397,11 +399,14 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": {"format": "ipynb", "parts": _base_payload["parts"]},
+        "definition": {"format": "ipynb", "parts": _base_definition["parts"]},
     }
 
     # Check that the payload is correct
-    assert notebook.get_payload(_base_payload) == _expected_payload
+    assert (
+        fab_item_util.build_item_payload(notebook, _base_definition)
+        == _expected_payload
+    )
 
     # Test Spark Job Definition
     spark_job_def = Item(
@@ -418,12 +423,15 @@ def test_get_item_payloads():
         "folderId": None,
         "definition": {
             "format": "SparkJobDefinitionV1",
-            "parts": _base_payload["parts"],
+            "parts": _base_definition["parts"],
         },
     }
 
     # Check that the payload is correct
-    assert spark_job_def.get_payload(_base_payload) == _expected_payload
+    assert (
+        fab_item_util.build_item_payload(spark_job_def, _base_definition)
+        == _expected_payload
+    )
 
     # Test EventHouse
     event_house = Item(
@@ -438,11 +446,14 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": _base_definition,
     }
 
     # Check that the payload is correct
-    assert event_house.get_payload(_base_payload) == _expected_payload
+    assert (
+        fab_item_util.build_item_payload(event_house, _base_definition)
+        == _expected_payload
+    )
 
     # Test Report
     report = Item(
@@ -457,13 +468,15 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": _base_definition,
     }
 
     # Check that the payload is correct
-    assert report.get_payload(_base_payload) == _expected_payload
+    assert (
+        fab_item_util.build_item_payload(report, _base_definition) == _expected_payload
+    )
 
-    # Unsuported item
+    # Unsupported item
     with pytest.raises(FabricCLIError) as e:
         unsupported_item = Item(
             name="item_name",
@@ -471,7 +484,7 @@ def test_get_item_payloads():
             parent=workspace,
             item_type="Lakehouse",
         )
-        unsupported_item.get_payload(_base_payload)
+        fab_item_util.build_item_payload(unsupported_item, _base_definition)
     assert e.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND
 
 
