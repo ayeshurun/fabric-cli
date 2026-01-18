@@ -91,18 +91,24 @@ class Item(_BaseItem):
                     },
                 }
             case ItemType.NOTEBOOK:
+                # Determine notebook format
+                if input_format == ".py":
+                    # .py format: no format field in definition
+                    notebook_definition = {"parts": definition["parts"]}
+                else:
+                    # Determine format value for non-.py formats
+                    if input_format and input_format != ".ipynb":
+                        format_value = input_format
+                    else:
+                        format_value = "ipynb"
+                    notebook_definition = {"format": format_value, "parts": definition["parts"]}
+                
                 return {
                     "type": str(self.item_type),
                     "description": "Imported from fab",
                     "folderId": self.folder_id,
                     "displayName": self.short_name,
-                    "definition": {
-                        **(
-                            {"parts": definition["parts"]}
-                            if input_format == ".py"
-                            else {"format": input_format if input_format and input_format != ".ipynb" else "ipynb", "parts": definition["parts"]}
-                        )
-                    },
+                    "definition": notebook_definition,
                 }
             case ItemType.SEMANTIC_MODEL:
                 # Determine format: use input_format if provided, otherwise default to TMDL

@@ -244,3 +244,8 @@ class CommonErrors:
         property_name: str, gateway_type: str
     ) -> str:
         return f"Setting '{property_name}' is not supported for Gateway type '{gateway_type}'"
+
+    @staticmethod
+    def invalid_format(valid_formats: list[str]) -> str:
+        message = "Only the following formats are supported: " + ", ".join(valid_formats) if len(valid_formats) else "No formats are supported"
+        return f"Invalid format. {message}"

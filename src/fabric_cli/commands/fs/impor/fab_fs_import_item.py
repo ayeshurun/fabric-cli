@@ -10,7 +10,7 @@ from fabric_cli.core import fab_constant, fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, definition_format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
-from fabric_cli.errors import ErrorMessages
+from fabric_cli.errors.common import CommonErrors
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
@@ -28,7 +28,7 @@ def import_single_item(item: Item, args: Namespace) -> None:
             available_formats = [k for k in valid_import_formats.keys() if k != "default"]
             if available_formats:
                 raise FabricCLIError(
-                    ErrorMessages.Export.invalid_export_format(available_formats),
+                    CommonErrors.invalid_format(available_formats),
                     fab_constant.ERROR_INVALID_INPUT,
                 )
             else:
