@@ -291,7 +291,11 @@ def register_export_parser(subparsers: _SubParsersAction) -> None:
         "# export multiple items from a workspace to local",
         "$ export ws1.Workspace -o /tmp\n",
         "# export a single item to a lakehouse",
-        "$ export ws1.Workspace/rep1.Report -o /ws1.Workspace/lh1.Lakehouse/Files/export -f",
+        "$ export ws1.Workspace/rep1.Report -o /ws1.Workspace/lh1.Lakehouse/Files/export -f\n",
+        "# export a spark job definition with V2 format",
+        "$ export ws1.Workspace/sjd1.SparkJobDefinition -o /tmp --format SparkJobDefinitionV2\n",
+        "# export a semantic model in TMSL format",
+        "$ export ws1.Workspace/sm1.SemanticModel -o /tmp --format TMSL",
     ]
 
     export_parser = subparsers.add_parser(
@@ -319,7 +323,7 @@ def register_export_parser(subparsers: _SubParsersAction) -> None:
     export_parser.add_argument(
         "--format",
         metavar="",
-        help="Export format. Optional",
+        help="Export format. Supported formats vary by item type (e.g., SparkJobDefinition: SparkJobDefinitionV1/V2, SemanticModel: TMDL/TMSL, Notebook: ipynb/fabricGitSource). Optional",
     )
     export_parser.add_argument(
         "-f",
@@ -392,8 +396,10 @@ def register_import_parser(subparsers: _SubParsersAction) -> None:
     import_examples = [
         "# import a notebook from a local directory",
         "$ import imp.Notebook -i /tmp/nb1.Notebook\n",
-        "# import a pipeline from a local directory",
-        "$ import pip.Notebook -i /tmp/pip1.DataPipeline -f",
+        "# import a notebook in .py format",
+        "$ import nb1.Notebook -i /tmp/nb1.Notebook --format .py -f\n",
+        "# import a spark job definition with V2 format",
+        "$ import sjd1.SparkJobDefinition -i /tmp/sjd1 --format SparkJobDefinitionV2 -f",
     ]
 
     import_parser = subparsers.add_parser(
@@ -415,7 +421,7 @@ def register_import_parser(subparsers: _SubParsersAction) -> None:
     import_parser.add_argument(
         "--format",
         metavar="",
-        help="Input format. Optional, supported for notebooks (.ipynb, .py)",
+        help="Input format. Supported formats vary by item type (e.g., SparkJobDefinition: SparkJobDefinitionV1/V2, SemanticModel: TMDL/TMSL, Notebook: .ipynb/.py/ipynb/fabricGitSource). Optional",
     )
     import_parser.add_argument(
         "-f", "--force", required=False, action="store_true", help="Force. Optional"

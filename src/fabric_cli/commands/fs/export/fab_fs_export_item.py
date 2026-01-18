@@ -13,7 +13,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, definition_format_mapping
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, Workspace
-from fabric_cli.errors import ErrorMessages
+from fabric_cli.errors.common import CommonErrors
 from fabric_cli.utils import fab_cmd_export_utils as utils_export
 from fabric_cli.utils import fab_item_util, fab_mem_store, fab_storage, fab_ui
 
@@ -117,7 +117,7 @@ def export_single_item(
                 # Non-empty format param but not supported
                 available_formats = [k for k in valid_export_formats.keys() if k != "default"]
                 raise FabricCLIError(
-                    ErrorMessages.Export.invalid_export_format(available_formats),
+                    CommonErrors.invalid_format(available_formats),
                     fab_constant.ERROR_INVALID_INPUT,
                 )
         else:

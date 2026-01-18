@@ -560,10 +560,21 @@ uri_mapping = {
 # Item Payload definition
 
 definition_format_mapping = {
-    ItemType.SPARK_JOB_DEFINITION: {"default": "?format=SparkJobDefinitionV1"},
+    ItemType.SPARK_JOB_DEFINITION: {
+        "default": "?format=SparkJobDefinitionV1",
+        "SparkJobDefinitionV1": "?format=SparkJobDefinitionV1",
+        "SparkJobDefinitionV2": "?format=SparkJobDefinitionV2",
+    },
     ItemType.NOTEBOOK: {
         "default": "?format=ipynb",
         ".py": "?format=fabricGitSource",
         ".ipynb": "?format=ipynb",
+        "ipynb": "?format=ipynb",
+        "fabricGitSource": "?format=fabricGitSource",
+    },
+    ItemType.SEMANTIC_MODEL: {
+        "default": "?format=TMDL",
+        "TMDL": "?format=TMDL",
+        "TMSL": "?format=TMSL",
     },
 }
