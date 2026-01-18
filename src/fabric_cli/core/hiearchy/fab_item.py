@@ -78,13 +78,15 @@ class Item(_BaseItem):
         match self.item_type:
 
             case ItemType.SPARK_JOB_DEFINITION:
+                # Determine format: use input_format if provided, otherwise default to V1
+                format_value = input_format if input_format else "SparkJobDefinitionV1"
                 return {
                     "type": str(self.item_type),
                     "description": "Imported from fab",
                     "folderId": self.folder_id,
                     "displayName": self.short_name,
                     "definition": {
-                        "format": "SparkJobDefinitionV1",
+                        "format": format_value,
                         "parts": definition["parts"],
                     },
                 }
@@ -98,13 +100,26 @@ class Item(_BaseItem):
                         **(
                             {"parts": definition["parts"]}
                             if input_format == ".py"
-                            else {"format": "ipynb", "parts": definition["parts"]}
+                            else {"format": input_format if input_format and input_format != ".ipynb" else "ipynb", "parts": definition["parts"]}
                         )
                     },
                 }
+            case ItemType.SEMANTIC_MODEL:
+                # Determine format: use input_format if provided, otherwise default to TMDL
+                format_value = input_format if input_format else "TMDL"
+                payload = {
+                    "type": str(self.item_type),
+                    "description": "Imported from fab",
+                    "folderId": self.folder_id,
+                    "displayName": self.short_name,
+                    "definition": definition,
+                }
+                # Add format to definition if it has parts
+                if "parts" in definition:
+                    payload["definition"]["format"] = format_value
+                return payload
             case (
                 ItemType.REPORT
-                | ItemType.SEMANTIC_MODEL
                 | ItemType.KQL_DASHBOARD
                 | ItemType.DATA_PIPELINE
                 | ItemType.KQL_QUERYSET

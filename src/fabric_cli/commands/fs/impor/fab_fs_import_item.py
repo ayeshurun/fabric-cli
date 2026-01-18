@@ -8,8 +8,9 @@ from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant, fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.core.fab_types import ItemType
+from fabric_cli.core.fab_types import ItemType, definition_format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
+from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
@@ -20,11 +21,21 @@ def import_single_item(item: Item, args: Namespace) -> None:
     _input_format = None
     if args.format:
         _input_format = args.format
-        if _input_format not in (".py", ".ipynb"):
-            raise FabricCLIError(
-                "Invalid format. Only '.py' and '.ipynb' are supported.",
-                fab_constant.ERROR_INVALID_INPUT,
-            )
+        # Validate format against item type's supported formats
+        valid_import_formats = definition_format_mapping.get(item.item_type, {})
+        if _input_format not in valid_import_formats:
+            # Format not in definition_format_mapping
+            available_formats = [k for k in valid_import_formats.keys() if k != "default"]
+            if available_formats:
+                raise FabricCLIError(
+                    ErrorMessages.Export.invalid_export_format(available_formats),
+                    fab_constant.ERROR_INVALID_INPUT,
+                )
+            else:
+                raise FabricCLIError(
+                    f"Format not supported for {item.item_type}. No import formats are available.",
+                    fab_constant.ERROR_INVALID_INPUT,
+                )
 
     args.ws_id = item.workspace.id
     input_path = utils_storage.get_import_path(args.input)
