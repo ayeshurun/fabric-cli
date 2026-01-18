@@ -11,6 +11,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
+from fabric_cli.utils import fab_item_util
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
 from fabric_cli.utils import fab_ui as utils_ui
@@ -104,12 +105,12 @@ def _import_create_environment_item(
     item: Item, args: Namespace, payload: dict
 ) -> ApiResponse:
 
-    item_payload: dict = {
-        "type": str(item.item_type),
-        "description": "Imported from fab",
-        "displayName": item.short_name,
-        "folderId": item.folder_id,
-    }
+    # Use centralized payload builder for base payload (without definition)
+    item_payload = fab_item_util.build_item_payload(
+        item,
+        definition=None,
+        description="Imported from fab"
+    )
     item_payload_str = json.dumps(item_payload)
 
     # Create the item

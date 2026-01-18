@@ -10,6 +10,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
+from fabric_cli.utils import fab_item_util
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils import fab_util as utils
@@ -77,12 +78,12 @@ def exec(item: Item, args: Namespace) -> str | None:
     # Remove all unwanted keys from the params
     utils.remove_keys_from_dict(params, ["displayname", "type"])
 
-    payload = {
-        "description": "Created by fab",
-        "displayName": item_name,
-        "type": str(item_type),
-        "folderId": item.folder_id,
-    }
+    # Build base payload using centralized builder
+    payload = fab_item_util.build_item_payload(
+        item, 
+        definition=None,  # mkdir doesn't include definition
+        description="Created by fab"
+    )
     payload = mkdir_utils.add_type_specific_payload(item, args, payload)
     json_payload = json.dumps(payload)
     args.item_uri = format_mapping.get(item.item_type, "items")

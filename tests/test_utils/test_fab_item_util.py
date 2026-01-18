@@ -122,3 +122,147 @@ def test_get_item_with_definition(monkeypatch):
 
     item = item_utils.get_item_with_definition(export_item, _args)
     assert item == {"item_exported": "item"}
+
+
+def test_build_item_payload__without_definition():
+    """Test building payload without definition (used by mkdir)"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="notebook_name",
+        id="notebook_id",
+        parent=workspace,
+        item_type="Notebook",
+    )
+    
+    payload = item_utils.build_item_payload(item, description="Created by fab")
+    
+    assert payload == {
+        "type": "Notebook",
+        "description": "Created by fab",
+        "folderId": None,
+        "displayName": "notebook_name",
+    }
+
+
+def test_build_item_payload__notebook_with_py_format():
+    """Test building Notebook payload with .py format"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="notebook_name",
+        id="notebook_id",
+        parent=workspace,
+        item_type="Notebook",
+    )
+    definition = {
+        "parts": [{"path": "test.py", "payload": "base64data", "payloadType": "InlineBase64"}]
+    }
+    
+    payload = item_utils.build_item_payload(
+        item, definition=definition, input_format=".py"
+    )
+    
+    assert payload["type"] == "Notebook"
+    assert payload["description"] == "Imported from fab"
+    assert payload["displayName"] == "notebook_name"
+    assert payload["definition"]["parts"] == definition["parts"]
+    # .py format should not have format key
+    assert "format" not in payload["definition"]
+
+
+def test_build_item_payload__notebook_with_ipynb_format():
+    """Test building Notebook payload with .ipynb format"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="notebook_name",
+        id="notebook_id",
+        parent=workspace,
+        item_type="Notebook",
+    )
+    definition = {
+        "parts": [{"path": "test.ipynb", "payload": "base64data", "payloadType": "InlineBase64"}]
+    }
+    
+    payload = item_utils.build_item_payload(
+        item, definition=definition, input_format=".ipynb"
+    )
+    
+    assert payload["type"] == "Notebook"
+    assert payload["definition"]["format"] == "ipynb"
+    assert payload["definition"]["parts"] == definition["parts"]
+
+
+def test_build_item_payload__spark_job_definition():
+    """Test building SparkJobDefinition payload"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="sjd_name",
+        id="sjd_id",
+        parent=workspace,
+        item_type="SparkJobDefinition",
+    )
+    definition = {
+        "parts": [{"path": "main.py", "payload": "base64data", "payloadType": "InlineBase64"}]
+    }
+    
+    payload = item_utils.build_item_payload(item, definition=definition)
+    
+    assert payload["type"] == "SparkJobDefinition"
+    assert payload["definition"]["format"] == "SparkJobDefinitionV1"
+    assert payload["definition"]["parts"] == definition["parts"]
+
+
+def test_build_item_payload__report():
+    """Test building Report payload (no format wrapper)"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="report_name",
+        id="report_id",
+        parent=workspace,
+        item_type="Report",
+    )
+    definition = {
+        "parts": [{"path": "report.json", "payload": "base64data", "payloadType": "InlineBase64"}]
+    }
+    
+    payload = item_utils.build_item_payload(item, definition=definition)
+    
+    assert payload["type"] == "Report"
+    # Report should use definition directly without format wrapper
+    assert payload["definition"] == definition
+
+
+def test_build_item_payload__unsupported_item_type():
+    """Test building payload for unsupported item type raises error"""
+    from fabric_cli.core.fab_exceptions import FabricCLIError
+    
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="lakehouse_name",
+        id="lakehouse_id",
+        parent=workspace,
+        item_type="Lakehouse",
+    )
+    definition = {"parts": []}
+    
+    with pytest.raises(FabricCLIError) as exc_info:
+        item_utils.build_item_payload(item, definition=definition)
+    
+    assert exc_info.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND

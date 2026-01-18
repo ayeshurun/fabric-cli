@@ -204,15 +204,15 @@ def _copy_item_with_definition(
     args.ws_id = from_item.workspace.id
     args.format = ""
     item = item_api.get_item_withdefinition(args)
-    payload = json.dumps(
-        {
-            "type": str(from_item.item_type),
-            "description": item["description"],
-            "displayName": to_item.short_name,
-            "definition": item["definition"],
-            "folderId": to_item.folder_id,
-        }
+    
+    # Use centralized payload builder
+    # For copy, we preserve the description from the source item
+    payload = item_utils.build_item_payload(
+        to_item,
+        definition=item["definition"],
+        description=item["description"]
     )
+    payload_json = json.dumps(payload)
 
     # Create in target
     args.method = "post"
@@ -221,9 +221,9 @@ def _copy_item_with_definition(
 
     if item_already_exists:
         args.id = to_item.id
-        response = item_api.update_item_definition(args, payload=payload)
+        response = item_api.update_item_definition(args, payload=payload_json)
     else:
-        response = item_api.create_item(args, payload=payload)
+        response = item_api.create_item(args, payload=payload_json)
 
     if response.status_code in (200, 201, 202):
         args.ws_id = from_item.workspace.id
