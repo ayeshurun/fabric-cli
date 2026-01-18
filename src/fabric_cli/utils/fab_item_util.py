@@ -20,7 +20,7 @@ import json
 import platform
 from argparse import Namespace
 from collections.abc import Sequence
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.commands.fs.export import fab_fs_export_item as export_item
@@ -134,7 +134,7 @@ def build_item_payload(
     definition: Optional[dict] = None,
     description: str = "Imported from fab",
     input_format: Optional[str] = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     Build a standardized payload for creating or updating a Fabric item.
     
@@ -164,7 +164,7 @@ def build_item_payload(
         >>> payload = build_item_payload(item, definition=definition, input_format=".py")
     """
     # Build base payload that all items share
-    base_payload = {
+    base_payload: dict[str, Any] = {
         "type": str(item.item_type),
         "description": description,
         "folderId": item.folder_id,
