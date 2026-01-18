@@ -44,21 +44,21 @@ AUTH_DEFAULT_AUTHORITY = "https://login.microsoftonline.com/common"
 AUTH_DEFAULT_CLIENT_ID = "5814bfb4-2705-4994-b8d6-39aabeb5eaeb"
 AUTH_TENANT_AUTHORITY = "https://login.microsoftonline.com/"
 
-# Env variables (POSIX compliant: uppercase with underscores)
-FAB_TOKEN = "FAB_TOKEN"
-FAB_TOKEN_ONELAKE = "FAB_TOKEN_ONELAKE"
-FAB_TOKEN_AZURE = "FAB_TOKEN_AZURE"
-FAB_SPN_CLIENT_ID = "FAB_SPN_CLIENT_ID"
-FAB_SPN_CLIENT_SECRET = "FAB_SPN_CLIENT_SECRET"
-FAB_SPN_CERT_PATH = "FAB_SPN_CERT_PATH"
-FAB_SPN_CERT_PASSWORD = "FAB_SPN_CERT_PASSWORD"
-FAB_SPN_FEDERATED_TOKEN = "FAB_SPN_FEDERATED_TOKEN"
-FAB_TENANT_ID = "FAB_TENANT_ID"
+# Env variables
+FAB_TOKEN = "fab_token"
+FAB_TOKEN_ONELAKE = "fab_token_onelake"
+FAB_TOKEN_AZURE = "fab_token_azure"
+FAB_SPN_CLIENT_ID = "fab_spn_client_id"
+FAB_SPN_CLIENT_SECRET = "fab_spn_client_secret"
+FAB_SPN_CERT_PATH = "fab_spn_cert_path"
+FAB_SPN_CERT_PASSWORD = "fab_spn_cert_password"
+FAB_SPN_FEDERATED_TOKEN = "fab_spn_federated_token"
+FAB_TENANT_ID = "fab_tenant_id"
 
-FAB_REFRESH_TOKEN = "FAB_REFRESH_TOKEN"
-IDENTITY_TYPE = "IDENTITY_TYPE"
-FAB_AUTH_MODE = "FAB_AUTH_MODE"  # Kept for backward compatibility
-FAB_AUTHORITY = "FAB_AUTHORITY"
+FAB_REFRESH_TOKEN = "fab_refresh_token"
+IDENTITY_TYPE = "identity_type"
+FAB_AUTH_MODE = "fab_auth_mode"  # Kept for backward compatibility
+FAB_AUTHORITY = "fab_authority"
 
 AUTH_KEYS = {
     FAB_TENANT_ID: [],
