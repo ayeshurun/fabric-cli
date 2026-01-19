@@ -225,7 +225,9 @@ class TestExport:
         assert export_path.is_dir()
         files = list(export_path.iterdir())
         assert len(files) == 2
-        assert any(file.suffix == ".ipynb" for file in files)  # Default format should be .ipynb
+        assert any(
+            file.suffix == ".ipynb" for file in files
+        )  # Default format should be .ipynb
         assert any(file.name == ".platform" for file in files)
         mock_print_done.assert_called_once()
 
@@ -249,7 +251,10 @@ class TestExport:
         )
 
         # Assert
-        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, "Invalid format. Only the following formats are supported: .py, .ipynb")
+        assert_fabric_cli_error(
+            constant.ERROR_INVALID_INPUT,
+            "Invalid format. Only the following formats are supported: .py, .ipynb",
+        )
 
     def test_export_report_no_format_support_failure(
         self,
@@ -271,5 +276,36 @@ class TestExport:
         )
 
         # Assert - should fail with error indicating no formats are supported
-        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, "No formats are supported")
-        
+        assert_fabric_cli_error(
+            constant.ERROR_INVALID_INPUT, "No formats are supported"
+        )
+
+    def test_export_cosmos_db_database_success(
+        self,
+        item_factory,
+        cli_executor,
+        mock_print_done,
+        tmp_path,
+        mock_print_warning,
+    ):
+        """Test exporting CosmosDBDatabase items."""
+        # Setup
+        cosmos_db = item_factory(ItemType.COSMOS_DB_DATABASE)
+
+        # Reset mock
+        mock_print_done.reset_mock()
+        mock_print_warning.reset_mock()
+
+        # Execute command
+        cli_executor.exec_command(
+            f"export {cosmos_db.full_path} --output {str(tmp_path)} --force"
+        )
+
+        # Assert
+        export_path = tmp_path / f"{cosmos_db.display_name}.CosmosDBDatabase"
+        assert export_path.is_dir()
+        files = list(export_path.iterdir())
+        assert len(files) >= 1  # At least .platform file
+        assert any(file.name == ".platform" for file in files)
+        mock_print_done.assert_called_once()
+        mock_print_warning.assert_called_once()

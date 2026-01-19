@@ -130,6 +130,36 @@ class TestRM:
         mock_questionary_print.assert_not_called()
         mock_print_done.assert_not_called()
 
+    def test_rm_cosmos_db_database_success(
+        self,
+        workspace,
+        item_factory,
+        cli_executor,
+        mock_questionary_print,
+        mock_print_warning,
+        mock_print_done,
+    ):
+        """Test deleting CosmosDBDatabase items."""
+        # Setup
+        cosmos_db = item_factory(ItemType.COSMOS_DB_DATABASE)
+        mock_print_done.reset_mock()
+
+        # Execute command
+        cli_executor.exec_command(f"rm {cosmos_db.full_path} --force")
+
+        # Assert
+        mock_print_warning.assert_called()
+        mock_questionary_print.assert_called()
+        mock_print_done.assert_called_once()
+        _assert_strings_in_mock_calls(
+            [cosmos_db.display_name], True, mock_questionary_print.mock_calls
+        )
+        _assert_strings_in_mock_calls(
+            [cosmos_db.display_name], True, mock_print_done.mock_calls
+        )
+
+        _assert_not_found(cosmos_db.full_path)
+
     # endregion
 
     # region WORKSPACE
@@ -253,7 +283,7 @@ class TestRM:
         mkdir(notebook.full_path)
         mock_print_done.reset_mock()
         mock_questionary_print.reset_mock()
-        
+
         with (
             patch("questionary.checkbox") as mock_checkbox,
             patch("questionary.confirm") as mock_confirm,

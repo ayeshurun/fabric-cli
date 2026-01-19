@@ -288,6 +288,50 @@ class TestCP:
             rm(copied_notebook.full_path)
             rm(copied_eventhouse.full_path)
 
+    def test_cp_cosmos_db_database_success(
+        self,
+        workspace_factory,
+        item_factory,
+        mock_print_done,
+        mock_questionary_print,
+        cli_executor: CLIExecutor,
+    ):
+        """Test copying CosmosDBDatabase items."""
+        # Setup
+        ws1 = workspace_factory()
+        ws2 = workspace_factory()
+        cosmos_db = item_factory(ItemType.COSMOS_DB_DATABASE, ws1.full_path)
+
+        # Reset mock
+        mock_print_done.reset_mock()
+
+        with patch("questionary.confirm") as mock_confirm:
+
+            mock_confirm.return_value.ask.return_value = True
+
+            # Execute command
+            to_path = cli_path_join(
+                ws2.full_path, cosmos_db.display_name + ".CosmosDBDatabase"
+            )
+            cli_executor.exec_command(f"cp {cosmos_db.full_path} {to_path}")
+
+            # Assert
+            mock_print_done.assert_called()
+
+            mock_questionary_print.reset_mock()
+            ls(ws1.full_path)
+            assert any(
+                cosmos_db.display_name in call.args[0]
+                for call in mock_questionary_print.mock_calls
+            )
+
+            mock_questionary_print.reset_mock()
+            ls(ws2.full_path)
+            assert any(
+                cosmos_db.display_name in call.args[0]
+                for call in mock_questionary_print.mock_calls
+            )
+
     def test_cp_item_to_item_success(
         self,
         workspace_factory,

@@ -307,6 +307,28 @@ class TestImport:
             cli_executor,
         )
 
+    def test_import_create_new_cosmos_db_database_item_success(
+        self,
+        item_factory,
+        mock_print_done,
+        tmp_path,
+        spy_create_item,
+        mock_print_grey,
+        upsert_item_to_cache,
+        cli_executor,
+    ):
+        """Test importing CosmosDBDatabase items."""
+        _import_create_new_item_success(
+            item_factory,
+            mock_print_done,
+            tmp_path,
+            spy_create_item,
+            mock_print_grey,
+            upsert_item_to_cache,
+            ItemType.COSMOS_DB_DATABASE,
+            cli_executor,
+        )
+
     def test_import_create_new_sqldb_item_success(
         self,
         item_factory,

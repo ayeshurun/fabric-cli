@@ -201,6 +201,40 @@ class TestMkdir:
         # Cleanup - removing parent eventhouse removes the kqldatabase as well
         rm(eventhouse_full_path)
 
+    def test_mkdir_cosmos_db_database_success(
+        self,
+        workspace,
+        cli_executor,
+        mock_print_done,
+        mock_questionary_print,
+        vcr_instance,
+        cassette_name,
+        upsert_item_to_cache,
+    ):
+        """Test creating CosmosDBDatabase items."""
+        # Setup
+        cosmos_db_display_name = generate_random_string(vcr_instance, cassette_name)
+        cosmos_db_full_path = cli_path_join(
+            workspace.full_path,
+            f"{cosmos_db_display_name}.{ItemType.COSMOS_DB_DATABASE}",
+        )
+
+        # Execute command
+        cli_executor.exec_command(f"mkdir {cosmos_db_full_path}")
+
+        # Assert
+        upsert_item_to_cache.assert_called_once()
+        mock_print_done.assert_called_once()
+        assert cosmos_db_display_name in mock_print_done.call_args[0][0]
+
+        mock_questionary_print.reset_mock()
+        get(cosmos_db_full_path, query=".")
+        mock_questionary_print.assert_called_once()
+        assert cosmos_db_display_name in mock_questionary_print.call_args[0][0]
+
+        # Cleanup
+        rm(cosmos_db_full_path)
+
     # endregion
 
     # region WORKSPACE
@@ -1389,7 +1423,7 @@ class TestMkdir:
         vcr_instance,
         test_data: StaticTestData,
         cassette_name,
-    ):  
+    ):
         # Setup
         connection_display_name = generate_random_string(vcr_instance, cassette_name)
         connection_full_path = cli_path_join(
@@ -1410,7 +1444,10 @@ class TestMkdir:
 
         mock_print_warning.assert_called()
         assert mock_print_warning.call_count == 1
-        assert f"Ignoring unsupported parameters for on-premises gateway: ['ignoreparameters']" == mock_print_warning.call_args[0][0]
+        assert (
+            f"Ignoring unsupported parameters for on-premises gateway: ['ignoreparameters']"
+            == mock_print_warning.call_args[0][0]
+        )
 
         # Cleanup
         rm(connection_full_path)
@@ -1437,7 +1474,10 @@ class TestMkdir:
         # Assert
         mock_fab_ui_print_error.assert_called()
         assert mock_fab_ui_print_error.call_count == 1
-        assert mock_fab_ui_print_error.call_args[0][0].message == "Missing parameters for credential type Basic: ['values']"
+        assert (
+            mock_fab_ui_print_error.call_args[0][0].message
+            == "Missing parameters for credential type Basic: ['values']"
+        )
         assert mock_fab_ui_print_error.call_args[0][0].status_code == "InvalidInput"
 
         mock_fab_ui_print_error.reset_mock()
@@ -1450,7 +1490,11 @@ class TestMkdir:
         # Assert
         mock_fab_ui_print_error.assert_called()
         assert mock_fab_ui_print_error.call_count == 1
-        assert mock_fab_ui_print_error.call_args[0][0].message == ErrorMessages.Common.missing_onpremises_gateway_parameters(['encryptedCredentials'])
+        assert mock_fab_ui_print_error.call_args[0][
+            0
+        ].message == ErrorMessages.Common.missing_onpremises_gateway_parameters(
+            ["encryptedCredentials"]
+        )
         assert mock_fab_ui_print_error.call_args[0][0].status_code == "InvalidInput"
 
         mock_fab_ui_print_error.reset_mock()
@@ -1463,7 +1507,11 @@ class TestMkdir:
         # Assert
         mock_fab_ui_print_error.assert_called()
         assert mock_fab_ui_print_error.call_count == 1
-        assert mock_fab_ui_print_error.call_args[0][0].message == ErrorMessages.Common.missing_onpremises_gateway_parameters(['gatewayId'])
+        assert mock_fab_ui_print_error.call_args[0][
+            0
+        ].message == ErrorMessages.Common.missing_onpremises_gateway_parameters(
+            ["gatewayId"]
+        )
         assert mock_fab_ui_print_error.call_args[0][0].status_code == "InvalidInput"
 
         mock_fab_ui_print_error.reset_mock()
@@ -1476,7 +1524,10 @@ class TestMkdir:
         # Assert
         mock_fab_ui_print_error.assert_called()
         assert mock_fab_ui_print_error.call_count == 1
-        assert mock_fab_ui_print_error.call_args[0][0].message == ErrorMessages.Common.invalid_onpremises_gateway_values()
+        assert (
+            mock_fab_ui_print_error.call_args[0][0].message
+            == ErrorMessages.Common.invalid_onpremises_gateway_values()
+        )
         assert mock_fab_ui_print_error.call_args[0][0].status_code == "InvalidInput"
 
         mock_fab_ui_print_error.reset_mock()
@@ -1489,7 +1540,10 @@ class TestMkdir:
         # Assert
         mock_fab_ui_print_error.assert_called()
         assert mock_fab_ui_print_error.call_count == 1
-        assert mock_fab_ui_print_error.call_args[0][0].message == ErrorMessages.Common.invalid_onpremises_gateway_values()
+        assert (
+            mock_fab_ui_print_error.call_args[0][0].message
+            == ErrorMessages.Common.invalid_onpremises_gateway_values()
+        )
         assert mock_fab_ui_print_error.call_args[0][0].status_code == "InvalidInput"
 
     def test_mkdir_connection_with_gateway_params_success(
@@ -1819,7 +1873,14 @@ class TestMkdir:
     # region Folders
 
     def test_mkdir_item_in_folder_listing_success(
-        self, workspace, cli_executor, mock_print_done, mock_questionary_print, mock_fab_set_state_config, vcr_instance, cassette_name
+        self,
+        workspace,
+        cli_executor,
+        mock_print_done,
+        mock_questionary_print,
+        mock_fab_set_state_config,
+        vcr_instance,
+        cassette_name,
     ):
         # Enable folder listing
         mock_fab_set_state_config(constant.FAB_FOLDER_LISTING_ENABLED, "true")
@@ -1834,7 +1895,9 @@ class TestMkdir:
         mock_print_done.reset_mock()
 
         # Create notebook in folder
-        notebook_name = f"{generate_random_string(vcr_instance, cassette_name)}.Notebook"
+        notebook_name = (
+            f"{generate_random_string(vcr_instance, cassette_name)}.Notebook"
+        )
         notebook_full_path = cli_path_join(folder_full_path, notebook_name)
         cli_executor.exec_command(f"mkdir {notebook_full_path}")
 

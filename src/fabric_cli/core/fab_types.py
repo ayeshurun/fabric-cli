@@ -235,7 +235,7 @@ VICMap: dict[VirtualItemContainerType, VirtualItemType] = {
     VirtualItemContainerType.SPARK_POOL: VirtualItemType.SPARK_POOL,
     VirtualItemContainerType.MANAGED_IDENTITY: VirtualItemType.MANAGED_IDENTITY,
     VirtualItemContainerType.MANAGED_PRIVATE_ENDPOINT: VirtualItemType.MANAGED_PRIVATE_ENDPOINT,
-    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE
+    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE,
 }
 
 ################
@@ -284,6 +284,7 @@ class ItemType(_BaseItemType):
     MOUNTED_DATA_FACTORY = "MountedDataFactory"
     SQL_DATABASE = "SQLDatabase"
     DATAFLOW = "Dataflow"
+    COSMOS_DB_DATABASE = "CosmosDBDatabase"
 
     def __str__(self):
         return self.value
@@ -512,6 +513,7 @@ format_mapping = {
     ItemType.GRAPHQLAPI: "graphqlapis",
     ItemType.MOUNTED_DATA_FACTORY: "mounteddatafactories",
     ItemType.DATAFLOW: "dataflows",
+    ItemType.COSMOS_DB_DATABASE: "cosmosDbDatabases",
 }
 
 # Item URI in the Fabric Portal
@@ -555,6 +557,7 @@ uri_mapping = {
     ItemType.GRAPHQLAPI: "graphql",
     ItemType.MOUNTED_DATA_FACTORY: "mounteddatafactories",
     ItemType.DATAFLOW: "dataflows-gen2",
+    ItemType.COSMOS_DB_DATABASE: "cosmosdatabases",
 }
 
 # Item Payload definition

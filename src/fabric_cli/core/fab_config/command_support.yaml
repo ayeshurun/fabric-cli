@@ -38,7 +38,7 @@ commands:
         supported_items:
           - gateway
           - connection
-  
+
   job:
     supported_items:
       - spark_job_definition
@@ -54,7 +54,7 @@ commands:
       run-rm:
       run_status:
       run_wait:
-  
+
   label:
     supported_elements:
       - item
@@ -67,7 +67,7 @@ commands:
         unsupported_items:
           - warehouse
           - sql_endpoint
-  
+
   table:
     supported_elements:
       - onelake
@@ -85,11 +85,11 @@ commands:
           - semantic_model
           - sql_database
       vacuum:
-  
+
   fs:
     subcommands:
       ls:
-        supported_elements: 
+        supported_elements:
           - tenant
           - workspace
           - folder
@@ -113,8 +113,9 @@ commands:
           - gateway
           - sql_database
           - graph_ql_api
+          - cosmos_db_database
       rm:
-        supported_elements: 
+        supported_elements:
           - tenant
           - workspace
           - item
@@ -134,7 +135,7 @@ commands:
           - paginated_report
           - sql_endpoint
           - mirrored_warehouse
-          - datamart  
+          - datamart
           - org_app
           - metric_set
           - apache_airflow_job
@@ -169,6 +170,7 @@ commands:
           #- lakehouse # this is included just to support underlying /Files
           - dataflow
           - sql_database
+          - cosmos_db_database
       cp:
         supported_elements:
           - workspace
@@ -195,6 +197,7 @@ commands:
           #- lakehouse # this is included just to support underlying /Files
           - dataflow
           - sql_database
+          - cosmos_db_database
       ln:
         supported_elements:
           - onelake
@@ -246,6 +249,7 @@ commands:
           - graph_ql_api
           - dataflow
           - sql_database
+          - cosmos_db_database
       import:
         supported_items:
           - report
@@ -267,11 +271,12 @@ commands:
           - graph_ql_api
           - dataflow
           - sql_database
+          - cosmos_db_database
       get:
         supported_elements:
           - workspace
           - item
-          - onelake 
+          - onelake
           - folder
         supported_items:
           - sparkpool
@@ -324,11 +329,11 @@ commands:
           - user_data_function
           - ai_skill
       open:
-        supported_elements: 
+        supported_elements:
           - workspace
           - item
       mkdir:
-        supported_elements: 
+        supported_elements:
           - workspace
           - item
           - onelake

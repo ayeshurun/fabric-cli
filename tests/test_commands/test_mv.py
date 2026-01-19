@@ -8,7 +8,7 @@ import fabric_cli.commands.fs.fab_fs_ln as fab_ln
 import fabric_cli.commands.fs.fab_fs_ls as fab_ls
 from fabric_cli.core import fab_constant as constant
 from fabric_cli.core import fab_handle_context as handle_context
-from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceType, VirtualItemContainerType
+from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceType
 from fabric_cli.core.hiearchy.fab_onelake_element import OneLakeItem
 from tests.test_commands.commands_parser import CLIExecutor
 from tests.test_commands.conftest import mkdir
@@ -187,6 +187,54 @@ class TestMV:
                 sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
             )
 
+    def test_mv_cosmos_db_database_success(
+        self,
+        workspace_factory,
+        item_factory,
+        mock_print_done,
+        mock_questionary_print,
+        cli_executor: CLIExecutor,
+        mock_print_warning,
+    ):
+        """Test moving CosmosDBDatabase items."""
+        # Setup
+        ws1 = workspace_factory()
+        ws2 = workspace_factory()
+        cosmos_db = item_factory(ItemType.COSMOS_DB_DATABASE, ws1.full_path)
+
+        # Reset mock
+        mock_print_done.reset_mock()
+        mock_print_warning.reset_mock()
+
+        with patch("questionary.confirm") as mock_confirm:
+
+            mock_confirm.return_value.ask.return_value = True
+
+            # Execute command
+            target_path = cli_path_join(ws2.full_path, cosmos_db.name)
+            cli_executor.exec_command(f"mv {cosmos_db.full_path} {target_path} --force")
+
+            # Clean up - update the full path of the moved items so the factory can clean them up
+            cosmos_db.full_path = cli_path_join(ws2.full_path, cosmos_db.name)
+
+            # Assert
+            mock_print_done.assert_called()
+            mock_print_warning.assert_called_once()
+
+            mock_questionary_print.reset_mock()
+            ls(ws1.full_path)
+            assert all(
+                cosmos_db.display_name not in call.args[0]
+                for call in mock_questionary_print.mock_calls
+            )
+
+            mock_questionary_print.reset_mock()
+            ls(ws2.full_path)
+            assert any(
+                cosmos_db.display_name in call.args[0]
+                for call in mock_questionary_print.mock_calls
+            )
+
     def test_mv_item_to_item_success(
         self,
         workspace_factory,
@@ -285,7 +333,7 @@ class TestMV:
             )
 
             assert_fabric_cli_error(constant.ERROR_UNSUPPORTED_COMMAND)
-            
+
     def test_mv_type_mismatch_error(
         self,
         workspace_factory,
@@ -299,7 +347,6 @@ class TestMV:
         cli_executor.exec_command(f"mv {ws.full_path} {virtual_item.full_path} --force")
 
         assert_fabric_cli_error(constant.ERROR_INVALID_INPUT)
-
 
     def test_mv_workspace_to_workspace_item_already_exists_success(
         self,
@@ -395,7 +442,8 @@ class TestMV:
             # Assert
             mock_print_done.assert_called()
             assert any(
-                call.args[0] == "Move completed\n" for call in mock_print_done.mock_calls
+                call.args[0] == "Move completed\n"
+                for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
@@ -545,7 +593,8 @@ class TestMV:
             # Assert
             mock_print_done.assert_called()
             assert any(
-                call.args[0] == "Move completed\n" for call in mock_print_done.mock_calls
+                call.args[0] == "Move completed\n"
+                for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()

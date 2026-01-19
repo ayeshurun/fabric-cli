@@ -119,6 +119,7 @@ class Item(_BaseItem):
                 | ItemType.GRAPHQLAPI
                 | ItemType.DATAFLOW
                 | ItemType.SQL_DATABASE
+                | ItemType.COSMOS_DB_DATABASE
             ):
                 return {
                     "type": str(self.item_type),
