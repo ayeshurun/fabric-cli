@@ -104,9 +104,7 @@ def _import_create_environment_item(
 ) -> ApiResponse:
 
     # Use centralized payload builder for base payload (without definition)
-    item_payload = fab_item_util.build_item_payload(
-        item, definition=None, description="Imported from fab"
-    )
+    item_payload = fab_item_util.build_item_payload(item)
     item_payload_str = json.dumps(item_payload)
 
     # Create the item

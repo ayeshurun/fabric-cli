@@ -176,28 +176,14 @@ def build_item_payload(
     }
 
     # If no definition provided, return base payload (used by mkdir)
-    if definition is None:
+    if not definition:
         return base_payload
 
     # Add definition with appropriate format handling
     item_type = item.item_type
 
-    # Item types that don't support definition payloads
-    unsupported_types = (
-        ItemType.LAKEHOUSE,
-        ItemType.WAREHOUSE,
-        ItemType.ML_EXPERIMENT,
-        ItemType.ML_MODEL,
-        ItemType.DASHBOARD,
-        ItemType.PAGINATED_REPORT,
-        ItemType.SQL_ENDPOINT,
-        ItemType.MIRRORED_WAREHOUSE,
-        ItemType.DATAMART,
-        ItemType.ENVIRONMENT,  # Environment has custom handling
-    )
-
     # Check if item type is not supported
-    if item_type in unsupported_types:
+    if str(item_type) in fab_constant.UNSUPPORTED_DEFINITION_ITEM_TYPES:
         from fabric_cli.errors import ErrorMessages
 
         raise FabricCLIError(
@@ -207,42 +193,20 @@ def build_item_payload(
             fab_constant.ERROR_UNSUPPORTED_COMMAND,
         )
 
-    # Special handling for NOTEBOOK
-    if item_type == ItemType.NOTEBOOK:
-        if input_format == ".py":
-            # Python format doesn't include format key
-            base_payload["definition"] = {"parts": definition["parts"]}
-        else:
-            # Get format from definition_format_mapping or default to ipynb
-            format_config = definition_format_mapping.get(item_type, {})
-            format_value = format_config.get(input_format or "default", "?format=ipynb")
-            # Extract format name from query param format (e.g., "?format=ipynb" -> "ipynb")
-            format_name = (
-                format_value.split("format=")[1]
-                if "format=" in format_value
-                else "ipynb"
-            )
-            base_payload["definition"] = {
-                "format": format_name,
-                "parts": definition["parts"],
-            }
-    # Special handling for SPARK_JOB_DEFINITION
-    elif item_type == ItemType.SPARK_JOB_DEFINITION:
-        # Get format from definition_format_mapping or default
+    # Determine format to apply
+    if input_format:
+        # Use the provided input format
         format_config = definition_format_mapping.get(item_type, {})
-        format_value = format_config.get("default", "?format=SparkJobDefinitionV1")
-        # Extract format name from query param format
-        format_name = (
-            format_value.split("format=")[1]
-            if "format=" in format_value
-            else "SparkJobDefinitionV1"
-        )
-        base_payload["definition"] = {
-            "format": format_name,
-            "parts": definition["parts"],
-        }
+        format_name = format_config.get(input_format)
     else:
-        # All other item types use definition directly without format wrapper
-        base_payload["definition"] = definition
+        # Use default format from mapping
+        format_config = definition_format_mapping.get(item_type)
+        format_name = format_config.get("default") if format_config else None
+
+    # Apply format if specified
+    if format_name:
+        definition["format"] = format_name
+
+    base_payload["definition"] = definition
 
     return base_payload

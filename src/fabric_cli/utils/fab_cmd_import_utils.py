@@ -44,7 +44,6 @@ def get_payload_for_item_type(
         return fab_item_util.build_item_payload(
             item,
             definition=definition,
-            description="Imported from fab",
             input_format=input_format,
         )
 

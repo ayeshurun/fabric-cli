@@ -177,6 +177,36 @@ def test_build_item_payload__notebook_with_py_format():
     assert "format" not in payload["definition"]
 
 
+def test_build_item_payload__notebook_default_format():
+    """Test building Notebook payload with default format (fabricGitSource)"""
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    item = Item(
+        name="notebook_name",
+        id="notebook_id",
+        parent=workspace,
+        item_type="Notebook",
+    )
+    definition = {
+        "parts": [
+            {
+                "path": "test.ipynb",
+                "payload": "base64data",
+                "payloadType": "InlineBase64",
+            }
+        ]
+    }
+
+    # Call without input_format to get default
+    payload = item_utils.build_item_payload(item, definition=definition)
+
+    assert payload["type"] == "Notebook"
+    assert payload["definition"]["format"] == "fabricGitSource"
+    assert payload["definition"]["parts"] == definition["parts"]
+
+
 def test_build_item_payload__notebook_with_ipynb_format():
     """Test building Notebook payload with .ipynb format"""
     tenant = Tenant(name="tenant_name", id="0000")

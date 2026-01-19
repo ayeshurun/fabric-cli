@@ -399,7 +399,7 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": {"format": "ipynb", "parts": _base_definition["parts"]},
+        "definition": {"format": "fabricGitSource", "parts": _base_definition["parts"]},
     }
 
     # Check that the payload is correct
