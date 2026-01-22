@@ -34,10 +34,12 @@ dependencies = [
 fab = "fabric_cli.main:main"
 
 [project.urls]
-Repository = "https://github.com/microsoft/fabric-cli.git"
+Source =  "https://github.com/microsoft/fabric-cli"
+Documentation = "https://microsoft.github.io/fabric-cli"
+Changelog = "https://microsoft.github.io/fabric-cli/release-notes"
 
 [build-system]
-requires = ["setuptools>=65.5.1"]
+requires = ["setuptools>=77.0.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
