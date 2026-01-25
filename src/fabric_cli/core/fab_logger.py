@@ -16,6 +16,32 @@ import fabric_cli.utils.fab_ui as utils_ui
 
 _logger_instance = None  # Singleton instance
 log_file_path = None  # Path to the current log file
+_verbose_enabled = False  # Verbose flag from command-line
+
+
+def set_verbose_enabled(enabled: bool) -> None:
+    """Set the verbose flag from command-line arguments.
+    
+    Args:
+        enabled: Whether verbose logging is enabled via --verbose flag.
+    """
+    global _verbose_enabled
+    _verbose_enabled = enabled
+
+
+def is_debug_enabled() -> bool:
+    """Check if debug logging is enabled.
+    
+    Debug logging is enabled when either:
+    - The --verbose global flag is passed
+    - The debug_enabled config setting is set to true
+    
+    Returns:
+        bool: True if debug logging is enabled, False otherwise.
+    """
+    if _verbose_enabled:
+        return True
+    return fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true"
 
 
 def log_warning(message, command=None):
@@ -24,10 +50,13 @@ def log_warning(message, command=None):
 
 
 def log_debug(message):
-    """Print a debug message."""
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+    """Print a debug message to console and log file if debug is enabled."""
+    if is_debug_enabled():
         formatted_message = f"[debug] {message}"
         utils_ui.print_grey(formatted_message)
+        # Also log to file
+        logger = get_logger()
+        logger.debug(message)
 
 
 def log_info(message):
@@ -37,16 +66,21 @@ def log_info(message):
 
 
 def log_progress(message, progress=None):
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+    """Print a progress message to console and log file if debug is enabled."""
+    if is_debug_enabled():
         formatted_message = f"[debug] {message}"
         utils_ui.print_progress(formatted_message, progress)
+        # Also log to file
+        logger = get_logger()
+        progress_text = f": {progress}%" if progress else ""
+        logger.debug(f"{message}{progress_text}")
 
 
 def log_debug_http_request(
     method, url, headers, timeout_sec, attempt=1, json=None, data=None, files=None
 ):
-    """Logs a http request debug message if FAB_DEBUG is enabled."""
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+    """Logs a http request debug message if debug is enabled."""
+    if not is_debug_enabled():
         return
 
     logger = get_logger()
@@ -90,8 +124,8 @@ def log_debug_http_request(
 
 
 def log_debug_http_response(status_code, headers, response_text, start_time):
-    """Logs a http response debug message if FAB_DEBUG is enabled."""
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+    """Logs a http response debug message if debug is enabled."""
+    if not is_debug_enabled():
         return
 
     logger = get_logger()
@@ -138,11 +172,11 @@ def log_debug_http_response(status_code, headers, response_text, start_time):
 
 def log_debug_http_request_exception(e):
     """
-    Logs a debug message for an HTTP request exception if FAB_DEBUG is enabled.
+    Logs a debug message for an HTTP request exception if debug is enabled.
     This function is intended to be used when an HTTP request fails and raises a
     RequestException. It logs the exception details to help with debugging.
     """
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+    if not is_debug_enabled():
         return
 
     logger = get_logger()
@@ -200,10 +234,13 @@ def get_log_file_path():
 
 
 def print_log_file_path():
-    """Print log file path if debug is enabled."""
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+    """Print log file path if debug is enabled (via --debug flag or config)."""
+    if is_debug_enabled():
         log_file_path = get_log_file_path()
-        log_warning(f"'debug_enabled' is on ({log_file_path})\n")
+        if _verbose_enabled:
+            log_warning(f"'--debug' is on ({log_file_path})\n")
+        else:
+            log_warning(f"'debug_enabled' is on ({log_file_path})\n")
 
 
 def user_log_dir(app_name):

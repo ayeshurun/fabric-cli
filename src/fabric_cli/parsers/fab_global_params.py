@@ -19,3 +19,12 @@ def add_global_flags(parser) -> None:
         choices=["json", "text"],
         help="Override output format type. Optional",
     )
+    
+    # Add debug flag for enhanced debug logging
+    parser.add_argument(
+        "--debug",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Enable verbose debug logging to console and log file. Optional",
+    )
