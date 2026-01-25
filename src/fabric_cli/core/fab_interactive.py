@@ -87,69 +87,6 @@ class InteractiveCLI:
             return (command[:pipe_pos].strip(), command[pipe_pos + 1:].strip())
         return (command.strip(), "")
 
-    def _execute_cli_command(self, command: str) -> str | None:
-        """Execute a CLI command and capture its stdout output.
-        
-        Returns the captured stdout as a string, or None if the command is a special command.
-        """
-        command_parts = shlex.split(command.strip())
-
-        if command in fab_constant.INTERACTIVE_QUIT_COMMANDS:
-            return None
-        elif command in fab_constant.INTERACTIVE_HELP_COMMANDS:
-            return None
-        elif command in fab_constant.INTERACTIVE_VERSION_COMMANDS:
-            return None
-        elif command.strip() == "fab":
-            return None
-        elif not command.strip():
-            return None
-
-        self.parser.set_mode(fab_constant.FAB_MODE_INTERACTIVE)
-
-        # Now check for subcommands
-        if command_parts:  # Only if there's something to process
-            subcommand_name = command_parts[0]
-            if subcommand_name in self.subparsers.choices:
-                subparser = self.subparsers.choices[subcommand_name]
-
-                try:
-                    subparser_args = subparser.parse_args(command_parts[1:])
-                    subparser_args.command = subcommand_name
-                    subparser_args.fab_mode = fab_constant.FAB_MODE_INTERACTIVE
-                    subparser_args.command_path = Command.get_command_path(
-                        subparser_args
-                    )
-
-                    # Capture stdout
-                    old_stdout = sys.stdout
-                    old_stderr = sys.stderr
-                    captured_stdout = io.StringIO()
-                    captured_stderr = io.StringIO()
-                    sys.stdout = captured_stdout
-                    sys.stderr = captured_stderr
-
-                    try:
-                        if not command_parts[1:]:
-                            subparser_args.func(subparser_args)
-                        elif hasattr(subparser_args, "func"):
-                            subparser_args.func(subparser_args)
-                    finally:
-                        sys.stdout = old_stdout
-                        sys.stderr = old_stderr
-
-                    # Combine stdout and stderr (stderr typically contains the actual output)
-                    return captured_stdout.getvalue() + captured_stderr.getvalue()
-
-                except SystemExit:
-                    # Catch SystemExit raised by ArgumentParser and prevent exiting
-                    return ""
-            else:
-                self.parser.error(f"invalid choice: '{command.strip()}'. Type 'help' for available commands.")
-                return ""
-
-        return ""
-
     def _pipe_to_shell(self, input_data: str, shell_command: str) -> None:
         """Pipe input data through a shell command and print the result.
         
@@ -178,17 +115,10 @@ class InteractiveCLI:
         """Process the user command."""
         fab_logger.print_log_file_path()
 
-        # Check for pipe in command
+        # Check for pipe in command and extract shell command if present
+        shell_cmd = None
         if self._has_pipe(command):
-            cli_cmd, shell_cmd = self._split_pipe(command)
-            if cli_cmd and shell_cmd:
-                output = self._execute_cli_command(cli_cmd)
-                if output is not None:
-                    self._pipe_to_shell(output, shell_cmd)
-                    return False
-                else:
-                    # Special commands like quit, help, version with pipe - just run the special command
-                    return self.handle_command(cli_cmd)
+            command, shell_cmd = self._split_pipe(command)
 
         command_parts = shlex.split(command.strip())
 
@@ -227,14 +157,32 @@ class InteractiveCLI:
                         subparser_args
                     )
 
-                    if not command_parts[1:]:
-                        subparser_args.func(subparser_args)
-                    elif hasattr(subparser_args, "func"):
-                        subparser_args.func(subparser_args)
-                    else:
-                        utils_ui.print(
-                            f"No function associated with the command: {command.strip()}"
-                        )
+                    # Capture stdout/stderr if we need to pipe to shell
+                    if shell_cmd:
+                        old_stdout = sys.stdout
+                        old_stderr = sys.stderr
+                        captured_stdout = io.StringIO()
+                        captured_stderr = io.StringIO()
+                        sys.stdout = captured_stdout
+                        sys.stderr = captured_stderr
+
+                    try:
+                        if not command_parts[1:]:
+                            subparser_args.func(subparser_args)
+                        elif hasattr(subparser_args, "func"):
+                            subparser_args.func(subparser_args)
+                        else:
+                            utils_ui.print(
+                                f"No function associated with the command: {command.strip()}"
+                            )
+                    finally:
+                        if shell_cmd:
+                            sys.stdout = old_stdout
+                            sys.stderr = old_stderr
+                            # Pipe captured output to shell command
+                            captured_output = captured_stdout.getvalue() + captured_stderr.getvalue()
+                            self._pipe_to_shell(captured_output, shell_cmd)
+
                 except SystemExit:
                     # Catch SystemExit raised by ArgumentParser and prevent exiting
                     return

@@ -453,13 +453,21 @@ class TestInteractiveCLI:
         """Test handle_command processes piped commands."""
         command = "ls | grep test"
 
-        with patch.object(interactive_cli, '_execute_cli_command', return_value="test_output\n") as mock_exec, \
-             patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
+        # Mock func to write to stdout
+        def mock_func(args):
+            sys.stdout.write("test_output\n")
+
+        mock_subparsers.choices["ls"].parse_args.return_value.func = mock_func
+
+        with patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
             result = interactive_cli.handle_command(command)
 
             assert result is False
-            mock_exec.assert_called_once_with("ls")
-            mock_pipe.assert_called_once_with("test_output\n", "grep test")
+            mock_pipe.assert_called_once()
+            # Verify that the captured output was passed to pipe_to_shell
+            call_args = mock_pipe.call_args[0]
+            assert "test_output" in call_args[0]
+            assert call_args[1] == "grep test"
 
     def test_handle_command_with_pipe_empty_output_success(
         self, interactive_cli, mock_subparsers, mock_print_log_file_path
@@ -467,12 +475,20 @@ class TestInteractiveCLI:
         """Test handle_command handles empty CLI output with pipe."""
         command = "ls | grep test"
 
-        with patch.object(interactive_cli, '_execute_cli_command', return_value="") as mock_exec, \
-             patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
+        # Mock func that produces no output
+        def mock_func(args):
+            pass
+
+        mock_subparsers.choices["ls"].parse_args.return_value.func = mock_func
+
+        with patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
             result = interactive_cli.handle_command(command)
 
             assert result is False
-            mock_pipe.assert_called_once_with("", "grep test")
+            mock_pipe.assert_called_once()
+            call_args = mock_pipe.call_args[0]
+            assert call_args[0] == ""
+            assert call_args[1] == "grep test"
 
     def test_pipe_to_shell_success(
         self, interactive_cli, mock_print_ui, mock_print_log_file_path
@@ -515,36 +531,26 @@ class TestInteractiveCLI:
 
             mock_print_ui.assert_called_with("Error running pipe command: Command failed")
 
-    def test_execute_cli_command_captures_output_success(
+    def test_handle_command_with_pipe_captures_output_success(
         self, interactive_cli, mock_subparsers, mock_print_log_file_path
     ):
-        """Test _execute_cli_command captures stdout from CLI command."""
-        command = "ls"
+        """Test handle_command captures stdout/stderr from CLI command when piping."""
+        command = "ls | grep captured"
 
-        # Mock func to write to stdout
+        # Mock func to write to stdout and stderr
         def mock_func(args):
             sys.stdout.write("captured output\n")
             sys.stderr.write("captured error\n")
 
         mock_subparsers.choices["ls"].parse_args.return_value.func = mock_func
 
-        output = interactive_cli._execute_cli_command(command)
+        with patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
+            interactive_cli.handle_command(command)
 
-        assert "captured output" in output
-        assert "captured error" in output
-
-    def test_execute_cli_command_special_command_returns_none_success(
-        self, interactive_cli, mock_print_log_file_path
-    ):
-        """Test _execute_cli_command returns None for special commands."""
-        for cmd in fab_constant.INTERACTIVE_QUIT_COMMANDS:
-            assert interactive_cli._execute_cli_command(cmd) is None
-        for cmd in fab_constant.INTERACTIVE_HELP_COMMANDS:
-            assert interactive_cli._execute_cli_command(cmd) is None
-        for cmd in fab_constant.INTERACTIVE_VERSION_COMMANDS:
-            assert interactive_cli._execute_cli_command(cmd) is None
-        assert interactive_cli._execute_cli_command("fab") is None
-        assert interactive_cli._execute_cli_command("") is None
+            mock_pipe.assert_called_once()
+            captured_output = mock_pipe.call_args[0][0]
+            assert "captured output" in captured_output
+            assert "captured error" in captured_output
 
     # endregion
 
