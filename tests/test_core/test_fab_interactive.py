@@ -389,6 +389,151 @@ class TestInteractiveCLI:
             mock_interactive_cli.assert_called_once()
             mock_print.assert_called_once_with("Interactive mode is already running.")
 
+    # Pipe Support Tests
+    def test_has_pipe_simple_pipe_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _has_pipe detects simple pipe operator."""
+        assert interactive_cli._has_pipe("ls | grep test") is True
+        assert interactive_cli._has_pipe("ls") is False
+        assert interactive_cli._has_pipe("ls -a") is False
+
+    def test_has_pipe_pipe_in_quotes_not_detected_success(
+        self, interactive_cli, mock_print_log_file_path
+    ):
+        """Test _has_pipe ignores pipe inside quoted strings."""
+        assert interactive_cli._has_pipe("ls 'file|name'") is False
+        assert interactive_cli._has_pipe('ls "file|name"') is False
+        assert interactive_cli._has_pipe("ls 'file|name' | grep test") is True
+
+    def test_has_pipe_escaped_pipe_not_detected_success(
+        self, interactive_cli, mock_print_log_file_path
+    ):
+        """Test _has_pipe handles escaped characters."""
+        assert interactive_cli._has_pipe("ls \\|") is False
+        assert interactive_cli._has_pipe("ls \\| | grep") is True
+
+    def test_split_pipe_simple_split_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _split_pipe splits command at pipe operator."""
+        cli_cmd, shell_cmd = interactive_cli._split_pipe("ls | grep test")
+        assert cli_cmd == "ls"
+        assert shell_cmd == "grep test"
+
+    def test_split_pipe_no_pipe_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _split_pipe returns full command when no pipe."""
+        cli_cmd, shell_cmd = interactive_cli._split_pipe("ls -a")
+        assert cli_cmd == "ls -a"
+        assert shell_cmd == ""
+
+    def test_split_pipe_with_quoted_pipe_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _split_pipe ignores pipe inside quotes."""
+        cli_cmd, shell_cmd = interactive_cli._split_pipe("ls 'a|b' | grep test")
+        assert cli_cmd == "ls 'a|b'"
+        assert shell_cmd == "grep test"
+
+    def test_split_pipe_multiple_pipes_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _split_pipe only splits at first unquoted pipe."""
+        cli_cmd, shell_cmd = interactive_cli._split_pipe("ls | grep test | head -5")
+        assert cli_cmd == "ls"
+        assert shell_cmd == "grep test | head -5"
+
+    def test_handle_command_with_pipe_success(
+        self, interactive_cli, mock_subparsers, mock_print_log_file_path
+    ):
+        """Test handle_command processes piped commands."""
+        command = "ls | grep test"
+
+        with patch.object(interactive_cli, '_execute_cli_command', return_value="test_output\n") as mock_exec, \
+             patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
+            result = interactive_cli.handle_command(command)
+
+            assert result is False
+            mock_exec.assert_called_once_with("ls")
+            mock_pipe.assert_called_once_with("test_output\n", "grep test")
+
+    def test_handle_command_with_pipe_empty_output_success(
+        self, interactive_cli, mock_subparsers, mock_print_log_file_path
+    ):
+        """Test handle_command handles empty CLI output with pipe."""
+        command = "ls | grep test"
+
+        with patch.object(interactive_cli, '_execute_cli_command', return_value="") as mock_exec, \
+             patch.object(interactive_cli, '_pipe_to_shell') as mock_pipe:
+            result = interactive_cli.handle_command(command)
+
+            assert result is False
+            mock_pipe.assert_called_once_with("", "grep test")
+
+    def test_pipe_to_shell_success(
+        self, interactive_cli, mock_print_ui, mock_print_log_file_path
+    ):
+        """Test _pipe_to_shell runs shell command and prints output."""
+        with patch('fabric_cli.core.fab_interactive.subprocess.run') as mock_run:
+            mock_run.return_value.stdout = "filtered_output"
+            mock_run.return_value.stderr = ""
+
+            interactive_cli._pipe_to_shell("input_data", "grep test")
+
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[0][0] == "grep test"
+            assert call_args[1]["shell"] is True
+            assert call_args[1]["input"] == "input_data"
+            mock_print_ui.assert_called_with("filtered_output")
+
+    def test_pipe_to_shell_with_stderr_success(
+        self, interactive_cli, mock_print_ui, mock_print_log_file_path
+    ):
+        """Test _pipe_to_shell handles stderr from shell command."""
+        with patch('fabric_cli.core.fab_interactive.subprocess.run') as mock_run, \
+             patch('fabric_cli.core.fab_interactive.utils_ui.print_grey') as mock_print_grey:
+            mock_run.return_value.stdout = ""
+            mock_run.return_value.stderr = "error message"
+
+            interactive_cli._pipe_to_shell("input_data", "grep test")
+
+            mock_print_grey.assert_called_with("error message")
+
+    def test_pipe_to_shell_exception_handling_success(
+        self, interactive_cli, mock_print_ui, mock_print_log_file_path
+    ):
+        """Test _pipe_to_shell handles exceptions gracefully."""
+        with patch('fabric_cli.core.fab_interactive.subprocess.run') as mock_run:
+            mock_run.side_effect = Exception("Command failed")
+
+            interactive_cli._pipe_to_shell("input_data", "invalid_cmd")
+
+            mock_print_ui.assert_called_with("Error running pipe command: Command failed")
+
+    def test_execute_cli_command_captures_output_success(
+        self, interactive_cli, mock_subparsers, mock_print_log_file_path
+    ):
+        """Test _execute_cli_command captures stdout from CLI command."""
+        command = "ls"
+
+        # Mock func to write to stdout
+        def mock_func(args):
+            import sys
+            sys.stdout.write("captured output\n")
+            sys.stderr.write("captured error\n")
+
+        mock_subparsers.choices["ls"].parse_args.return_value.func = mock_func
+
+        output = interactive_cli._execute_cli_command(command)
+
+        assert "captured output" in output
+        assert "captured error" in output
+
+    def test_execute_cli_command_special_command_returns_none_success(
+        self, interactive_cli, mock_print_log_file_path
+    ):
+        """Test _execute_cli_command returns None for special commands."""
+        for cmd in fab_constant.INTERACTIVE_QUIT_COMMANDS:
+            assert interactive_cli._execute_cli_command(cmd) is None
+        for cmd in fab_constant.INTERACTIVE_HELP_COMMANDS:
+            assert interactive_cli._execute_cli_command(cmd) is None
+        for cmd in fab_constant.INTERACTIVE_VERSION_COMMANDS:
+            assert interactive_cli._execute_cli_command(cmd) is None
+        assert interactive_cli._execute_cli_command("fab") is None
+        assert interactive_cli._execute_cli_command("") is None
 
     # endregion
 
