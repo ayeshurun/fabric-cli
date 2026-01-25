@@ -26,6 +26,10 @@ def main():
     try:
         fab_state_config.init_defaults()
         
+        # Set debug flag for enhanced logging if --debug is passed
+        if getattr(args, "debug", False):
+            fab_logger.set_verbose_enabled(True)
+        
         if args.command == "auth" and args.auth_command == None:
             auth_parser.show_help(args)
             return

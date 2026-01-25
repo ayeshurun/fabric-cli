@@ -16,6 +16,14 @@ from fabric_cli.core import fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 
 
+@pytest.fixture(autouse=True)
+def reset_verbose_flag():
+    """Reset the verbose flag before each test."""
+    logger.set_verbose_enabled(False)
+    yield
+    logger.set_verbose_enabled(False)
+
+
 def test_log_warning():
     logger.log_warning("This is a warning message")
 
@@ -31,123 +39,123 @@ def test_log_info():
 
 
 def test_log_progress(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_progress("This is a progress message")
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_progress("This is a progress message")
 
 
 def test_log_debug_http_request(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request("GET", "http://example.com", {}, 10)
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request("GET", "http://example.com", {}, 10)
 
 
 def test_log_debug_http_request_json(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, json={"key": "value"}
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, json={"key": "value"}
     )
 
 
 def test_log_debug_http_request_data(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, data={"key": "value"}
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, data={"key": "value"}
     )
 
 
 def test_log_debug_http_request_files(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, files={"key": "value"}
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {}, 10, files={"key": "value"}
     )
 
 
 def test_log_debug_http_request_attempt(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request("GET", "http://example.com", {}, 10, attempt=2)
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request("GET", "http://example.com", {}, 10, attempt=2)
 
 
 def test_log_debug_http_request_user_agent(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"User-Agent": "value"}, 10
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"User-Agent": "value"}, 10
     )
 
 
 def test_log_debug_http_request_authorization(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"Authorization": "value"}, 10
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"Authorization": "value"}, 10
     )
 
 
 def test_log_debug_http_request_sample_header(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"Some-Header": "value"}, 10
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request(
         "GET", "http://example.com", {"Some-Header": "value"}, 10
     )
 
 
 def test_log_debug_http_response(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_response(200, {}, "Response text", time.time())
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_response(200, {}, "Response text", time.time())
 
 
 def test_log_debug_http_response_sample_header(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_response(
         200, {"Some-Header": "value"}, "Response text", time.time()
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_response(
         200, {"Some-Header": "value"}, "Response text", time.time()
     )
 
 
 def test_log_debug_http_response_json(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_response(
         200,
         {"Content-Type": "application/json"},
@@ -155,7 +163,7 @@ def test_log_debug_http_response_json(monkeypatch):
         time.time(),
     )
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_response(
         200,
         {"Content-Type": "application/json"},
@@ -165,17 +173,17 @@ def test_log_debug_http_response_json(monkeypatch):
 
 
 def test_log_debug_http_response_bad_json(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_response(
         200, {"Content-Type": "application/json"}, "{ bad json", time.time()
     )
 
 
 def test_log_debug_http_request_exception(monkeypatch):
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "1")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
     logger.log_debug_http_request_exception(RequestException("This is an exception"))
 
-    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "0")
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
     logger.log_debug_http_request_exception(RequestException("This is an exception"))
 
 
@@ -249,3 +257,111 @@ def mock_log_warning():
 def mock_get_log_file_path():
     with patch("fabric_cli.core.fab_logger.get_log_file_path") as mock:
         yield mock
+
+
+# Tests for set_verbose_enabled and is_debug_enabled
+
+
+def test_set_verbose_enabled():
+    """Test that set_verbose_enabled sets the verbose flag."""
+    # Initially should be False (from fixture)
+    assert logger.is_debug_enabled() == False
+    
+    # Set verbose to True
+    logger.set_verbose_enabled(True)
+    assert logger.is_debug_enabled() == True
+    
+    # Set back to False
+    logger.set_verbose_enabled(False)
+    assert logger.is_debug_enabled() == False
+
+
+def test_is_debug_enabled__verbose_flag_overrides_config(monkeypatch):
+    """Test that is_debug_enabled returns True when verbose flag is set even if config is false."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
+    
+    # Initially should be False
+    assert logger.is_debug_enabled() == False
+    
+    # Set verbose flag
+    logger.set_verbose_enabled(True)
+    assert logger.is_debug_enabled() == True
+
+
+def test_is_debug_enabled__config_true(monkeypatch):
+    """Test that is_debug_enabled returns True when config is set to true."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
+    
+    # Should return True because config is true
+    assert logger.is_debug_enabled() == True
+
+
+def test_is_debug_enabled__both_disabled(monkeypatch):
+    """Test that is_debug_enabled returns False when both verbose and config are disabled."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
+    
+    # Both should be False
+    assert logger.is_debug_enabled() == False
+
+
+def test_log_debug__logs_to_console_and_file_when_verbose(monkeypatch):
+    """Test that log_debug logs to console and file when debug flag is enabled."""
+    # Enable debug flag
+    logger.set_verbose_enabled(True)
+    
+    # This should not raise any errors and should log to both console and file
+    logger.log_debug("Test debug message with debug flag")
+
+
+def test_log_debug__skips_logging_when_disabled(monkeypatch):
+    """Test that log_debug does not log when debug is disabled."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
+    logger.set_verbose_enabled(False)
+    
+    # This should not raise any errors but should not log
+    logger.log_debug("Test debug message - should not log")
+
+
+def test_print_log_file_path__debug_flag_message(
+    mock_get_log_file_path, mock_log_warning, monkeypatch
+):
+    """Test that print_log_file_path shows --debug message when debug flag is set."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
+    logger.set_verbose_enabled(True)
+    
+    mock_get_log_file_path.return_value = "/fake/path/fabcli_debug.log"
+    
+    logger.print_log_file_path()
+    
+    mock_get_log_file_path.assert_called_once()
+    mock_log_warning.assert_called_once()
+    # Check that the message mentions --debug
+    call_args = mock_log_warning.call_args[0][0]
+    assert "'--debug' is on" in call_args
+
+
+def test_print_log_file_path__debug_enabled_message(
+    mock_get_log_file_path, mock_log_warning, monkeypatch
+):
+    """Test that print_log_file_path shows debug_enabled message when config is set."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "true")
+    logger.set_verbose_enabled(False)
+    
+    mock_get_log_file_path.return_value = "/fake/path/fabcli_debug.log"
+    
+    logger.print_log_file_path()
+    
+    mock_get_log_file_path.assert_called_once()
+    mock_log_warning.assert_called_once()
+    # Check that the message mentions debug_enabled
+    call_args = mock_log_warning.call_args[0][0]
+    assert "'debug_enabled' is on" in call_args
+
+
+def test_log_progress__logs_when_debug_flag_enabled(monkeypatch):
+    """Test that log_progress logs when debug flag is enabled."""
+    monkeypatch.setattr(fab_state_config, "get_config", lambda x: "false")
+    logger.set_verbose_enabled(True)
+    
+    # This should log because debug flag is enabled
+    logger.log_progress("Test progress message", progress=50)
