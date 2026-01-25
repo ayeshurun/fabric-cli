@@ -20,10 +20,10 @@ _verbose_enabled = False  # Verbose flag from command-line
 
 
 def set_verbose_enabled(enabled: bool) -> None:
-    """Set the verbose flag from command-line arguments.
+    """Set the debug flag from command-line arguments.
     
     Args:
-        enabled: Whether verbose logging is enabled via --verbose flag.
+        enabled: Whether debug logging is enabled via --debug flag.
     """
     global _verbose_enabled
     _verbose_enabled = enabled
@@ -33,7 +33,7 @@ def is_debug_enabled() -> bool:
     """Check if debug logging is enabled.
     
     Debug logging is enabled when either:
-    - The --verbose global flag is passed
+    - The --debug global flag is passed
     - The debug_enabled config setting is set to true
     
     Returns:
