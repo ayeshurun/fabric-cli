@@ -338,3 +338,17 @@ ITEM_SET_ALLOWED_METADATA_KEYS = [
     ITEM_QUERY_DESCRIPTION,
     ITEM_QUERY_PROPERTIES,
 ]
+
+# Item types that don't support definition payloads
+UNSUPPORTED_DEFINITION_ITEM_TYPES = (
+    "Lakehouse",
+    "Warehouse",
+    "MLExperiment",
+    "MLModel",
+    "Dashboard",
+    "PaginatedReport",
+    "SQLEndpoint",
+    "MirroredWarehouse",
+    "Datamart",
+    "Environment",  # Environment has custom handling
+)

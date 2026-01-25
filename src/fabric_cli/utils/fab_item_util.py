@@ -13,20 +13,25 @@ The module includes functions for:
 - OneLake path handling
 - External data share management
 - Item type and workspace element sorting
+- Centralized item payload construction
 """
 
 import json
 import platform
 from argparse import Namespace
 from collections.abc import Sequence
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.commands.fs.export import fab_fs_export_item as export_item
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.core.fab_types import ItemType, format_mapping
+from fabric_cli.core.fab_types import (
+    ItemType,
+    definition_format_mapping,
+    format_mapping,
+)
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, OneLakeItem
 from fabric_cli.utils import fab_ui
@@ -126,3 +131,82 @@ def get_confirm_copy_move_message(is_move_command: bool) -> str:
         f"Item definition is {action} without its sensitivity label. Are you sure?"
     )
     return confirm_message
+
+
+def build_item_payload(
+    item: Item,
+    definition: Optional[dict] = None,
+    description: str = "Imported from fab",
+    input_format: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Build a standardized payload for creating or updating a Fabric item.
+
+    This is the single source of truth for item payload construction, eliminating
+    redundant code across import, mkdir, and other commands.
+
+    Args:
+        item: The Item object containing type, name, and folder information
+        definition: Optional definition structure with 'parts' array. If provided,
+                   will be wrapped with appropriate format based on item type.
+        description: Description for the item (default: "Imported from fab")
+        input_format: Optional format override (e.g., ".py", ".ipynb"). If not provided,
+                     uses default format from definition_format_mapping.
+
+    Returns:
+        dict: Complete payload ready for create/update API calls
+
+    Raises:
+        FabricCLIError: If the item type doesn't support definition payloads
+
+    Examples:
+        >>> # Create payload without definition (for mkdir)
+        >>> payload = build_item_payload(item, description="Created by fab")
+
+        >>> # Create payload with definition (for import)
+        >>> definition = {"parts": [{"path": "file.py", "payload": "base64..."}]}
+        >>> payload = build_item_payload(item, definition=definition, input_format=".py")
+    """
+    # Build base payload that all items share
+    base_payload: dict[str, Any] = {
+        "type": str(item.item_type),
+        "description": description,
+        "folderId": item.folder_id,
+        "displayName": item.short_name,
+    }
+
+    # If no definition provided, return base payload (used by mkdir)
+    if not definition:
+        return base_payload
+
+    # Add definition with appropriate format handling
+    item_type = item.item_type
+
+    # Check if item type is not supported
+    if str(item_type) in fab_constant.UNSUPPORTED_DEFINITION_ITEM_TYPES:
+        from fabric_cli.errors import ErrorMessages
+
+        raise FabricCLIError(
+            ErrorMessages.Hierarchy.item_type_doesnt_support_definition_payload(
+                str(item.item_type)
+            ),
+            fab_constant.ERROR_UNSUPPORTED_COMMAND,
+        )
+
+    # Determine format to apply
+    if input_format:
+        # Use the provided input format
+        format_config = definition_format_mapping.get(item_type, {})
+        format_name = format_config.get(input_format)
+    else:
+        # Use default format from mapping
+        format_config = definition_format_mapping.get(item_type)
+        format_name = format_config.get("default") if format_config else None
+
+    # Apply format if specified
+    if format_name:
+        definition["format"] = format_name
+
+    base_payload["definition"] = definition
+
+    return base_payload
