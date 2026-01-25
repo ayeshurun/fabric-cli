@@ -2,7 +2,8 @@
 # Licensed under the MIT License.
 
 import argparse
-from unittest.mock import patch
+import sys
+from unittest.mock import patch, Mock
 
 import pytest
 
@@ -390,6 +391,17 @@ class TestInteractiveCLI:
             mock_print.assert_called_once_with("Interactive mode is already running.")
 
     # Pipe Support Tests
+    def test_find_pipe_position_simple_pipe_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _find_pipe_position finds pipe position correctly."""
+        assert interactive_cli._find_pipe_position("ls | grep test") == 3
+        assert interactive_cli._find_pipe_position("ls") is None
+        assert interactive_cli._find_pipe_position("ls -a") is None
+
+    def test_find_pipe_position_quoted_pipe_success(self, interactive_cli, mock_print_log_file_path):
+        """Test _find_pipe_position ignores pipe inside quotes."""
+        assert interactive_cli._find_pipe_position("ls 'a|b'") is None
+        assert interactive_cli._find_pipe_position("ls 'a|b' | grep") == 9
+
     def test_has_pipe_simple_pipe_success(self, interactive_cli, mock_print_log_file_path):
         """Test _has_pipe detects simple pipe operator."""
         assert interactive_cli._has_pipe("ls | grep test") is True
@@ -511,7 +523,6 @@ class TestInteractiveCLI:
 
         # Mock func to write to stdout
         def mock_func(args):
-            import sys
             sys.stdout.write("captured output\n")
             sys.stderr.write("captured error\n")
 

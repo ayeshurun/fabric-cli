@@ -51,29 +51,12 @@ class InteractiveCLI:
 
     def _has_pipe(self, command: str) -> bool:
         """Check if command contains a pipe operator outside of quoted strings."""
-        in_single_quote = False
-        in_double_quote = False
-        i = 0
-        while i < len(command):
-            char = command[i]
-            # Handle escape sequences
-            if char == '\\' and i + 1 < len(command):
-                i += 2
-                continue
-            # Track quote state
-            if char == "'" and not in_double_quote:
-                in_single_quote = not in_single_quote
-            elif char == '"' and not in_single_quote:
-                in_double_quote = not in_double_quote
-            elif char == '|' and not in_single_quote and not in_double_quote:
-                return True
-            i += 1
-        return False
+        return self._find_pipe_position(command) is not None
 
-    def _split_pipe(self, command: str) -> tuple[str, str]:
-        """Split command at the first pipe operator outside of quoted strings.
+    def _find_pipe_position(self, command: str) -> int | None:
+        """Find the position of the first pipe operator outside of quoted strings.
         
-        Returns a tuple of (cli_command, shell_command).
+        Returns the position index or None if no unquoted pipe is found.
         """
         in_single_quote = False
         in_double_quote = False
@@ -90,8 +73,18 @@ class InteractiveCLI:
             elif char == '"' and not in_single_quote:
                 in_double_quote = not in_double_quote
             elif char == '|' and not in_single_quote and not in_double_quote:
-                return (command[:i].strip(), command[i + 1:].strip())
+                return i
             i += 1
+        return None
+
+    def _split_pipe(self, command: str) -> tuple[str, str]:
+        """Split command at the first pipe operator outside of quoted strings.
+        
+        Returns a tuple of (cli_command, shell_command).
+        """
+        pipe_pos = self._find_pipe_position(command)
+        if pipe_pos is not None:
+            return (command[:pipe_pos].strip(), command[pipe_pos + 1:].strip())
         return (command.strip(), "")
 
     def _execute_cli_command(self, command: str) -> str | None:
@@ -158,9 +151,15 @@ class InteractiveCLI:
         return ""
 
     def _pipe_to_shell(self, input_data: str, shell_command: str) -> None:
-        """Pipe input data through a shell command and print the result."""
+        """Pipe input data through a shell command and print the result.
+        
+        Note: shell=True is intentionally used here to support full shell syntax
+        (e.g., 'grep -i test', 'head -n 10 | tail -5'). This is safe in the context
+        of an interactive REPL where the user is directly typing commands and has
+        full control over their shell environment - similar to running shell commands
+        in a terminal. The shell_command comes directly from user input in the REPL.
+        """
         try:
-            # Use shell=True to support full shell syntax (e.g., grep -i, head -n 10)
             result = subprocess.run(
                 shell_command,
                 shell=True,
