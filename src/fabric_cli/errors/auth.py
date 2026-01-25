@@ -38,7 +38,12 @@ class AuthErrors:
 
     @staticmethod
     def encrypted_cache_error() -> str:
-        return "An error occurred with the encrypted cache. Enable plaintext auth token fallback with 'config set encryption_fallback_enabled true'"
+        return (
+            "An error occurred with the encrypted cache. "
+            "On Linux, ensure libsecret is installed (e.g., 'sudo apt install libsecret-1-0 gnome-keyring' on Ubuntu/Debian). "
+            "See 'fab --help' troubleshooting docs for other distributions. "
+            "Alternatively, enable plaintext fallback with 'config set encryption_fallback_enabled true'"
+        )
 
     @staticmethod
     def azure_token_required() -> str:
