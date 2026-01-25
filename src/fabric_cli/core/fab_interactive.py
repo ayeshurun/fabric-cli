@@ -2,7 +2,10 @@
 # Licensed under the MIT License.
 
 import html
+import io
 import shlex
+import subprocess
+import sys
 
 from prompt_toolkit import HTML, PromptSession
 from prompt_toolkit.cursor_shapes import CursorShape
@@ -46,9 +49,76 @@ class InteractiveCLI:
     def init_session(self, session_history: InMemoryHistory) -> PromptSession:
         return PromptSession(history=session_history)
 
+    def _has_pipe(self, command: str) -> bool:
+        """Check if command contains a pipe operator outside of quoted strings."""
+        return self._find_pipe_position(command) is not None
+
+    def _find_pipe_position(self, command: str) -> int | None:
+        """Find the position of the first pipe operator outside of quoted strings.
+        
+        Returns the position index or None if no unquoted pipe is found.
+        """
+        in_single_quote = False
+        in_double_quote = False
+        i = 0
+        while i < len(command):
+            char = command[i]
+            # Handle escape sequences
+            if char == '\\' and i + 1 < len(command):
+                i += 2
+                continue
+            # Track quote state
+            if char == "'" and not in_double_quote:
+                in_single_quote = not in_single_quote
+            elif char == '"' and not in_single_quote:
+                in_double_quote = not in_double_quote
+            elif char == '|' and not in_single_quote and not in_double_quote:
+                return i
+            i += 1
+        return None
+
+    def _split_pipe(self, command: str) -> tuple[str, str]:
+        """Split command at the first pipe operator outside of quoted strings.
+        
+        Returns a tuple of (cli_command, shell_command).
+        """
+        pipe_pos = self._find_pipe_position(command)
+        if pipe_pos is not None:
+            return (command[:pipe_pos].strip(), command[pipe_pos + 1:].strip())
+        return (command.strip(), "")
+
+    def _pipe_to_shell(self, input_data: str, shell_command: str) -> None:
+        """Pipe input data through a shell command and print the result.
+        
+        Note: shell=True is intentionally used here to support full shell syntax
+        (e.g., 'grep -i test', 'head -n 10 | tail -5'). This is safe in the context
+        of an interactive REPL where the user is directly typing commands and has
+        full control over their shell environment - similar to running shell commands
+        in a terminal. The shell_command comes directly from user input in the REPL.
+        """
+        try:
+            result = subprocess.run(
+                shell_command,
+                shell=True,
+                input=input_data,
+                capture_output=True,
+                text=True,
+            )
+            if result.stdout:
+                utils_ui.print(result.stdout.rstrip('\n'))
+            if result.stderr:
+                utils_ui.print_grey(result.stderr.rstrip('\n'))
+        except Exception as e:
+            utils_ui.print(f"Error running pipe command: {str(e)}")
+
     def handle_command(self, command):
         """Process the user command."""
         fab_logger.print_log_file_path()
+
+        # Check for pipe in command and extract shell command if present
+        shell_cmd = None
+        if self._has_pipe(command):
+            command, shell_cmd = self._split_pipe(command)
 
         command_parts = shlex.split(command.strip())
 
@@ -87,14 +157,32 @@ class InteractiveCLI:
                         subparser_args
                     )
 
-                    if not command_parts[1:]:
-                        subparser_args.func(subparser_args)
-                    elif hasattr(subparser_args, "func"):
-                        subparser_args.func(subparser_args)
-                    else:
-                        utils_ui.print(
-                            f"No function associated with the command: {command.strip()}"
-                        )
+                    # Capture stdout/stderr if we need to pipe to shell
+                    if shell_cmd:
+                        old_stdout = sys.stdout
+                        old_stderr = sys.stderr
+                        captured_stdout = io.StringIO()
+                        captured_stderr = io.StringIO()
+                        sys.stdout = captured_stdout
+                        sys.stderr = captured_stderr
+
+                    try:
+                        if not command_parts[1:]:
+                            subparser_args.func(subparser_args)
+                        elif hasattr(subparser_args, "func"):
+                            subparser_args.func(subparser_args)
+                        else:
+                            utils_ui.print(
+                                f"No function associated with the command: {command.strip()}"
+                            )
+                    finally:
+                        if shell_cmd:
+                            sys.stdout = old_stdout
+                            sys.stderr = old_stderr
+                            # Pipe captured output to shell command
+                            captured_output = captured_stdout.getvalue() + captured_stderr.getvalue()
+                            self._pipe_to_shell(captured_output, shell_cmd)
+
                 except SystemExit:
                     # Catch SystemExit raised by ArgumentParser and prevent exiting
                     return
