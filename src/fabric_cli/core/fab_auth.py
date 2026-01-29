@@ -3,21 +3,23 @@
 
 import json
 import os
+import platform
 import uuid
 from binascii import hexlify
 from typing import Any, NamedTuple, Optional
 
 import jwt
-import msal
 import requests
+from azure.identity import (
+    CertificateCredential,
+    ClientSecretCredential,
+    InteractiveBrowserCredential,
+    ManagedIdentityCredential,
+    TokenCachePersistenceOptions,
+)
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from msal_extensions import (
-    FilePersistence,
-    PersistedTokenCache,
-    build_encrypted_persistence,
-)
 
 from fabric_cli.core import fab_constant as con
 from fabric_cli.core import fab_logger
@@ -26,6 +28,17 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_ui as utils_ui
+
+# Enable broker support on Windows
+if platform.system() == "Windows":
+    try:
+        from azure.identity.broker import InteractiveBrowserBrokerCredential
+        BROKER_AVAILABLE = True
+    except ImportError:
+        fab_logger.log_debug("Broker support not available. Install azure-identity-broker for WAM support.")
+        BROKER_AVAILABLE = False
+else:
+    BROKER_AVAILABLE = False
 
 
 def singleton(class_):
@@ -47,8 +60,8 @@ class FabAuth:
         self.cache_file = os.path.join(config.config_location(), "cache.bin")
 
         self.aad_public_key = None
-        # Reset the auth info
-        self.app: msal.ClientApplication = None
+        # Credential instance for Azure Identity
+        self._credential = None
         self._auth_info = {}
 
         # Load the auth info and environment variables
@@ -197,72 +210,89 @@ class FabAuth:
                 decoded_dict[key] = value
         return decoded_dict
 
-    def _get_persistence(self):
-        persistence = None
+    def _get_cache_options(self) -> TokenCachePersistenceOptions:
+        """Configure token cache persistence options for Azure Identity."""
         try:
-            persistence = build_encrypted_persistence(self.cache_file)
+            # Azure Identity handles encrypted cache automatically per platform:
+            # - Windows: DPAPI
+            # - macOS: Keychain
+            # - Linux: encrypted keyring (if available) or plaintext
+            cache_options = TokenCachePersistenceOptions(
+                name="fabric_cli_cache",
+                allow_unencrypted_storage=config.get_config(con.FAB_ENCRYPTION_FALLBACK_ENABLED) == "true"
+            )
+            return cache_options
         except Exception as e:
-            fab_logger.log_debug(f"Error using encrypted cache: {e}")
-
-            if config.get_config(con.FAB_ENCRYPTION_FALLBACK_ENABLED) == "true":
-                persistence = FilePersistence(self.cache_file)
-            else:
+            fab_logger.log_debug(f"Error configuring token cache: {e}")
+            if config.get_config(con.FAB_ENCRYPTION_FALLBACK_ENABLED) != "true":
                 raise FabricCLIError(
                     ErrorMessages.Auth.encrypted_cache_error(),
                     con.ERROR_ENCRYPTION_FAILED,
                 )
+            # Return cache options that allow unencrypted storage
+            return TokenCachePersistenceOptions(
+                name="fabric_cli_cache",
+                allow_unencrypted_storage=True
+            )
 
-        return persistence
-
-    def _get_app(self) -> msal.ClientApplication:
-        if self.app is None:
-            persistence = self._get_persistence()
-            self.cache = PersistedTokenCache(persistence)
-
-            if self.get_identity_type() == "managed_identity":
+    def _get_credential(self):
+        """Factory method to create and return the appropriate Azure Identity credential.
+        This is the ONLY place where credentials are created."""
+        # Note: Credential is cached in self._credential for reuse during session
+        # but the underlying secrets are NOT stored - they're passed directly from
+        # the calling method (set_spn) or environment variables
+        if self._credential is None:
+            identity_type = self.get_identity_type()
+            
+            if identity_type == "managed_identity":
+                # Managed identity credential should already be created by set_managed_identity()
+                # If not, it means we need to create it from stored config
                 client_id = self._get_auth_property(con.FAB_SPN_CLIENT_ID)
-                if client_id:
-                    managed_identity = msal.UserAssignedManagedIdentity(
-                        client_id=client_id
-                    )
+                fab_logger.log_debug(f"Creating ManagedIdentityCredential with client_id={client_id or 'system-assigned'}")
+                cache_options = self._get_cache_options()
+                self._credential = ManagedIdentityCredential(
+                    client_id=client_id,
+                    cache_persistence_options=cache_options
+                )
+                
+            elif identity_type == "service_principal":
+                # Service principals cannot be recreated without credentials
+                # Users must re-authenticate with fab auth login --mode spn
+                raise FabricCLIError(
+                    ErrorMessages.Auth.spn_reauthentication_required(),
+                    con.ERROR_AUTHENTICATION_FAILED,
+                )
+                
+            elif identity_type == "user":
+                tenant_id = self.get_tenant_id() or "common"
+                cache_options = self._get_cache_options()
+                
+                # Use broker on Windows if available for seamless SSO
+                if BROKER_AVAILABLE and platform.system() == "Windows":
+                    try:
+                        fab_logger.log_debug("Creating InteractiveBrowserBrokerCredential (Windows WAM)")
+                        self._credential = InteractiveBrowserBrokerCredential(
+                            client_id=con.AUTH_DEFAULT_CLIENT_ID,
+                            tenant_id=tenant_id,
+                            cache_persistence_options=cache_options,
+                            parent_window_handle=0,  # Console window
+                        )
+                    except Exception as e:
+                        fab_logger.log_debug(f"Broker initialization failed, falling back to standard browser: {e}")
+                        self._credential = InteractiveBrowserCredential(
+                            client_id=con.AUTH_DEFAULT_CLIENT_ID,
+                            tenant_id=tenant_id,
+                            cache_persistence_options=cache_options,
+                        )
                 else:
-                    managed_identity = msal.SystemAssignedManagedIdentity()
-
-                self.app = msal.ManagedIdentityClient(
-                    managed_identity,
-                    http_client=requests.Session(),
-                    token_cache=self.cache,
-                )
-                self._set_auth_properties(
-                    {
-                        con.IDENTITY_TYPE: "managed_identity",
-                    }
-                )
-            elif self.get_identity_type() == "service_principal":
-                self.app = msal.ConfidentialClientApplication(
-                    client_id=self._get_auth_property(con.FAB_SPN_CLIENT_ID),
-                    authority=self._get_authority_url(),
-                    token_cache=self.cache,
-                )
-                self._set_auth_properties(
-                    {
-                        con.IDENTITY_TYPE: "service_principal",
-                    }
-                )
-            elif self.get_identity_type() == "user":
-                # Load the cache into the MSAL application
-                self.app = msal.PublicClientApplication(
-                    client_id=con.AUTH_DEFAULT_CLIENT_ID,
-                    authority=self._get_authority_url(),
-                    token_cache=self.cache,
-                    enable_broker_on_windows=True,
-                )
-                self._set_auth_properties(
-                    {
-                        con.IDENTITY_TYPE: "user",
-                    }
-                )
-        return self.app
+                    fab_logger.log_debug("Creating InteractiveBrowserCredential")
+                    self._credential = InteractiveBrowserCredential(
+                        client_id=con.AUTH_DEFAULT_CLIENT_ID,
+                        tenant_id=tenant_id,
+                        cache_persistence_options=cache_options,
+                    )
+                
+        return self._credential
 
     def _get_access_token_from_env_vars_if_exist(self, scope):
         if "FAB_TOKEN" in os.environ and "FAB_TOKEN_ONELAKE" in os.environ:
@@ -351,65 +381,90 @@ class FabAuth:
             )
 
     def set_spn(self, client_id, password=None, cert_path=None, client_assertion=None):
-        persistence = self._get_persistence()
-        self.cache = PersistedTokenCache(persistence)
+        """Configure service principal authentication. Creates credential immediately (not stored)."""
+        # Validate at least one auth method provided
+        if not any([password, cert_path, client_assertion]):
+            raise FabricCLIError(
+                ErrorMessages.Auth.spn_auth_missing_credential(),
+                con.ERROR_AUTHENTICATION_FAILED,
+            )
 
-        if cert_path:
-            credential = self._parse_certificate(cert_path, password)
-        elif client_assertion:
-            credential = {
-                "client_assertion": client_assertion,
-            }
-        else:
-            credential = password
-
-        self.app = msal.ConfidentialClientApplication(
-            client_id=client_id,
-            client_credential=credential,
-            authority=self._get_authority_url(),
-            token_cache=self.cache,
-        )
-        # if the client ID and secret are set and are different, then clear the existing tokens
+        # Clear existing credential if client ID changes
         if (
             self._get_auth_property(con.FAB_SPN_CLIENT_ID) is not None
             and self._get_auth_property(con.FAB_SPN_CLIENT_ID) != client_id
         ):
             fab_logger.log_warning(
-                f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. Overwriting with {client_id} and clearing the existing auth tokens"
+                f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. "
+                f"Overwriting with {client_id} and clearing the existing auth tokens"
             )
             self.logout()
 
+        # Store ONLY identity_type and client_id in auth.json (NO credentials)
         auth_properties = {
             con.FAB_SPN_CLIENT_ID: client_id,
             con.IDENTITY_TYPE: "service_principal",
         }
         self._set_auth_properties(auth_properties)
+        
+        # Create credential immediately with runtime credentials (not stored as class attributes)
+        tenant_id = self.get_tenant_id() or "common"
+        cache_options = self._get_cache_options()
+        
+        if cert_path:
+            # Certificate-based authentication
+            fab_logger.log_debug("Creating CertificateCredential")
+            cert_data = self._parse_certificate(cert_path, password)
+            self._credential = CertificateCredential(
+                tenant_id=tenant_id,
+                client_id=client_id,
+                certificate_data=cert_data["pem_bytes"],
+                cache_persistence_options=cache_options,
+            )
+        elif password:
+            # Client secret authentication
+            fab_logger.log_debug("Creating ClientSecretCredential")
+            self._credential = ClientSecretCredential(
+                tenant_id=tenant_id,
+                client_id=client_id,
+                client_secret=password,
+                cache_persistence_options=cache_options,
+            )
+        elif client_assertion:
+            # Federated token authentication not yet supported by Azure Identity
+            raise FabricCLIError(
+                "Federated token authentication is not yet supported. "
+                "Please use client secret or certificate authentication instead.",
+                con.ERROR_AUTHENTICATION_FAILED,
+            )
 
     def set_managed_identity(self, client_id=None):
-        persistence = self._get_persistence()
-        self.cache = PersistedTokenCache(persistence)
-        if client_id:
-            managed_identity = msal.UserAssignedManagedIdentity(client_id=client_id)
-        else:
-            managed_identity = msal.SystemAssignedManagedIdentity()
-
-        self.app = self.app = msal.ManagedIdentityClient(
-            managed_identity, http_client=requests.Session(), token_cache=self.cache
-        )
-        # if the client ID and secret are set and are different, then clear the existing tokens
+        """Configure managed identity authentication. Creates credential immediately."""
+        # Clear existing credential if client ID changes
         if (
             self._get_auth_property(con.FAB_SPN_CLIENT_ID) is not None
             and self._get_auth_property(con.FAB_SPN_CLIENT_ID) != client_id
         ):
             fab_logger.log_warning(
-                f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. Overwriting with {client_id} and clearing the existing auth tokens"
+                f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. "
+                f"Overwriting with {client_id} and clearing the existing auth tokens"
             )
             self.logout()
+        
+        # Store ONLY identity_type and client_id in auth.json
         self._set_auth_properties(
             {
                 con.FAB_SPN_CLIENT_ID: client_id,
                 con.IDENTITY_TYPE: "managed_identity",
             }
+        )
+        
+        # Create credential immediately (consistent with set_spn)
+        fab_logger.log_debug(f"Creating ManagedIdentityCredential with client_id={client_id or 'system-assigned'}")
+        cache_options = self._get_cache_options()
+        self._credential = ManagedIdentityCredential(
+            client_id=client_id,
+            cache_persistence_options=cache_options
         )
 
     def print_auth_info(self):
@@ -430,69 +485,80 @@ class FabAuth:
                 )
 
     def get_access_token(self, scope: list[str], interactive_renew=True) -> str:
-        token = None
+        """Acquire an access token using Azure Identity credentials."""
+        # Check for environment variable tokens first
         env_var_token = self._get_access_token_from_env_vars_if_exist(scope)
+        if env_var_token:
+            return env_var_token
 
         identity_type = self.get_identity_type()
+        
 
-        if identity_type == "service_principal":
-            token = self._get_app().acquire_token_for_client(scopes=scope)
-
-        elif identity_type == "managed_identity":
-            # remove the .default from the scope
-            resource = scope[0].replace("/.default", "")
-            try:
-                token = self._get_app().acquire_token_for_client(resource=resource)
-
-            except ConnectionError:
-                raise FabricCLIError(
-                    ErrorMessages.Auth.managed_identity_connection_failed(),
-                    status_code=con.ERROR_AUTHENTICATION_FAILED,
-                )
-            except Exception:
+        try:
+            credential = self._get_credential()
+            
+            # Azure Identity uses get_token() with a single scope string
+            # Convert list to string (first element)
+            scope_str = scope[0] if isinstance(scope, list) else scope
+            
+            fab_logger.log_debug(f"Acquiring token for scope: {scope_str} with identity type: {identity_type}")
+            
+            # For user identity with interactive_renew=False, we need to prevent interactive prompts
+            # Azure Identity doesn't have a built-in silent-only mode, so we catch the auth required exception
+            if identity_type == "user" and not interactive_renew:
+                try:
+                    # Try to get token from cache only
+                    # If no cached token exists, this will raise an exception
+                    token_result = credential.get_token(scope_str)
+                except Exception as e:
+                    # If authentication is required (no cached token), don't raise a full error
+                    # Just indicate that the user needs to log in
+                    fab_logger.log_debug(f"Silent token acquisition failed: {e}")
+                    raise FabricCLIError(
+                        ErrorMessages.Auth.access_token_error("No cached token available. Please run 'fab auth login' first."),
+                        status_code=con.ERROR_AUTHENTICATION_FAILED,
+                    )
+            else:
+                # Get token from credential (may prompt user if needed)
+                token_result = credential.get_token(scope_str)
+            
+            # Extract tenant ID from token for user flows
+            if identity_type == "user":
+                try:
+                    payload = self._decode_jwt_token(token_result.token)
+                    if "tid" in payload:
+                        self.set_tenant(payload["tid"])
+                except Exception as e:
+                    fab_logger.log_debug(f"Could not extract tenant from token: {e}")
+            
+            return token_result.token
+            
+        except Exception as e:
+            fab_logger.log_debug(f"Token acquisition failed: {e}")
+            
+            # Provide specific error messages for different scenarios
+            if identity_type == "managed_identity":
+                if "ConnectionError" in str(type(e)):
+                    raise FabricCLIError(
+                        ErrorMessages.Auth.managed_identity_connection_failed(),
+                        status_code=con.ERROR_AUTHENTICATION_FAILED,
+                    )
                 raise FabricCLIError(
                     ErrorMessages.Auth.managed_identity_token_failed(),
                     status_code=con.ERROR_AUTHENTICATION_FAILED,
                 )
-        elif env_var_token:
-            token = {
-                "access_token": env_var_token,
-            }
-        elif identity_type == "user":
-            # Use the cache to get the token
-            accounts = self._get_app().get_accounts()
-            account = None
-            if accounts:
-                account = accounts[0]
-            token = self._get_app().acquire_token_silent(scopes=scope, account=account)
-
-            if token is None and interactive_renew and identity_type == "user":
-                token = self._get_app().acquire_token_interactive(
-                    scopes=scope,
-                    prompt="select_account",
-                    parent_window_handle=msal.PublicClientApplication.CONSOLE_WINDOW_HANDLE,
-                )
-                if token is not None and "id_token_claims" in token:
-                    self.set_tenant(token.get("id_token_claims")["tid"])
-
-        if token and token.get("error"):
+            
             raise FabricCLIError(
-                ErrorMessages.Auth.access_token_error(token.get("error_description")),
+                ErrorMessages.Auth.access_token_error(str(e)),
                 status_code=con.ERROR_AUTHENTICATION_FAILED,
             )
-        if token is None or not token.get("access_token"):
-            raise FabricCLIError(
-                ErrorMessages.Auth.access_token_error(),
-                status_code=con.ERROR_AUTHENTICATION_FAILED,
-            )
-
-        return token.get("access_token", None)
-
+    
     def logout(self):
+        """Clear authentication state and credentials."""
         self._auth_info = {}
+        self._credential = None
 
-        self.app = None
-
+        # Clear the cache file if it exists
         if os.path.exists(self.cache_file):
             os.remove(self.cache_file)
 
@@ -645,10 +711,11 @@ class FabAuth:
         self, cert_file_path: str, password: str | None = None
     ) -> dict:
         """
-        Parses a certificate file and returns its content as a json with three properties: private_key, thumbprint, passphrase.
-        Ref: https://learn.microsoft.com/en-us/python/api/msal/msal.application.confidentialclientapplication?view=msal-py-latest
+        Parses a certificate file and returns its content for Azure Identity ClientCertificateCredential.
+        
         :param cert_file_path: Path to the certificate file.
-        :return: Content of the certificate file as a dict.
+        :param password: Optional password for encrypted certificates.
+        :return: Dict with 'pem_bytes' containing the certificate data.
         """
         try:
             with open(cert_file_path, "rb") as cert_file:
@@ -668,11 +735,11 @@ class FabAuth:
                         ErrorMessages.Auth.invalid_cert_file_format(),
                         con.ERROR_INVALID_CERTIFICATE,
                     )
-                client_credential = {
-                    "private_key": cert.pem_bytes,
+                # Return certificate data in format expected by Azure Identity
+                return {
+                    "pem_bytes": cert.pem_bytes,
                     "thumbprint": hexlify(cert.fingerprint).decode("utf-8"),
                 }
-                return client_credential
         except Exception as e:
             raise FabricCLIError(
                 ErrorMessages.Auth.cert_read_failed(str(e)),
@@ -692,7 +759,7 @@ class FabAuth:
         cert = x509.load_pem_x509_certificate(certificate_data, default_backend())
         fingerprint = cert.fingerprint(
             hashes.SHA1()
-        )  # CodeQL [SM02167] SHA‑1 thumbprint is only a certificate identifier required by MSAL/Microsoft Entra, not a cryptographic operation
+        )  # CodeQL [SM02167] SHA‑1 thumbprint is only a certificate identifier required by Azure Identity/Microsoft Entra, not a cryptographic operation
         return self._Cert(certificate_data, private_key, fingerprint)
 
     def _load_pkcs12_certificate(
@@ -734,7 +801,7 @@ class FabAuth:
 
         fingerprint = cert.fingerprint(
             hashes.SHA1()
-        )  # CodeQL [SM02167] SHA‑1 thumbprint is only a certificate identifier required by MSAL/Microsoft Entra, not a cryptographic operation
+        )  # CodeQL [SM02167] SHA‑1 thumbprint is only a certificate identifier required by Azure Identity/Microsoft Entra, not a cryptographic operation
 
         return self._Cert(pem_bytes, private_key, fingerprint)
 

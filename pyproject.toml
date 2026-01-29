@@ -16,9 +16,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "msal[broker]>=1.34,<2 ; platform_system != 'Linux'",
-    "msal>=1.34,<2",
-    "msal_extensions",
+    "azure-identity>=1.15.0",
+    "azure-identity-broker>=1.1.0; platform_system == 'Windows'",
     "questionary",
     "prompt_toolkit>=3.0.41",
     "cachetools>=5.5.0",
@@ -61,7 +60,11 @@ module = "msal.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "msal_extensions"
+module = "azure.identity.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "azure.identity.broker"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -111,3 +111,7 @@ class AuthErrors:
     @staticmethod
     def only_supported_with_user_authentication() -> str:
         return "This operation is only supported with user authentication"
+    
+    @staticmethod
+    def spn_reauthentication_required() -> str:
+        return "Service principal session expired. Please re-authenticate with 'fab auth login --mode spn'"

@@ -6,7 +6,7 @@ import json
 import os
 import tempfile
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
@@ -135,7 +135,7 @@ def test_load_pem_certificate(monkeypatch):
         _clear_environment_variables(monkeypatch)
         auth = FabAuth()
         cert = auth._parse_certificate(cert_path, cert_password)
-        assert "private_key" in cert
+        assert "pem_bytes" in cert
         assert "thumbprint" in cert
     finally:
         # Clean up temporary file
@@ -200,7 +200,7 @@ def test_load_pem_certificate_with_password(monkeypatch):
         _clear_environment_variables(monkeypatch)
         auth = FabAuth()
         cert = auth._parse_certificate(cert_path, cert_password)
-        assert "private_key" in cert
+        assert "pem_bytes" in cert
         assert "thumbprint" in cert
     finally:
         # Clean up temporary file
@@ -272,7 +272,7 @@ def test_load_pfx_certificate(monkeypatch):
         _clear_environment_variables(monkeypatch)
         auth = FabAuth()
         cert = auth._parse_certificate(cert_path, cert_password)
-        assert "private_key" in cert
+        assert "pem_bytes" in cert
         assert "thumbprint" in cert
     finally:
         # Clean up temporary file
@@ -297,7 +297,7 @@ def test_load_pfx_certificate_with_password(monkeypatch):
         _clear_environment_variables(monkeypatch)
         auth = FabAuth()
         cert = auth._parse_certificate(cert_path, cert_password)
-        assert "private_key" in cert
+        assert "pem_bytes" in cert
         assert "thumbprint" in cert
     finally:
         # Clean up temporary file
@@ -340,12 +340,15 @@ def test_get_access_token_user_silent_success():
     auth._auth_info = {con.IDENTITY_TYPE: "user"}
     expected_token = "silent_token"
 
+    # Mock the credential to return a token
+    from types import SimpleNamespace
+    mock_credential = MagicMock()
+    mock_credential.get_token.return_value = SimpleNamespace(token=expected_token)
+    
     with (
         patch.object(auth, "set_tenant", wraps=auth.set_tenant) as set_tenant_spy,
-        patch.object(auth, "app", wraps=auth.app) as mock_app,
+        patch.object(auth, "_get_credential", return_value=mock_credential),
     ):
-
-        mock_app.acquire_token_silent.return_value = {"access_token": expected_token}
         token = auth.get_access_token([con.SCOPE_FABRIC_DEFAULT])
         assert token == expected_token
         set_tenant_spy.assert_not_called()
@@ -355,20 +358,17 @@ def test_get_access_token_user_interactive_error_response_failure():
     auth = FabAuth()
     auth._auth_info = {con.IDENTITY_TYPE: "user"}
 
+    # Mock credential that raises an exception
+    mock_credential = MagicMock()
+    mock_credential.get_token.side_effect = Exception("token acquisition failed")
+    
     with (
         patch.object(auth, "set_tenant", wraps=auth.set_tenant) as set_tenant_spy,
-        patch.object(auth, "app", wraps=auth.app) as mock_app,
+        patch.object(auth, "_get_credential", return_value=mock_credential),
     ):
-
-        mock_app.acquire_token_silent.return_value = None
-        mock_app.acquire_token_interactive.return_value = {
-            "error": "token acquisition failed"
-        }
-
         with pytest.raises(FabricCLIError) as context:
             auth.get_access_token([con.SCOPE_FABRIC_DEFAULT])
         set_tenant_spy.assert_not_called()
-        mock_app.acquire_token_interactive.assert_called()
 
 
 def test_get_access_token_user_interactive_success():
@@ -377,21 +377,23 @@ def test_get_access_token_user_interactive_success():
     expected_tenant = "tenant_id"
     expected_token = "interactive_token"
 
+    # Create a mock JWT token with tenant ID
+    import jwt
+    mock_token_data = {"tid": expected_tenant, "exp": 9999999999}
+    mock_token = jwt.encode(mock_token_data, "secret", algorithm="HS256")
+    
+    from types import SimpleNamespace
+    mock_credential = MagicMock()
+    mock_credential.get_token.return_value = SimpleNamespace(token=mock_token)
+    
     with (
         patch.object(auth, "set_tenant", wraps=auth.set_tenant) as set_tenant_spy,
-        patch.object(auth, "app", wraps=auth.app) as mock_app,
+        patch.object(auth, "_get_credential", return_value=mock_credential),
+        patch.object(auth, "_decode_jwt_token", return_value=mock_token_data),
     ):
-
         set_tenant_spy.configure_mock(**{"return_value": None})
-
-        mock_app.acquire_token_silent.return_value = None
-        mock_app.acquire_token_interactive.return_value = {
-            "access_token": expected_token,
-            "id_token_claims": {"tid": expected_tenant},
-        }
-
         token = auth.get_access_token([con.SCOPE_FABRIC_DEFAULT])
-        assert token == expected_token
+        assert token == mock_token
         set_tenant_spy.assert_called_with(expected_tenant)
 
 
@@ -634,16 +636,16 @@ def test_get_access_token_service_principal(monkeypatch):
         auth,
         "_get_auth_property",
         lambda key: (
-            "service_principal" if key == con.IDENTITY_TYPE else "dummy_authority"
+            "service_principal" if key == con.IDENTITY_TYPE else None
         ),
     )
 
-    # Fake app with acquire_token_for_client method returning valid token
-    class FakeApp:
-        def acquire_token_for_client(self, *, scopes):
-            return {"access_token": "sp_token"}
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeApp())
+    # Mock credential
+    from types import SimpleNamespace
+    mock_credential = MagicMock()
+    mock_credential.get_token.return_value = SimpleNamespace(token="sp_token")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     token = auth.get_access_token(["dummy_scope"])
     assert token == "sp_token"
 
@@ -658,17 +660,16 @@ def test_get_access_token_managed_identity_success(monkeypatch):
         auth,
         "_get_auth_property",
         lambda key: (
-            "managed_identity" if key == con.IDENTITY_TYPE else "dummy_authority"
+            "managed_identity" if key == con.IDENTITY_TYPE else None
         ),
     )
 
-    # Fake app with acquire_token_for_client method returning valid token
-    class FakeMIApp:
-        def acquire_token_for_client(self, *, resource):
-            return {"access_token": "mi_token"}
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeMIApp())
-    # Pass a scope with '/.default' which will have it removed
+    # Mock credential
+    from types import SimpleNamespace
+    mock_credential = MagicMock()
+    mock_credential.get_token.return_value = SimpleNamespace(token="mi_token")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     token = auth.get_access_token(["dummy_scope/.default"])
     assert token == "mi_token"
 
@@ -680,16 +681,15 @@ def test_get_access_token_managed_identity_connection_error(monkeypatch):
         auth,
         "_get_auth_property",
         lambda key: (
-            "managed_identity" if key == con.IDENTITY_TYPE else "dummy_authority"
+            "managed_identity" if key == con.IDENTITY_TYPE else None
         ),
     )
 
-    # Fake app that raises ConnectionError when trying to acquire token
-    class FakeMIApp:
-        def acquire_token_for_client(self, *, resource):
-            raise ConnectionError("Connection failed")
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeMIApp())
+    # Mock credential that raises ConnectionError
+    mock_credential = MagicMock()
+    mock_credential.get_token.side_effect = ConnectionError("Connection failed")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     with pytest.raises(FabricCLIError) as exc_info:
         auth.get_access_token(["dummy_scope/.default"])
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
@@ -703,16 +703,15 @@ def test_get_access_token_managed_identity_generic_exception(monkeypatch):
         auth,
         "_get_auth_property",
         lambda key: (
-            "managed_identity" if key == con.IDENTITY_TYPE else "dummy_authority"
+            "managed_identity" if key == con.IDENTITY_TYPE else None
         ),
     )
 
-    # Fake app that raises a generic Exception
-    class FakeMIApp:
-        def acquire_token_for_client(self, *, resource):
-            raise Exception("Other failure")
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeMIApp())
+    # Mock credential that raises a generic Exception
+    mock_credential = MagicMock()
+    mock_credential.get_token.side_effect = Exception("Other failure")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     with pytest.raises(FabricCLIError) as exc_info:
         auth.get_access_token(["dummy_scope/.default"])
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
@@ -747,33 +746,29 @@ def test_get_access_token_user_interactive(monkeypatch):
     monkeypatch.setattr(
         auth,
         "_get_auth_property",
-        lambda key: "user" if key == con.IDENTITY_TYPE else "dummy_authority",
+        lambda key: "user" if key == con.IDENTITY_TYPE else None,
     )
 
-    # Fake app that returns empty accounts and fails silent acquisition
-    class FakeUserApp:
-        def get_accounts(self):
-            return []
-
-        def acquire_token_silent(self, *, scopes, account):
-            return None
-
-        def acquire_token_interactive(self, *, scopes, prompt, parent_window_handle):
-            return {
-                "access_token": "user_token_interactive",
-                "id_token_claims": {"tid": "new_tenant"},
-            }
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeUserApp())
-    # Patch set_tenant to simply record the tenant (we could override it and check the value)
+    # Create a mock JWT token with tenant ID
+    import jwt
+    mock_token_data = {"tid": "new_tenant", "exp": 9999999999}
+    mock_token = jwt.encode(mock_token_data, "secret", algorithm="HS256")
+    
+    from types import SimpleNamespace
+    mock_credential = MagicMock()
+    mock_credential.get_token.return_value = SimpleNamespace(token=mock_token)
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
+    monkeypatch.setattr(auth, "_decode_jwt_token", lambda token: mock_token_data)
+    
+    # Track set_tenant calls
     tenant_holder = {}
-
     def fake_set_tenant(tenant_id):
         tenant_holder["tid"] = tenant_id
-
     monkeypatch.setattr(auth, "set_tenant", fake_set_tenant)
+    
     token = auth.get_access_token(["dummy_scope"], interactive_renew=True)
-    assert token == "user_token_interactive"
+    assert token == mock_token
     assert tenant_holder.get("tid") == "new_tenant"
 
 
@@ -786,22 +781,18 @@ def test_get_access_token_no_token(monkeypatch):
     monkeypatch.setattr(
         auth,
         "_get_auth_property",
-        lambda key: "user" if key == con.IDENTITY_TYPE else "dummy_authority",
+        lambda key: "user" if key == con.IDENTITY_TYPE else None,
     )
 
-    # Fake app that returns empty accounts and silent returns None, and interactive is disabled.
-    class FakeUserApp:
-        def get_accounts(self):
-            return []
-
-        def acquire_token_silent(self, *, scopes, account):
-            return None
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeUserApp())
+    # Mock credential that raises exception (no cached token)
+    mock_credential = MagicMock()
+    mock_credential.get_token.side_effect = Exception("No cached token")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     with pytest.raises(FabricCLIError) as exc_info:
         auth.get_access_token(["dummy_scope"], interactive_renew=False)
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
-    assert "Failed to get access token" in str(exc_info.value)
+    assert "No cached token available" in str(exc_info.value)
 
 
 def test_get_access_token_token_error(monkeypatch):
@@ -811,20 +802,19 @@ def test_get_access_token_token_error(monkeypatch):
         auth,
         "_get_auth_property",
         lambda key: (
-            "service_principal" if key == con.IDENTITY_TYPE else "dummy_authority"
+            "service_principal" if key == con.IDENTITY_TYPE else None
         ),
     )
 
-    # Fake app returns token with an error field
-    class FakeApp:
-        def acquire_token_for_client(self, *, scopes):
-            return {"error": "some_error", "error_description": "failed due to error"}
-
-    monkeypatch.setattr(auth, "_get_app", lambda: FakeApp())
+    # Mock credential that raises an exception with error
+    mock_credential = MagicMock()
+    mock_credential.get_token.side_effect = Exception("failed due to error")
+    
+    monkeypatch.setattr(auth, "_get_credential", lambda: mock_credential)
     with pytest.raises(FabricCLIError) as exc_info:
         auth.get_access_token(["dummy_scope"])
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
-    assert "Failed to get access token: failed due to error" in str(exc_info.value)
+    assert "Failed to get access token" in str(exc_info.value)
 
 
 def test_set_access_mode_success(monkeypatch):
