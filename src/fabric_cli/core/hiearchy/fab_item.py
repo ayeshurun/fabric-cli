@@ -26,7 +26,7 @@ class Item(_BaseItem):
 
     def __init__(self, name, id, parent: Workspace | Folder, item_type: str):
         if id is None:
-            (_, _type) = Item.validate_name(f"{name}.{item_type}")
+            _, _type = Item.validate_name(f"{name}.{item_type}")
         else:
             _type = ItemType.from_string(str(item_type))
 
@@ -73,67 +73,6 @@ class Item(_BaseItem):
         else:
             assert isinstance(self.parent, Folder)
             return self.parent.workspace
-
-    def get_payload(self, definition, input_format=None) -> dict:
-        match self.item_type:
-
-            case ItemType.SPARK_JOB_DEFINITION:
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": {
-                        "format": "SparkJobDefinitionV1",
-                        "parts": definition["parts"],
-                    },
-                }
-            case ItemType.NOTEBOOK:
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": {
-                        **(
-                            {"parts": definition["parts"]}
-                            if input_format == ".py"
-                            else {"format": "ipynb", "parts": definition["parts"]}
-                        )
-                    },
-                }
-            case (
-                ItemType.REPORT
-                | ItemType.SEMANTIC_MODEL
-                | ItemType.KQL_DASHBOARD
-                | ItemType.DATA_PIPELINE
-                | ItemType.KQL_QUERYSET
-                | ItemType.EVENTHOUSE
-                | ItemType.KQL_DATABASE
-                | ItemType.MIRRORED_DATABASE
-                | ItemType.REFLEX
-                | ItemType.EVENTSTREAM
-                | ItemType.MOUNTED_DATA_FACTORY
-                | ItemType.COPYJOB
-                | ItemType.VARIABLE_LIBRARY
-                | ItemType.GRAPHQLAPI
-                | ItemType.DATAFLOW
-                | ItemType.SQL_DATABASE
-            ):
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": definition,
-                }
-            case _:
-                raise FabricCLIError(
-                    ErrorMessages.Hierarchy.item_type_doesnt_support_definition_payload(
-                        str(self.item_type)
-                    ),
-                    fab_constant.ERROR_UNSUPPORTED_COMMAND,
-                )
 
     def get_folders(self) -> List[str]:
         return ItemFoldersMap.get(self.item_type, [])

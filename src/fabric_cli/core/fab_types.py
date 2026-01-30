@@ -235,7 +235,7 @@ VICMap: dict[VirtualItemContainerType, VirtualItemType] = {
     VirtualItemContainerType.SPARK_POOL: VirtualItemType.SPARK_POOL,
     VirtualItemContainerType.MANAGED_IDENTITY: VirtualItemType.MANAGED_IDENTITY,
     VirtualItemContainerType.MANAGED_PRIVATE_ENDPOINT: VirtualItemType.MANAGED_PRIVATE_ENDPOINT,
-    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE
+    VirtualItemContainerType.EXTERNAL_DATA_SHARE: VirtualItemType.EXTERNAL_DATA_SHARE,
 }
 
 ################
@@ -560,10 +560,10 @@ uri_mapping = {
 # Item Payload definition
 
 definition_format_mapping = {
-    ItemType.SPARK_JOB_DEFINITION: {"default": "?format=SparkJobDefinitionV1"},
+    ItemType.SPARK_JOB_DEFINITION: {"default": "SparkJobDefinitionV1"},
     ItemType.NOTEBOOK: {
-        "default": "?format=ipynb",
-        ".py": "?format=fabricGitSource",
-        ".ipynb": "?format=ipynb",
+        "default": "fabricGitSource",
+        ".py": None,  # Python format doesn't include format key
+        ".ipynb": "ipynb",
     },
 }

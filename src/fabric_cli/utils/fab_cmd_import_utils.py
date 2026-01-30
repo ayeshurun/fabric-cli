@@ -15,21 +15,55 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
+from fabric_cli.utils import fab_item_util
 from fabric_cli.utils import fab_ui as utils_ui
 
 
 def get_payload_for_item_type(
     path: str, item: Item, input_format: Optional[str] = None
 ) -> dict:
+    """
+    Build complete item payload including definition for import operations.
+
+    For Environment items, uses custom payload structure (not yet supporting updateDefinition).
+    For all other items, uses centralized payload builder with definition parts.
+
+    Args:
+        path: File path to the item definition directory
+        item: Item object to build payload for
+        input_format: Optional format specifier (e.g., ".py", ".ipynb")
+
+    Returns:
+        dict: Complete item payload ready for API call
+    """
     # Environment does not support updateDefinition yet, custom payload / dev
     if item.item_type == ItemType.ENVIRONMENT:
         return _build_environment_payload(path)
     else:
-        base64_definition = _build_payload(path)
-        return item.get_payload(base64_definition, input_format)
+        definition = _build_definition(path)
+        return fab_item_util.build_item_payload(
+            item,
+            definition=definition,
+            input_format=input_format,
+        )
 
 
-def _build_payload(input_path: Any) -> dict:
+def _build_definition(input_path: Any) -> dict:
+    """
+    Build the definition structure from a directory containing item files.
+
+    This function traverses the directory and encodes all files as base64 parts.
+    It does NOT include the format wrapper - that's handled by build_item_payload.
+
+    Args:
+        input_path: Path to the directory containing item definition files
+
+    Returns:
+        dict: Definition structure with 'parts' array containing encoded files
+
+    Raises:
+        FabricCLIError: If definition.pbir contains unsupported byPath reference
+    """
     directory = input_path
     parts = []
 
