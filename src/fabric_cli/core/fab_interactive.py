@@ -48,8 +48,6 @@ class InteractiveCLI:
 
     def handle_command(self, command):
         """Process the user command."""
-        fab_logger.print_log_file_path()
-
         command_parts = shlex.split(command.strip())
 
         if command in fab_constant.INTERACTIVE_QUIT_COMMANDS:
@@ -87,14 +85,27 @@ class InteractiveCLI:
                         subparser_args
                     )
 
-                    if not command_parts[1:]:
-                        subparser_args.func(subparser_args)
-                    elif hasattr(subparser_args, "func"):
-                        subparser_args.func(subparser_args)
-                    else:
-                        utils_ui.print(
-                            f"No function associated with the command: {command.strip()}"
-                        )
+                    # Check for --debug flag and enable verbose logging for this command
+                    debug_enabled_for_command = getattr(subparser_args, "debug", False)
+                    if debug_enabled_for_command:
+                        fab_logger.set_verbose_enabled(True)
+                    
+                    # Print log file path if debug is enabled (via --debug flag or config)
+                    fab_logger.print_log_file_path()
+
+                    try:
+                        if not command_parts[1:]:
+                            subparser_args.func(subparser_args)
+                        elif hasattr(subparser_args, "func"):
+                            subparser_args.func(subparser_args)
+                        else:
+                            utils_ui.print(
+                                f"No function associated with the command: {command.strip()}"
+                            )
+                    finally:
+                        # Reset verbose flag after command execution so it doesn't persist
+                        if debug_enabled_for_command:
+                            fab_logger.set_verbose_enabled(False)
                 except SystemExit:
                     # Catch SystemExit raised by ArgumentParser and prevent exiting
                     return
