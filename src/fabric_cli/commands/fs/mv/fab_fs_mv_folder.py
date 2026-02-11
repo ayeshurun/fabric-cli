@@ -6,6 +6,7 @@ from argparse import Namespace
 
 from fabric_cli.client import fab_api_folders as folders_api
 from fabric_cli.commands.fs.cp import fab_fs_cp_folder as cp_folder
+from fabric_cli.core import fab_constant
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_mem_store as utils_mem_store
@@ -56,9 +57,9 @@ def move_folder(
         )
     elif from_folder.parent != to_context:
         _change_folder_parent(from_folder, to_context)
-        return 1
+        return fab_constant.EXIT_CODE_ERROR
 
-    return 0
+    return fab_constant.EXIT_CODE_SUCCESS
 
 
 def move_folders(
