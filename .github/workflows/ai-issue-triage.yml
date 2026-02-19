@@ -33,16 +33,53 @@ jobs:
         with:
           script: |
             const issueNumber = context.payload.issue?.number || ${{ inputs.issue_number || 0 }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
             const { data: issue } = await github.rest.issues.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
+              owner, repo, issue_number: issueNumber,
             });
+
+            // Detect re-triage: check if any ai: labels exist from a prior assessment
+            const hasAiLabels = issue.labels.some(l => l.name.startsWith('ai:'));
+
+            // Check for prior AI assessment comments
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: issueNumber, per_page: 100,
+            });
+            const hasAiComment = comments.some(c =>
+              c.body && c.body.includes('### AI Assessment:')
+            );
+
+            const isRetriage = hasAiLabels || hasAiComment;
+            let issueBody = issue.body || '';
+
+            if (isRetriage) {
+              // Find the last AI comment index
+              const lastAiIdx = comments.reduce((acc, c, i) =>
+                c.body && c.body.includes('### AI Assessment:') ? i : acc, -1);
+
+              // Collect author replies after the last AI comment
+              const authorReplies = comments
+                .slice(lastAiIdx + 1)
+                .filter(c => c.user.login === issue.user.login)
+                .map(c => c.body)
+                .join('\n\n---\n\n');
+
+              if (authorReplies) {
+                issueBody = `[RE-TRIAGE] The author has provided additional information in response to a prior AI assessment.\n\n`
+                  + `## Original Issue Summary\n${issue.title}\n\n`
+                  + `## Author's Follow-up Response\n${authorReplies}\n\n`
+                  + `Focus your assessment on the new information provided above. Reference the original issue only if needed for context.`;
+              }
+            }
+
             core.setOutput('number', issue.number);
-            core.setOutput('body', issue.body || '');
+            core.setOutput('body', issueBody);
             core.setOutput('title', issue.title);
             core.setOutput('html_url', issue.html_url);
             core.setOutput('labels', issue.labels.map(l => l.name).join(','));
+            core.setOutput('is_retriage', isRetriage.toString());
 
       - name: Run AI assessment
         id: ai-assessment
@@ -153,7 +190,14 @@ jobs:
                 core.info(`Could not remove "needs triage" label: ${e.message}`);
               }
             } else {
-              core.info('Keeping "needs triage" — this issue requires human review.');
+              // Notify team via comment on escalated issues
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: '🔔 @microsoft/fabric-cli-dev — This issue has been flagged by AI triage as requiring team attention. Please review the assessment above.'
+              });
+              core.info('Keeping "needs triage" and notified team.');
             }
 
       - name: Generate triage summary
