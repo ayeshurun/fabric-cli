@@ -190,6 +190,13 @@ jobs:
                 core.info(`Could not remove "needs triage" label: ${e.message}`);
               }
             } else {
+              // Add consolidated label for easy filtering of all issues needing team attention
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: ['needs team attention']
+              });
               // Notify team via comment on escalated issues
               await github.rest.issues.createComment({
                 owner,
