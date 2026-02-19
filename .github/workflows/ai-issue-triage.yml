@@ -123,6 +123,7 @@ jobs:
             let needsHumanReview = false;
             let addHelpWanted = false;
             let needsAuthorFeedback = false;
+            let canAutoClose = false;
 
             for (const assessment of assessments) {
               const label = (assessment.assessmentLabel || '').toLowerCase();
@@ -141,6 +142,11 @@ jobs:
               // Check if more information is needed from the issue author
               if (label.includes('missing details')) {
                 needsAuthorFeedback = true;
+              }
+
+              // Check if the AI fully resolved the issue (answered question, explained misconfiguration, redirected to docs)
+              if (label.includes('answered') || label.includes('likely misconfiguration') || label.includes('redirect to docs')) {
+                canAutoClose = true;
               }
 
               // Log for job summary
@@ -188,6 +194,18 @@ jobs:
               } catch (e) {
                 // Label may have already been removed by the action
                 core.info(`Could not remove "needs triage" label: ${e.message}`);
+              }
+
+              // Auto-close if AI fully resolved (answered, misconfiguration, redirected)
+              if (canAutoClose && !needsAuthorFeedback && !addHelpWanted) {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed'
+                });
+                core.info('Auto-closed issue — AI fully resolved it.');
               }
             } else {
               // Add consolidated label for easy filtering of all issues needing team attention
