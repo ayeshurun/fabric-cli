@@ -3,10 +3,16 @@ name: AI Issue Triage
 on:
   issues:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to triage'
+        required: true
+        type: number
 
 jobs:
   ai-triage:
-    if: github.event.label.name == 'needs triage'
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'needs triage'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -21,14 +27,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve issue details
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.payload.issue?.number || ${{ inputs.issue_number || 0 }};
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+            core.setOutput('number', issue.number);
+            core.setOutput('body', issue.body || '');
+            core.setOutput('title', issue.title);
+            core.setOutput('html_url', issue.html_url);
+            core.setOutput('labels', issue.labels.map(l => l.name).join(','));
+
       - name: Run AI assessment
         id: ai-assessment
         uses: github/ai-assessment-comment-labeler@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue_number: ${{ github.event.issue.number }}
-          issue_body: ${{ github.event.issue.body }}
-          repo_name: ${{ github.event.repository.name }}
+          issue_number: ${{ steps.issue.outputs.number }}
+          issue_body: ${{ steps.issue.outputs.body }}
+          repo_name: ${{ github.event.repository.name || github.repository }}
           owner: ${{ github.repository_owner }}
           ai_review_label: 'needs triage'
           prompts_directory: '.github/prompts'
@@ -50,11 +73,12 @@ jobs:
         env:
           ASSESSMENT_OUTPUT: ${{ steps.ai-assessment.outputs.ai_assessments }}
           SUPPRESS_LABELS: ${{ env.SUPPRESS_LABELS }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const assessments = JSON.parse(process.env.ASSESSMENT_OUTPUT);
-            const issueNumber = context.issue.number;
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER);
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const suppressLabels = process.env.SUPPRESS_LABELS === 'true';
@@ -137,12 +161,15 @@ jobs:
         uses: actions/github-script@v7
         env:
           ASSESSMENT_OUTPUT: ${{ steps.ai-assessment.outputs.ai_assessments }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_URL: ${{ steps.issue.outputs.html_url }}
         with:
           script: |
             const assessments = JSON.parse(process.env.ASSESSMENT_OUTPUT);
-            const issueNumber = context.issue.number;
-            const issueTitle = context.payload.issue.title;
-            const issueUrl = context.payload.issue.html_url;
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const issueTitle = process.env.ISSUE_TITLE;
+            const issueUrl = process.env.ISSUE_URL;
 
             let summary = `## 🤖 AI Triage Report\n\n`;
             summary += `**Issue:** [#${issueNumber} — ${issueTitle}](${issueUrl})\n\n`;
@@ -171,6 +198,6 @@ jobs:
         if: always() && steps.ai-assessment.outputs.ai_assessments != ''
         uses: actions/upload-artifact@v4
         with:
-          name: triage-report-issue-${{ github.event.issue.number }}
+          name: triage-report-issue-${{ steps.issue.outputs.number }}
           path: triage-reports/
           retention-days: 30
