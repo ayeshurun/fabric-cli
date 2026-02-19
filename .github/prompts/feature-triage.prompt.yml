@@ -32,6 +32,7 @@ messages:
       Use exactly one of these in your assessment header:
       - **Valuable Enhancement** — The feature provides clear value, aligns with CLI design, and should be prioritized by the team.
       - **Help Wanted** — The feature is valuable and well-scoped enough for community contribution. Provide implementation guidance.
+      - **Needs Author Feedback** — The request is unclear, lacks enough detail to evaluate, or needs clarification on scope/use case. Specify exactly what is needed.
       - **Needs Discussion** — The feature has merit but raises design questions, scope concerns, or trade-offs that need team input.
       - **Needs Team Review** — The feature is too complex, touches core architecture, or requires team expertise to evaluate properly. Escalate to the team.
       - **Out of Scope** — The feature doesn't align with the CLI's purpose, duplicates existing functionality, or is better served by other tools (Fabric portal, REST API directly, PowerShell).

@@ -44,6 +44,7 @@ messages:
 
       Use exactly one of these in your assessment header:
       - **Answered** — You were able to provide a complete, accurate answer to the question.
+      - **Needs Author Feedback** — The question is unclear, incomplete, or lacks enough context to provide a useful answer. Specify exactly what is needed.
       - **Needs Maintainer Input** — The question requires internal knowledge, involves undocumented behavior, or touches on roadmap/design decisions that only the team can answer.
       - **Redirect to Docs** — The question is better answered by existing documentation or is about general Fabric (not CLI-specific). Provide the relevant links.
 

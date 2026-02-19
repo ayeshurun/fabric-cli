@@ -127,7 +127,6 @@ jobs:
 
             for (const assessment of assessments) {
               const label = (assessment.assessmentLabel || '').toLowerCase();
-              const response = assessment.response || '';
 
               // Check if the assessment requires human review
               if (label.includes('needs team review') || label.includes('needs maintainer input') || label.includes('potential bug')) {
@@ -140,7 +139,7 @@ jobs:
               }
 
               // Check if more information is needed from the issue author
-              if (label.includes('missing details') || response.toLowerCase().includes('awaiting author')) {
+              if (label.includes('needs author feedback')) {
                 needsAuthorFeedback = true;
               }
 
@@ -151,12 +150,6 @@ jobs:
 
               // Log for job summary
               core.info(`Prompt: ${assessment.prompt}, Label: ${assessment.assessmentLabel}`);
-            }
-
-            // If the AI is asking the author for more info, don't escalate to the team yet —
-            // wait for the author to respond first; re-triage will escalate if still needed.
-            if (needsAuthorFeedback) {
-              needsHumanReview = false;
             }
 
             // Skip label changes in summary-only mode (Phase 3)
