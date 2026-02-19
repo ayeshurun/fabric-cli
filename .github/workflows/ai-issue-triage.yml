@@ -139,7 +139,7 @@ jobs:
               }
 
               // Check if more information is needed from the issue author
-              if (label.includes('needs author feedback')) {
+              if (label.includes('needs author feedback') || label.includes('requires additional details')) {
                 needsAuthorFeedback = true;
               }
 
