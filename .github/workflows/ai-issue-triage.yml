@@ -195,7 +195,7 @@ jobs:
                 owner,
                 repo,
                 issue_number: issueNumber,
-                labels: ['needs team attention']
+                labels: ['ai:needs team attention']
               });
               // Notify team via comment on escalated issues
               await github.rest.issues.createComment({
