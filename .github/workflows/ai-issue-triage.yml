@@ -140,7 +140,7 @@ jobs:
               }
 
               // Check if more information is needed from the issue author
-              if (label.includes('missing details')) {
+              if (label.includes('missing details') || response.toLowerCase().includes('awaiting author')) {
                 needsAuthorFeedback = true;
               }
 
@@ -215,6 +215,24 @@ jobs:
                 issue_number: issueNumber,
                 labels: ['ai:needs team attention']
               });
+
+              // Remove the action's detailed ai: assessment labels — only keep the consolidated one
+              const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+                owner, repo, issue_number: issueNumber,
+              });
+              for (const lbl of currentLabels) {
+                if (lbl.name.startsWith('ai:') && lbl.name !== 'ai:needs team attention') {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      owner, repo, issue_number: issueNumber, name: lbl.name,
+                    });
+                    core.info(`Removed redundant label "${lbl.name}".`);
+                  } catch (e) {
+                    core.info(`Could not remove label "${lbl.name}": ${e.message}`);
+                  }
+                }
+              }
+
               // Notify team via comment on escalated issues
               await github.rest.issues.createComment({
                 owner,
