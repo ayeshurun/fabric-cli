@@ -187,6 +187,24 @@ jobs:
               core.info('Added "help wanted" label based on AI assessment.');
             }
 
+            // Always remove the action's detailed ai: assessment labels (e.g., ai:question-triage:needs maintainer input)
+            // We use only ai:needs team attention as the consolidated escalation label
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: issueNumber,
+            });
+            for (const lbl of currentLabels) {
+              if (lbl.name.startsWith('ai:') && lbl.name !== 'ai:needs team attention') {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner, repo, issue_number: issueNumber, name: lbl.name,
+                  });
+                  core.info(`Removed action label "${lbl.name}".`);
+                } catch (e) {
+                  core.info(`Could not remove label "${lbl.name}": ${e.message}`);
+                }
+              }
+            }
+
             // If AI fully handled the issue, remove 'needs triage' so the team isn't notified
             if (!needsHumanReview) {
               try {
@@ -221,23 +239,6 @@ jobs:
                 issue_number: issueNumber,
                 labels: ['ai:needs team attention']
               });
-
-              // Remove the action's detailed ai: assessment labels — only keep the consolidated one
-              const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
-                owner, repo, issue_number: issueNumber,
-              });
-              for (const lbl of currentLabels) {
-                if (lbl.name.startsWith('ai:') && lbl.name !== 'ai:needs team attention') {
-                  try {
-                    await github.rest.issues.removeLabel({
-                      owner, repo, issue_number: issueNumber, name: lbl.name,
-                    });
-                    core.info(`Removed redundant label "${lbl.name}".`);
-                  } catch (e) {
-                    core.info(`Could not remove label "${lbl.name}": ${e.message}`);
-                  }
-                }
-              }
 
               // Notify team via comment on escalated issues
               await github.rest.issues.createComment({
