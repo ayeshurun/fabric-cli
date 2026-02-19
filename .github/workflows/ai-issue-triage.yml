@@ -93,7 +93,7 @@ jobs:
           ai_review_label: 'needs triage'
           prompts_directory: '.github/prompts'
           labels_to_prompts_mapping: 'bug,bug-triage.prompt.yml|enhancement,feature-triage.prompt.yml|question,question-triage.prompt.yml'
-          model: 'openai/o3'
+          model: 'openai/gpt-4.1'
           max_tokens: 1500
           # -------------------------------------------------------
           # Phase control — toggle these two flags to switch phases:

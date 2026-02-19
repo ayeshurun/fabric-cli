@@ -64,7 +64,7 @@ messages:
       - `**✅ No action needed** — This issue has been triaged. The team will prioritize accordingly.` (when fully handled)
   - role: user
     content: '{{input}}'
-model: openai/o3
+model: openai/gpt-4.1
 modelParameters:
   max_tokens: 1000
 testData: []

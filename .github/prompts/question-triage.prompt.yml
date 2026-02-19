@@ -78,7 +78,7 @@ messages:
       - `**✅ No action needed** — This question has been answered. If you need further help, feel free to follow up.` (when fully answered)
   - role: user
     content: '{{input}}'
-model: openai/o3
+model: openai/gpt-4.1
 modelParameters:
   max_tokens: 1500
 testData: []
