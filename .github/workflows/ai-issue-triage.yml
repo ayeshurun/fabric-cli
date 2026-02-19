@@ -92,7 +92,7 @@ jobs:
               const response = assessment.response || '';
 
               // Check if the assessment requires human review
-              if (label.includes('needs team review') || label.includes('needs maintainer input')) {
+              if (label.includes('needs team review') || label.includes('needs maintainer input') || label.includes('potential bug')) {
                 needsHumanReview = true;
               }
 
