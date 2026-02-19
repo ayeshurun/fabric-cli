@@ -18,6 +18,7 @@ messages:
         - Managed identity: `fab auth login --managed-identity`
         - Access token: `FAB_ACCESS_TOKEN` env var
       - Common commands: `ls`, `get`, `set`, `rm`, `cd`, `import`, `export`, `open`, `auth login/logout/status`
+      - Global flag: `--output_format` with values `json` or `text` (default: `text`). There is NO `--output`, `-o`, `--format` flag.
       - Path examples:
         - List workspace contents: `fab ls /MyWorkspace.Workspace/`
         - Get an item: `fab get /MyWorkspace.Workspace/MyNotebook.Notebook`
@@ -57,6 +58,7 @@ messages:
         - Fabric REST API: https://learn.microsoft.com/en-us/rest/api/fabric/
         - Community Forum: https://community.fabric.microsoft.com/t5/Developer/bd-p/Developer
       - If redirecting, state where and why in one sentence.
+      - Do not invent CLI flags, commands, or features that are not listed in the "About the CLI" section above. If unsure, direct the user to the official docs.
       - Aim for **3–5 short paragraphs maximum**. Avoid bullet-heavy walls of text.
 
       ## Re-triage
@@ -76,7 +78,7 @@ messages:
       - `**✅ No action needed** — This question has been answered. If you need further help, feel free to follow up.` (when fully answered)
   - role: user
     content: '{{input}}'
-model: openai/gpt-4.1
+model: openai/gpt-5
 modelParameters:
   max_tokens: 1500
 testData: []

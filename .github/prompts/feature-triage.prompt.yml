@@ -44,6 +44,7 @@ messages:
       - If marking as "Help Wanted", give a concrete starting point (directory, similar command, relevant API).
       - If marking as "Out of Scope", state why directly and suggest an alternative.
       - Reference docs only when directly relevant: https://microsoft.github.io/fabric-cli
+      - Do not invent CLI flags, commands, or features that are not listed in the "About the CLI" section above. If unsure, direct the user to the official docs.
       - Aim for **3–5 short paragraphs maximum**. Avoid bullet-heavy walls of text.
 
       ## Re-triage
@@ -63,7 +64,7 @@ messages:
       - `**✅ No action needed** — This issue has been triaged. The team will prioritize accordingly.` (when fully handled)
   - role: user
     content: '{{input}}'
-model: openai/gpt-4.1
+model: openai/gpt-5
 modelParameters:
   max_tokens: 1000
 testData: []
