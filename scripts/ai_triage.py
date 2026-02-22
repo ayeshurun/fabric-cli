@@ -168,9 +168,8 @@ def format_code_context(code_files: dict[str, str]) -> str:
 
 CODE_CONTEXT_PREAMBLE = (
     "## Codebase Reference (source code)\n\n"
-    "The following is the **actual source code** of the CLI. "
-    "Use it as the authoritative reference for commands, flags, item types, "
-    "parsers, constants, and internal logic. "
+    "The following is the actual source code of the CLI. "
+    "Use it as the authoritative reference. "
     "Base your analysis on this real implementation — do not guess.\n\n"
 )
 
