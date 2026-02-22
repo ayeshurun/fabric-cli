@@ -82,9 +82,9 @@ messages:
       Then provide your analysis in clearly structured sections.
 
       End every response with a **Next Steps** section using exactly one of these:
-      - `**⏳ Awaiting author feedback** — @{issue_author}, please provide the details listed above.` (when details are missing)
-      - `**🔔 Escalated to team** — This issue requires team review and has been flagged for attention.` (when escalating)
-      - `**✅ No action needed** — This issue has been triaged. The team will prioritize accordingly.` (when fully handled)
+      - `**⏳ Awaiting author feedback** — @{issue_author}, please provide the details listed above.` (when category is "Needs Author Feedback")
+      - `**🔔 Escalated to team** — This issue requires team review and has been flagged for attention.` (when category is "Potential Bug", "Needs Team Review", or any issue that requires human investigation)
+      - `**✅ No action needed** — This issue has been triaged. The team will prioritize accordingly.` (only when category is "Likely Misconfiguration" and you provided a complete resolution)
 
       After the Next Steps section, always append this footer on a new line:
       `---`
