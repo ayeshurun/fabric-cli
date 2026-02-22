@@ -254,7 +254,7 @@ jobs:
               const label = (assessment.assessmentLabel || '').toLowerCase();
 
               // Check if the assessment requires human review
-              if (label.includes('needs team review') || label.includes('needs maintainer input') || label.includes('potential bug')) {
+              if (label.includes('needs team review') || label.includes('needs maintainer input') || label.includes('potential bug') || label.includes('needs discussion')) {
                 needsHumanReview = true;
               }
 

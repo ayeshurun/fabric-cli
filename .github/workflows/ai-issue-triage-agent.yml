@@ -149,7 +149,8 @@ jobs:
 
             const needsHumanReview = assessment.includes('needs team review')
               || assessment.includes('needs maintainer input')
-              || assessment.includes('potential bug');
+              || assessment.includes('potential bug')
+              || assessment.includes('needs discussion');
             const addHelpWanted = assessment.includes('help wanted');
             const needsAuthorFeedback = assessment.includes('needs author feedback')
               || assessment.includes('requires additional details');
