@@ -64,6 +64,10 @@ messages:
       - `**⏳ Awaiting author feedback** — @{issue_author}, please provide the details listed above.` (when details are missing)
       - `**🔔 Escalated to team** — This issue requires team review and has been flagged for attention.` (when escalating)
       - `**✅ No action needed** — This issue has been triaged. The team will prioritize accordingly.` (when fully handled)
+
+      After the Next Steps section, always append this footer on a new line:
+      `---`
+      `> 💡 If this issue requires the team's attention and was not escalated, you can tag @microsoft/fabric-cli-dev to notify the team.`
   - role: user
     content: '{{input}}'
 model: openai/gpt-4.1
