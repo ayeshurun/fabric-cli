@@ -27,6 +27,128 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build codebase context
+        id: codebase
+        shell: bash
+        run: |
+          # Extract key CLI facts from the actual codebase for AI context.
+          # This ensures the AI answers based on real code, not guesses.
+          CONTEXT="## Codebase Reference (auto-extracted from source)\n\n"
+          CONTEXT+="**Important:** Only reference commands, flags, and features listed below. Do not invent or assume any CLI capability not documented here.\n\n"
+
+          # ── Commands & Flags (from parsers) ──
+          CONTEXT+="### Filesystem Commands (fab_fs_parser.py)\n"
+          CONTEXT+="| Command | Aliases | Key Flags |\n|---|---|---|\n"
+          CONTEXT+="| ls | dir | \`path\` (opt), \`-l/--long\`, \`-a/--all\`, \`-q/--query\` |\n"
+          CONTEXT+="| mkdir | create | \`path\` (req), \`-P/--params\` (key=value) |\n"
+          CONTEXT+="| cd | — | \`path\` (req) |\n"
+          CONTEXT+="| rm | del | \`path\` (req), \`-f/--force\` |\n"
+          CONTEXT+="| mv | move | \`from_path\`, \`to_path\` (req), \`-f/--force\`, \`-r/--recursive\` |\n"
+          CONTEXT+="| cp | copy | \`from_path\`, \`to_path\` (req), \`-f/--force\`, \`-r/--recursive\` |\n"
+          CONTEXT+="| exists | — | \`path\` (req) |\n"
+          CONTEXT+="| pwd | — | — |\n"
+          CONTEXT+="| open | — | \`path\` (req) |\n"
+          CONTEXT+="| export | — | \`path\` (req), \`-o/--output\` (req, output dir), \`-a/--all\`, \`--format\`, \`-f/--force\` |\n"
+          CONTEXT+="| get | — | \`path\` (req), \`-q/--query\`, \`-o/--output\` (output file), \`-v/--verbose\`, \`-f/--force\` |\n"
+          CONTEXT+="| import | — | \`path\` (req), \`-i/--input\` (req, input dir), \`--format\`, \`-f/--force\` |\n"
+          CONTEXT+="| set | — | \`path\` (req), \`-q/--query\` (req), \`-i/--input\` (req), \`-f/--force\` |\n"
+          CONTEXT+="| clear | cls | — |\n"
+          CONTEXT+="| ln | mklink | \`path\` (req), \`--type\` (req: adlsGen2/amazonS3/dataverse/googleCloudStorage/oneLake/s3Compatible), \`--target\`, \`-i/--input\`, \`-f/--force\` |\n"
+          CONTEXT+="| start | — | \`path\` (req), \`-f/--force\` |\n"
+          CONTEXT+="| stop | — | \`path\` (req), \`-f/--force\` |\n"
+          CONTEXT+="| assign | — | \`path\` (req), \`-W/--workspace\` (req), \`-f/--force\` |\n"
+          CONTEXT+="| unassign | — | \`path\` (req), \`-W/--workspace\` (req), \`-f/--force\` |\n\n"
+
+          CONTEXT+="### Auth Commands (fab auth ...)\n"
+          CONTEXT+="| Command | Flags |\n|---|---|\n"
+          CONTEXT+="| login | \`-u/--username\` (client ID), \`-p/--password\` (client secret), \`-t/--tenant\`, \`-I/--identity\` (managed identity), \`--certificate\` (PEM cert path), \`--federated-token\` |\n"
+          CONTEXT+="| logout | — |\n"
+          CONTEXT+="| status | — |\n\n"
+
+          CONTEXT+="### Config Commands (fab config ...)\n"
+          CONTEXT+="set \`key\` \`value\`, get \`key\`, ls, clear-cache\n\n"
+
+          CONTEXT+="### Job Commands (fab jobs ...)\n"
+          CONTEXT+="| Command | Key Flags |\n|---|---|\n"
+          CONTEXT+="| start | \`path\`, \`-P/--params\`, \`-C/--config\`, \`-i/--input\` |\n"
+          CONTEXT+="| run | \`path\`, \`-P/--params\`, \`--timeout\`, \`--polling_interval\` |\n"
+          CONTEXT+="| run-list | \`path\`, \`--schedule\` |\n"
+          CONTEXT+="| run-cancel | \`path\`, \`--id\` (req) |\n"
+          CONTEXT+="| run-sch | \`path\`, \`--type\` (cron/daily/weekly), \`--interval\`, \`--start\`, \`--end\`, \`--days\` |\n"
+          CONTEXT+="| run-status | \`path\`, \`--id\` (req) |\n\n"
+
+          CONTEXT+="### ACL Commands (fab acl ...)\n"
+          CONTEXT+="ls \`path\`, get \`path\`, set \`path\` \`-I/--identity\` \`-R/--role\` (Admin/Member/Contributor/Viewer/Owner), rm \`path\` \`-I/--identity\`\n\n"
+
+          CONTEXT+="### API Command\n"
+          CONTEXT+="fab api \`endpoint\` \`-X/--method\` (get/post/delete/put/patch) \`-A/--audience\` (fabric/storage/azure/powerbi) \`-i/--input\` \`-P/--params\` \`-H/--headers\`\n\n"
+
+          CONTEXT+="### Table Commands (fab table ...)\n"
+          CONTEXT+="schema \`path\`, load \`path\` \`--file\` \`--mode\` (append/overwrite), vacuum \`path\` \`--retain_n_hours\`, optimize \`path\` \`--vorder\` \`--zorder\`\n\n"
+
+          # ── Global Flags ──
+          CONTEXT+="### Global Flags\n"
+          CONTEXT+="\`--output_format\`: choices are \`json\` or \`text\` (default: \`text\`). There is NO \`--output\`, \`-o\`, or \`--format\` global flag.\n"
+          CONTEXT+="Note: \`-o/--output\` on export/get is for output directory/file path, NOT output format.\n"
+          CONTEXT+="\`-help\`: show help\n\n"
+
+          # ── Item Types (dynamically extracted) ──
+          CONTEXT+="### Supported Item Types\n"
+          ITEMS=$(grep -E '^\s+\w+ = "' src/fabric_cli/core/fab_types.py | sed 's/.*= "//;s/"//' | sort | tr '\n' ', ' | sed 's/,$//')
+          CONTEXT+="$ITEMS\n\n"
+
+          # ── Hidden Entities ──
+          CONTEXT+="### Hidden Entities (tenant-level, via \`-a\` flag or dot-prefix)\n"
+          CONTEXT+=".capacities, .connections, .gateways, .domains\n\n"
+          CONTEXT+="### Hidden Entities (workspace-level)\n"
+          CONTEXT+=".sparkpools, .managedidentities, .managedprivateendpoints, .externaldatashares\n\n"
+
+          # ── Auth Methods & Env Vars ──
+          CONTEXT+="### Authentication Methods\n"
+          CONTEXT+="1. **Interactive browser**: \`fab auth login\` (default)\n"
+          CONTEXT+="2. **Service principal (secret)**: \`fab auth login -u <client_id> -p <client_secret> -t <tenant_id>\`\n"
+          CONTEXT+="   Or env vars: \`FAB_SPN_CLIENT_ID\` + \`FAB_SPN_CLIENT_SECRET\` + \`FAB_TENANT_ID\`\n"
+          CONTEXT+="3. **Service principal (certificate)**: \`fab auth login -u <client_id> --certificate <path.pem> -t <tenant_id>\`\n"
+          CONTEXT+="   Or env vars: \`FAB_SPN_CLIENT_ID\` + \`FAB_SPN_CERT_PATH\` (+ opt \`FAB_SPN_CERT_PASSWORD\`) + \`FAB_TENANT_ID\`\n"
+          CONTEXT+="4. **Service principal (federated)**: \`fab auth login -u <client_id> --federated-token <token> -t <tenant_id>\`\n"
+          CONTEXT+="   Or env var: \`FAB_SPN_FEDERATED_TOKEN\`\n"
+          CONTEXT+="5. **Managed identity (system)**: \`fab auth login -I\`\n"
+          CONTEXT+="6. **Managed identity (user-assigned)**: \`fab auth login -I -u <client_id>\`\n"
+          CONTEXT+="7. **Direct access token**: \`FAB_TOKEN\` env var (no login needed)\n\n"
+
+          # ── Error Codes (dynamically extracted) ──
+          CONTEXT+="### Error Codes\n"
+          ERRORS=$(grep -E '^ERROR_' src/fabric_cli/core/fab_constant.py | sed 's/ = "/: /;s/"$//' | tr '\n' ', ' | sed 's/,$//')
+          CONTEXT+="$ERRORS\n\n"
+
+          # ── Runnable & OneLake ──
+          CONTEXT+="### Runnable Item Types (fab start / fab jobs run)\n"
+          CONTEXT+="SparkJobDefinition (sparkjob), Notebook (RunNotebook), DataPipeline (Pipeline), Lakehouse (TableMaintenance)\n\n"
+
+          CONTEXT+="### OneLake Item Types\n"
+          CONTEXT+="Folder, File, Table, Shortcut\n\n"
+
+          # ── Shortcut Types (fab ln) ──
+          CONTEXT+="### Shortcut Types (fab ln --type)\n"
+          CONTEXT+="adlsGen2, amazonS3, dataverse, googleCloudStorage, oneLake, s3Compatible\n"
+
+          echo -e "$CONTEXT" > /tmp/codebase-context.txt
+
+          # Inject codebase context into prompt files as part of the system message.
+          # This way the AI sees the context privately, not in the issue body or comment.
+          mkdir -p /tmp/prompts
+          python3 << 'PYEOF'
+          import os, glob
+          context = open('/tmp/codebase-context.txt').read()
+          for prompt in glob.glob('.github/prompts/*.prompt.yml'):
+              content = open(prompt).read()
+              marker = '## Your Task'
+              if marker in content:
+                  content = content.replace(marker, context + '\n      ' + marker)
+              out = '/tmp/prompts/' + os.path.basename(prompt)
+              open(out, 'w').write(content)
+          PYEOF
+
       - name: Resolve issue details
         id: issue
         uses: actions/github-script@v7
@@ -91,7 +213,7 @@ jobs:
           repo_name: ${{ github.event.repository.name || github.repository }}
           owner: ${{ github.repository_owner }}
           ai_review_label: 'needs triage'
-          prompts_directory: '.github/prompts'
+          prompts_directory: '/tmp/prompts'
           labels_to_prompts_mapping: 'bug,bug-triage.prompt.yml|enhancement,feature-triage.prompt.yml|question,question-triage.prompt.yml'
           model: 'openai/gpt-4.1'
           max_tokens: 1500
