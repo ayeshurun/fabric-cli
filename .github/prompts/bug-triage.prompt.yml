@@ -113,13 +113,10 @@ messages:
       `-help`: show help
 
       ### Supported Item Types
-      AISkill, ApacheAirflowJob, Code, CopyJob, CosmosDBDatabase, Dashboard, DataPipeline, Dataflow, Datamart, DigitalTwinBuilder, Environment, Eventhouse, Eventstream, GraphQLApi, KQLDashboard, KQLDatabase, KQLQueryset, Lakehouse, MLExperiment, MLModel, MetricSet, MirroredDatabase, MirroredWarehouse, MountedDataFactory, Notebook, PaginatedReport, Reflex, Report, RetailDataManager, SQLDatabase, SQLEndpoint, SemanticModel, SparkJobDefinition, SustainabilityDataSolution, UserDataFunction, VariableLibrary, Warehouse, Workspace
+      See https://microsoft.github.io/fabric-cli/essentials/resource_types/ for the full list of supported resource types.
 
-      ### Hidden Entities (tenant-level, via `-a` flag or dot-prefix)
-      .capacities, .connections, .gateways, .domains
-
-      ### Hidden Entities (workspace-level)
-      .sparkpools, .managedidentities, .managedprivateendpoints, .externaldatashares
+      ### Hidden Entities
+      See https://microsoft.github.io/fabric-cli/essentials/resource_types/ for the full list of hidden entities (tenant-level and workspace-level, accessed via `-a` flag or dot-prefix).
 
       ### Authentication Methods
       1. Interactive browser: `fab auth login` (default)
@@ -166,6 +163,7 @@ messages:
       - Reference docs only when directly relevant: https://microsoft.github.io/fabric-cli
       - Do not invent CLI flags, commands, or features not listed in the Codebase Reference above. If unsure, direct to official docs.
       - Keep the response to **2–4 short paragraphs**. No bullet-heavy walls of text.
+
       ## Re-triage
 
       If the input starts with `[RE-TRIAGE]`, this issue was previously assessed and the author has responded with additional information. Focus your assessment on the new information provided. Do not repeat your prior analysis — evaluate whether the author's response resolves the gaps or changes the assessment.

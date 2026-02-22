@@ -112,13 +112,10 @@ messages:
       `-help`: show help
 
       ### Supported Item Types
-      AISkill, ApacheAirflowJob, Code, CopyJob, CosmosDBDatabase, Dashboard, DataPipeline, Dataflow, Datamart, DigitalTwinBuilder, Environment, Eventhouse, Eventstream, GraphQLApi, KQLDashboard, KQLDatabase, KQLQueryset, Lakehouse, MLExperiment, MLModel, MetricSet, MirroredDatabase, MirroredWarehouse, MountedDataFactory, Notebook, PaginatedReport, Reflex, Report, RetailDataManager, SQLDatabase, SQLEndpoint, SemanticModel, SparkJobDefinition, SustainabilityDataSolution, UserDataFunction, VariableLibrary, Warehouse, Workspace
+      See https://microsoft.github.io/fabric-cli/essentials/resource_types/ for the full list of supported resource types.
 
-      ### Hidden Entities (tenant-level, via `-a` flag or dot-prefix)
-      .capacities, .connections, .gateways, .domains
-
-      ### Hidden Entities (workspace-level)
-      .sparkpools, .managedidentities, .managedprivateendpoints, .externaldatashares
+      ### Hidden Entities
+      See https://microsoft.github.io/fabric-cli/essentials/resource_types/ for the full list of hidden entities (tenant-level and workspace-level, accessed via `-a` flag or dot-prefix).
 
       ### Authentication Methods
       1. Interactive browser: `fab auth login` (default)
