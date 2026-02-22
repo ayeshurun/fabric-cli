@@ -34,7 +34,7 @@ jobs:
           # Extract key CLI facts from the actual codebase for AI context.
           # This ensures the AI answers based on real code, not guesses.
           CONTEXT="## Codebase Reference (auto-extracted from source)\n\n"
-          CONTEXT+="**Important:** Only reference commands, flags, and features listed below. Do not invent or assume any CLI capability not documented here.\n\n"
+          CONTEXT+="Only reference commands, flags, and features listed below. Do not invent or assume any CLI capability not documented here.\n\n"
 
           # ── Commands & Flags (from parsers) ──
           CONTEXT+="### Filesystem Commands (fab_fs_parser.py)\n"
@@ -138,15 +138,18 @@ jobs:
           # This way the AI sees the context privately, not in the issue body or comment.
           mkdir -p /tmp/prompts
           python3 << 'PYEOF'
-          import os, glob
+          import os, glob, yaml
           context = open('/tmp/codebase-context.txt').read()
           for prompt in glob.glob('.github/prompts/*.prompt.yml'):
-              content = open(prompt).read()
+              data = yaml.safe_load(open(prompt))
+              sys_msg = data['messages'][0]['content']
               marker = '## Your Task'
-              if marker in content:
-                  content = content.replace(marker, context + '\n      ' + marker)
+              if marker in sys_msg:
+                  sys_msg = sys_msg.replace(marker, context + '\n' + marker)
+                  data['messages'][0]['content'] = sys_msg
               out = '/tmp/prompts/' + os.path.basename(prompt)
-              open(out, 'w').write(content)
+              with open(out, 'w') as f:
+                  yaml.dump(data, f, default_flow_style=False, allow_unicode=True, width=10000)
           PYEOF
 
       - name: Resolve issue details

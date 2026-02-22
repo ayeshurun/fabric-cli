@@ -32,9 +32,9 @@ CORE_FILES = [
     "src/fabric_cli/core/fab_constant.py",
 ]
 
-MAX_FILE_CHARS = 8000  # per file
-MAX_TOTAL_CODE_CHARS = 80000  # total budget
-MAX_DISCOVERED_FILES = 12
+MAX_FILE_CHARS = 4000  # per file
+MAX_TOTAL_CODE_CHARS = 30000  # total budget
+MAX_DISCOVERED_FILES = 8
 
 # ---------------------------------------------------------------------------
 # Issue helpers
@@ -243,7 +243,9 @@ def call_model(messages: list[dict], token: str) -> str:
         },
         timeout=90,
     )
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        print(f"API error {resp.status_code}: {resp.text[:500]}", file=sys.stderr)
+        resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
 
