@@ -187,6 +187,6 @@ messages:
     content: '{{input}}'
 model: openai/gpt-4.1
 modelParameters:
-  max_tokens: 1000
+  max_tokens: 2000
 testData: []
 evaluators: []

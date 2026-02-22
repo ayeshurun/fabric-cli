@@ -99,7 +99,7 @@ jobs:
           prompts_directory: '.github/prompts'
           labels_to_prompts_mapping: 'bug,bug-triage.prompt.yml|enhancement,feature-triage.prompt.yml|question,question-triage.prompt.yml'
           model: 'openai/gpt-4.1'
-          max_tokens: 1500
+          max_tokens: 2000
           suppress_comments: ${{ env.SUPPRESS_COMMENTS }}
           suppress_labels: ${{ env.SUPPRESS_LABELS }}
 

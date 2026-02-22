@@ -38,6 +38,11 @@ Item types are the primary content resources within Fabric workspaces. Each type
 | `.VariableLibrary`     | Variable libraries                 |
 | `.GraphQLApi`          | GraphQL API endpoints              |
 | `.Dataflow`            | Dataflow API endpoints             |
+| `.ApacheAirflowJob`    | Apache Airflow job definitions     |
+| `.CosmosDBDatabase`    | Cosmos DB databases                |
+| `.DigitalTwinBuilder`  | Digital twin builder resources     |
+| `.GraphQuerySet`       | Graph query collections            |
+| `.UserDataFunction`    | User data functions                |
 
 ---
 
@@ -65,6 +70,19 @@ Tenant virtual item types are infrastructure or system resources that exist at t
 | `.Domain`        | Fabric domains                     |
 | `.Gateway`       | On-premises data gateways          |
 | `.Workspace`     | Fabric workspaces                  |
+
+---
+
+## OneLake Item Types
+
+OneLake item types represent storage objects within data items such as Lakehouses and Warehouses. They are accessed via OneLake paths.
+
+| Extension              | Description                        |
+|------------------------|------------------------------------|
+| `.File`                | OneLake files                      |
+| `.Table`               | OneLake tables                     |
+| `.Shortcut`            | OneLake shortcuts                  |
+| `.Folder`              | OneLake folders                    |
 
 ---
 
