@@ -8,27 +8,37 @@ messages:
       - Python 3.10-3.13, argparse-based command parsing, pip-installable (`pip install ms-fabric-cli`).
       - Models Fabric as a filesystem-like hierarchy with dot-suffix entity names:
         `/Workspace1.Workspace/FolderA.Folder/Item1.SemanticModel`
-      - Supports nested folders (up to ~10 levels), hidden entities accessed via `-a` flag or dot-prefix (`.capacities`, `.gateways`, `.sparkpools`, `.domains`, `.connections`).
+      - Supports nested folders (up to ~10 levels), hidden entities (`.capacities`, `.gateways`, `.sparkpools`).
       - Two modes: **interactive** (REPL-like, no `fab` prefix needed) and **command-line** (single process, `fab <command>`).
-      - Authentication methods:
-        - Interactive browser login: `fab auth login`
-        - Service principal with secret: env vars `FAB_SPN_ID`, `FAB_SPN_SECRET`, `FAB_TENANT_ID`
-        - Service principal with certificate: env vars with cert path
-        - Service principal with federated credential: `FAB_SPN_FEDERATED_TOKEN`
-        - Managed identity: `fab auth login --managed-identity`
-        - Access token: `FAB_ACCESS_TOKEN` env var
-      - Common commands: `ls`, `get`, `set`, `rm`, `cd`, `import`, `export`, `open`, `auth login/logout/status`
-      - Global flag: `--output_format` with values `json` or `text` (default: `text`). There is NO `--output`, `-o`, `--format` flag.
-      - Path examples:
-        - List workspace contents: `fab ls /MyWorkspace.Workspace/`
-        - Get an item: `fab get /MyWorkspace.Workspace/MyNotebook.Notebook`
-        - Navigate folders: `fab ls /MyWorkspace.Workspace/FolderA.Folder/`
-        - Hidden entities: `fab ls -a .capacities`
       - Config stored in `~/.config/fab/` (config.json, auth.json, cache.bin)
       - Official CLI docs: https://microsoft.github.io/fabric-cli
       - Fabric REST API docs: https://learn.microsoft.com/en-us/rest/api/fabric/
       - Power BI REST API docs: https://learn.microsoft.com/en-us/rest/api/power-bi/
       - Fabric Capacity Azure REST API docs: https://learn.microsoft.com/en-us/rest/api/microsoftfabric/fabric-capacities
+
+      ## CLI Documentation Pages (use for citations)
+
+      - Hierarchy & concepts: https://microsoft.github.io/fabric-cli/essentials/hierarchy/
+      - Resource types: https://microsoft.github.io/fabric-cli/essentials/resource_types/
+      - Parameters: https://microsoft.github.io/fabric-cli/essentials/parameters/
+      - Output format: https://microsoft.github.io/fabric-cli/essentials/output_format/
+      - Modes: https://microsoft.github.io/fabric-cli/essentials/modes/
+      - Environment variables: https://microsoft.github.io/fabric-cli/essentials/env_vars/
+      - Troubleshooting: https://microsoft.github.io/fabric-cli/troubleshooting/
+      - Commands reference: https://microsoft.github.io/fabric-cli/commands/
+      - Auth: https://microsoft.github.io/fabric-cli/commands/auth/
+      - Import: https://microsoft.github.io/fabric-cli/commands/fs/import/
+      - Export: https://microsoft.github.io/fabric-cli/commands/fs/export/
+      - ls: https://microsoft.github.io/fabric-cli/commands/fs/ls/
+      - get: https://microsoft.github.io/fabric-cli/commands/fs/get/
+      - set: https://microsoft.github.io/fabric-cli/commands/fs/set/
+      - Jobs: https://microsoft.github.io/fabric-cli/commands/jobs/
+      - ACL: https://microsoft.github.io/fabric-cli/commands/acls/
+      - API: https://microsoft.github.io/fabric-cli/commands/api/
+      - Tables: https://microsoft.github.io/fabric-cli/commands/tables/
+      - Shortcuts (ln): https://microsoft.github.io/fabric-cli/commands/fs/ln/
+      - Auth examples: https://microsoft.github.io/fabric-cli/examples/auth_examples/
+      - Item examples: https://microsoft.github.io/fabric-cli/examples/item_examples/
 
       ## Your Task
 

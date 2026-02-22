@@ -10,11 +10,35 @@ messages:
         `/Workspace1.Workspace/FolderA.Folder/SemanticModel1.SemanticModel`
       - Key design principles: path-first UX, stable verbs (`ls`, `get`, `set`, `rm`), consistent flags across item types, backward compatibility.
       - Supports nested folders, hidden entities (`.capacities`, `.gateways`), interactive and command-line modes.
-      - Authentication: interactive browser, service principal (secret/cert/federated credential), managed identity.
+      - Config stored in `~/.config/fab/` (config.json, auth.json, cache.bin)
       - Official CLI docs: https://microsoft.github.io/fabric-cli
       - Fabric REST API docs: https://learn.microsoft.com/en-us/rest/api/fabric/
       - Power BI REST API docs: https://learn.microsoft.com/en-us/rest/api/power-bi/
       - Fabric Capacity Azure REST API docs: https://learn.microsoft.com/en-us/rest/api/microsoftfabric/fabric-capacities
+
+      ## CLI Documentation Pages (use for citations)
+
+      - Hierarchy & concepts: https://microsoft.github.io/fabric-cli/essentials/hierarchy/
+      - Resource types: https://microsoft.github.io/fabric-cli/essentials/resource_types/
+      - Parameters: https://microsoft.github.io/fabric-cli/essentials/parameters/
+      - Output format: https://microsoft.github.io/fabric-cli/essentials/output_format/
+      - Modes: https://microsoft.github.io/fabric-cli/essentials/modes/
+      - Environment variables: https://microsoft.github.io/fabric-cli/essentials/env_vars/
+      - Troubleshooting: https://microsoft.github.io/fabric-cli/troubleshooting/
+      - Commands reference: https://microsoft.github.io/fabric-cli/commands/
+      - Auth: https://microsoft.github.io/fabric-cli/commands/auth/
+      - Import: https://microsoft.github.io/fabric-cli/commands/fs/import/
+      - Export: https://microsoft.github.io/fabric-cli/commands/fs/export/
+      - ls: https://microsoft.github.io/fabric-cli/commands/fs/ls/
+      - get: https://microsoft.github.io/fabric-cli/commands/fs/get/
+      - set: https://microsoft.github.io/fabric-cli/commands/fs/set/
+      - Jobs: https://microsoft.github.io/fabric-cli/commands/jobs/
+      - ACL: https://microsoft.github.io/fabric-cli/commands/acls/
+      - API: https://microsoft.github.io/fabric-cli/commands/api/
+      - Tables: https://microsoft.github.io/fabric-cli/commands/tables/
+      - Shortcuts (ln): https://microsoft.github.io/fabric-cli/commands/fs/ln/
+      - Auth examples: https://microsoft.github.io/fabric-cli/examples/auth_examples/
+      - Item examples: https://microsoft.github.io/fabric-cli/examples/item_examples/
 
       ## Your Task
 
