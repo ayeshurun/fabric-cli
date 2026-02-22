@@ -21,7 +21,7 @@ import yaml
 # ---------------------------------------------------------------------------
 MODEL = os.environ.get("AI_TRIAGE_MODEL", "openai/gpt-4.1")
 MAX_TOKENS = int(os.environ.get("AI_TRIAGE_MAX_TOKENS", "1500"))
-API_URL = "https://models.inference.ai.azure.com/chat/completions"
+API_URL = "https://models.github.ai/inference/chat/completions"
 
 # Files always included — they define the CLI's public surface
 CORE_FILES = [
@@ -244,8 +244,8 @@ def call_model(messages: list[dict], token: str) -> str:
         timeout=90,
     )
     if resp.status_code != 200:
-        print(f"API error {resp.status_code}: {resp.text[:500]}", file=sys.stderr)
-        resp.raise_for_status()
+        print(f"API error {resp.status_code}: {resp.text[:1000]}", file=sys.stderr)
+        sys.exit(1)
     return resp.json()["choices"][0]["message"]["content"]
 
 
