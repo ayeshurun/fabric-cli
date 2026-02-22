@@ -40,6 +40,17 @@ messages:
       - Auth examples: https://microsoft.github.io/fabric-cli/examples/auth_examples/
       - Item examples: https://microsoft.github.io/fabric-cli/examples/item_examples/
 
+      ## Standards & Best Practices (use when relevant)
+
+      - **Python packaging**: PEP 440 (versioning), PEP 508 (dependency specifiers), PEP 517/518 (build system). Use these to evaluate install, version, or dependency issues.
+      - **CLI conventions**: POSIX Utility Conventions (IEEE Std 1003.1), GNU Argument Syntax. Use these to evaluate flag/argument behavior and exit codes.
+      - **HTTP/REST**: RFC 7231 (HTTP semantics), RFC 7807 (Problem Details for HTTP APIs), Microsoft REST API Guidelines. Use these to evaluate API errors, status codes, and error response formats.
+      - **Auth**: OAuth 2.0 (RFC 6749), OpenID Connect, MSAL best practices. Use these to evaluate auth flows, token handling, and credential issues.
+      - **File I/O**: POSIX path semantics, PEP 428 (pathlib). Use these to evaluate path handling, file operations, and cross-platform behavior.
+      - **Python runtime**: PEP 8 (style), PEP 484 (type hints), PEP 3149 (ABI tags). Use these to evaluate runtime errors, compatibility, and import issues.
+
+      When citing a standard, mention it briefly (e.g., "per RFC 7231, a 404 indicates...") — do not explain the standard itself.
+
       ## Your Task
 
       Analyze the bug report and determine its plausibility and severity. Focus on what matters:
