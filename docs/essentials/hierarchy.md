@@ -127,7 +127,9 @@ Folders organize items within a workspace and can be nested.
 
 #### OneLake Items
 
-**OneLake items** represent the storage layer within certain Fabric items, providing file-system-like access to data.
+**OneLake items** represent the storage layer within certain Fabric items, providing file-system-like access to data. Each supported item type exposes a specific set of **item folders** (e.g., `Files`, `Tables`, `Libs`) that you can navigate into using `cd` and browse with `ls`. Some folders are writable, allowing file uploads and directory creation, while others are read-only.
+
+For a complete reference of which item types support folders, which folders are available, and their read/write permissions, see [Item Folders (OneLake Storage)](resource_types.md#item-folders-onelake-storage).
 
 ##### Examples
 
