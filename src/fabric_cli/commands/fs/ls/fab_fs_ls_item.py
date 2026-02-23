@@ -81,6 +81,6 @@ def exec(workspace: Workspace, args):
         data=sorted_elements_dict,
         args=args,
         show_details=show_details,
-        columns=sorted_elements_dict[0].keys() if sorted_elements_dict else [],
+        columns=list(sorted_elements_dict[0].keys()) if sorted_elements_dict else [],
         hidden_data=VirtualItemContainerType if show_hidden else None,
     )
