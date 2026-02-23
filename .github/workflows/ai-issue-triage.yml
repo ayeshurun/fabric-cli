@@ -172,21 +172,8 @@ jobs:
               core.info('Added "help wanted" label based on AI assessment.');
             }
 
-            // If AI fully handled the issue, remove 'needs triage' so the team isn't notified
+            // If AI fully handled the issue without needing team review
             if (!needsHumanReview) {
-              try {
-                await github.rest.issues.removeLabel({
-                  owner,
-                  repo,
-                  issue_number: issueNumber,
-                  name: 'needs triage'
-                });
-                core.info('Removed "needs triage" — AI handled this issue.');
-              } catch (e) {
-                // Label may have already been removed by the action
-                core.info(`Could not remove "needs triage" label: ${e.message}`);
-              }
-
               // Auto-close if AI fully resolved (answered, misconfiguration, redirected)
               if (canAutoClose && !needsAuthorFeedback && !addHelpWanted) {
                 await github.rest.issues.update({
@@ -214,7 +201,20 @@ jobs:
                 issue_number: issueNumber,
                 body: '🔔 @microsoft/fabric-cli-dev — This issue has been flagged by AI triage as requiring team attention. Please review the assessment above.'
               });
-              core.info('Keeping "needs triage" and notified team.');
+              core.info('Escalated to team.');
+            }
+
+            // Always remove 'needs triage' — triage is complete regardless of outcome
+            try {
+              await github.rest.issues.removeLabel({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                name: 'needs triage'
+              });
+              core.info('Removed "needs triage" — triage complete.');
+            } catch (e) {
+              core.info(`Could not remove "needs triage" label: ${e.message}`);
             }
 
       - name: Generate triage summary
