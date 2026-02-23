@@ -73,18 +73,5 @@ Tenant virtual item types are infrastructure or system resources that exist at t
 
 ---
 
-## OneLake Item Types
-
-OneLake item types represent storage objects within data items such as Lakehouses and Warehouses. They are accessed via OneLake paths.
-
-| Extension              | Description                        |
-|------------------------|------------------------------------|
-| `.File`                | OneLake files                      |
-| `.Table`               | OneLake tables                     |
-| `.Shortcut`            | OneLake shortcuts                  |
-| `.Folder`              | OneLake folders                    |
-
----
-
 
 See how to describe types using [Describe (desc) command](../examples/desc_examples.md).
