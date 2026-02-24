@@ -88,9 +88,11 @@ class InteractiveCLI:
                     )
 
                     if not command_parts[1:]:
-                        subparser_args.func(subparser_args)
+                        with utils_ui.Spinner():
+                            subparser_args.func(subparser_args)
                     elif hasattr(subparser_args, "func"):
-                        subparser_args.func(subparser_args)
+                        with utils_ui.Spinner():
+                            subparser_args.func(subparser_args)
                     else:
                         utils_ui.print(
                             f"No function associated with the command: {command.strip()}"
