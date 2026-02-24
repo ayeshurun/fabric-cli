@@ -17,25 +17,44 @@ class TestLazyLoad:
         """Test that lazy_command defers the module import until invocation."""
         from fabric_cli.utils.fab_lazy_load import lazy_command
 
-        # Create a lazy command wrapper for a known module/function
-        wrapper = lazy_command(
-            "fabric_cli.utils.fab_lazy_load", "questionary"
-        )
+        mod_path = "fabric_cli.commands.auth.fab_auth"
+
+        # Ensure the module is not loaded
+        was_loaded = mod_path in sys.modules
+
+        wrapper = lazy_command(mod_path, "init")
 
         # The wrapper should be callable
         assert callable(wrapper)
 
+        # If the module wasn't loaded before, it should still not be loaded
+        if not was_loaded:
+            assert mod_path not in sys.modules, (
+                "Module should not be imported at wrapper creation time"
+            )
+
     def test_lazy_command__invokes_target_function(self):
-        """Test that lazy_command correctly calls the target function."""
+        """Test that lazy_command correctly resolves and calls the target function."""
+        from unittest.mock import MagicMock
+
         from fabric_cli.utils.fab_lazy_load import lazy_command
 
-        # Use a simple module function we can verify
-        wrapper = lazy_command(
-            "fabric_cli.core.fab_constant", "EXIT_CODE_SUCCESS"
-        )
+        # Create a test module with a mock function
+        import types
 
-        # The wrapper should be callable (it wraps attribute access)
-        assert callable(wrapper)
+        test_mod = types.ModuleType("_test_lazy_mod")
+        test_mod.my_func = MagicMock(return_value=42)
+        sys.modules["_test_lazy_mod"] = test_mod
+
+        try:
+            wrapper = lazy_command("_test_lazy_mod", "my_func")
+            mock_args = MagicMock()
+            result = wrapper(mock_args)
+
+            test_mod.my_func.assert_called_once_with(mock_args)
+            assert result == 42
+        finally:
+            del sys.modules["_test_lazy_mod"]
 
     def test_lazy_command__raises_on_missing_module(self):
         """Test that lazy_command raises ModuleNotFoundError for invalid modules."""

@@ -240,7 +240,7 @@ class Context:
         """Check if running inside a virtual environment."""
         return sys.prefix != sys.base_prefix
 
-    def _get_session_process(self, parent_process) -> "psutil.Process":
+    def _get_session_process(self, parent_process: "psutil.Process") -> "psutil.Process":
         """
         Get the session process, handling virtual environments and fallbacks.
 

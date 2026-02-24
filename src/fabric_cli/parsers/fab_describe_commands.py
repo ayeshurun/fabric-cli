@@ -6,7 +6,6 @@ from argparse import Namespace
 from typing import Any
 
 from fabric_cli.core import fab_commands as cmd
-from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core import fab_logger
 from fabric_cli.core.fab_decorators import set_command_context
