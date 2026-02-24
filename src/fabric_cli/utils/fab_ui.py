@@ -102,15 +102,17 @@ class Spinner:
         """Return *True* when stderr is connected to a real terminal."""
         return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
 
+    # Extra characters beyond the message: "\r", frame char, " " separator.
+    _FRAME_OVERHEAD = 4
+
     def _spin(self) -> None:
         """Background thread: waits *min_lifetime*, then animates."""
         # Sleep for the minimum lifetime so fast commands never see a
         # spinner.  Check _running after the sleep in case the command
         # already finished.
-        elapsed = 0.0
-        while elapsed < self._min_lifetime and self._running:
-            time.sleep(min(0.05, self._min_lifetime - elapsed))
-            elapsed += 0.05
+        deadline = time.monotonic() + self._min_lifetime
+        while time.monotonic() < deadline and self._running:
+            time.sleep(min(0.05, max(0, deadline - time.monotonic())))
 
         if not self._running:
             return
@@ -125,7 +127,7 @@ class Spinner:
             time.sleep(self._delay)
 
         # Clear the spinner line once we're done.
-        clear = "\r" + " " * (len(self._message) + 4) + "\r"
+        clear = "\r" + " " * (len(self._message) + self._FRAME_OVERHEAD) + "\r"
         sys.stderr.write(clear)
         sys.stderr.flush()
 
