@@ -9,7 +9,7 @@ from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils.fab_lazy_load import lazy_command
 from fabric_cli.utils.fab_util import get_os_specific_command
 
-_labels = "fabric_cli.commands.labels.fab_labels"
+_labels_module_path = "fabric_cli.commands.labels.fab_labels"
 
 commands = {
     "Commands": {
@@ -50,7 +50,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     set_parser.usage = f"{utils_error_parser.get_usage_prog(set_parser)}"
-    set_parser.set_defaults(func=lazy_command(_labels, 'set_command'))
+    set_parser.set_defaults(func=lazy_command(_labels_module_path, 'set_command'))
 
     # Subcommand for 'rm'
     rm_aliases = ["del"]
@@ -71,7 +71,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     rm_parser.add_argument("-f", "--force", action="store_true", help="Force. Optional")
 
     rm_parser.usage = f"{utils_error_parser.get_usage_prog(rm_parser)}"
-    rm_parser.set_defaults(func=lazy_command(_labels, 'rm_command'))
+    rm_parser.set_defaults(func=lazy_command(_labels_module_path, 'rm_command'))
 
     listlocal_examples = [
         "# list locally defined labels",
@@ -85,7 +85,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         fab_learnmore=["_"],
     )
     listlocal_parser.usage = f"{utils_error_parser.get_usage_prog(listlocal_parser)}"
-    listlocal_parser.set_defaults(func=lazy_command(_labels, 'listlocal_command'))
+    listlocal_parser.set_defaults(func=lazy_command(_labels_module_path, 'listlocal_command'))
 
 
 def show_help(args: Namespace) -> None:
