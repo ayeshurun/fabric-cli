@@ -4,6 +4,8 @@
 import builtins
 import html
 import sys
+import threading
+import time
 import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
@@ -14,6 +16,127 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+
+# Module-level reference to the currently active spinner (if any).
+_active_spinner: Optional["Spinner"] = None
+
+
+def stop_active_spinner() -> None:
+    """Stop any active spinner before producing output."""
+    global _active_spinner
+    if _active_spinner is not None:
+        _active_spinner.stop()
+        _active_spinner = None
+
+
+class Spinner:
+    """Fabric-branded progress spinner for long-running CLI commands.
+
+    Displays a lightning-bolt animation in Fabric teal on *stderr* while a
+    command is executing.  The spinner is automatically suppressed when stderr
+    is not a TTY (e.g. piped output) and includes a configurable start-up
+    delay so that fast commands never flash a spinner.
+
+    Usage::
+
+        with Spinner("Loading..."):
+            do_work()
+    """
+
+    # Fabric-branded animation: lightning bolt with pulsing dots.
+    FRAMES = ("⚡", "⚡.", "⚡..", "⚡...", "⚡..", "⚡.")
+
+    # Fabric CLI brand teal color (#49C5B1) as ANSI 256-color escape.
+    _COLOR = "\033[38;2;73;197;177m"
+    _GREY = "\033[90m"
+    _RESET = "\033[0m"
+
+    def __init__(
+        self,
+        message: str = "Working...",
+        delay: float = 0.15,
+        min_lifetime: float = 0.3,
+    ) -> None:
+        self._message = message
+        self._delay = delay
+        self._min_lifetime = min_lifetime
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def start(self) -> "Spinner":
+        """Begin the spinner animation (background thread)."""
+        if not self._is_interactive():
+            return self
+
+        global _active_spinner
+        self._running = True
+        _active_spinner = self
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        """Stop the spinner and clear its line on stderr."""
+        if not self._running:
+            return
+
+        global _active_spinner
+        self._running = False
+        if self._thread is not None:
+            self._thread.join()
+            self._thread = None
+        if _active_spinner is self:
+            _active_spinner = None
+
+    # Context-manager support
+    def __enter__(self) -> "Spinner":
+        return self.start()
+
+    def __exit__(self, *_: object) -> None:
+        self.stop()
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_interactive() -> bool:
+        """Return *True* when stderr is connected to a real terminal."""
+        return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+
+    # Overhead accounts for "\r", the longest frame, colour escapes, and spaces.
+    _FRAME_OVERHEAD = 8
+
+    def _spin(self) -> None:
+        """Background thread: waits *min_lifetime*, then animates."""
+        # Sleep for the minimum lifetime so fast commands never see a
+        # spinner.  Check _running after the sleep in case the command
+        # already finished.
+        deadline = time.monotonic() + self._min_lifetime
+        while time.monotonic() < deadline and self._running:
+            time.sleep(min(0.05, max(0, deadline - time.monotonic())))
+
+        if not self._running:
+            return
+
+        idx = 0
+        while self._running:
+            frame = self.FRAMES[idx % len(self.FRAMES)]
+            line = f"\r{self._COLOR}{frame}{self._RESET} {self._GREY}{self._message}{self._RESET}"
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            idx += 1
+            time.sleep(self._delay)
+
+        # Clear the spinner line once we're done.
+        max_frame = max(len(f) for f in self.FRAMES)
+        clear = "\r" + " " * (max_frame + len(self._message) + self._FRAME_OVERHEAD) + "\r"
+        sys.stderr.write(clear)
+        sys.stderr.flush()
 
 
 def get_common_style():
@@ -109,6 +232,7 @@ def print_output_format(
     Returns:
         FabricCLIOutput: Configured output instance ready for printing
     """
+    stop_active_spinner()
 
     command = getattr(args, "command", None)
     subcommand = getattr(args, f"{command}_subcommand", None)
@@ -176,6 +300,8 @@ def print_output_error(
     Raises:
         FabricCLIError: If the output format is not supported.
     """
+    stop_active_spinner()
+
     # Get format from output or config
     format_type = output_format_type or fab_state_config.get_config(
         fab_constant.FAB_OUTPUT_FORMAT
