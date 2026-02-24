@@ -30,12 +30,12 @@ def stop_active_spinner() -> None:
 
 
 class Spinner:
-    """Animated progress spinner for long-running CLI commands.
+    """Fabric-branded progress spinner for long-running CLI commands.
 
-    Displays a braille-character animation on *stderr* while a command is
-    executing.  The spinner is automatically suppressed when stderr is not
-    a TTY (e.g. piped output) and includes a configurable start-up delay
-    so that fast commands never flash a spinner.
+    Displays a lightning-bolt animation in Fabric teal on *stderr* while a
+    command is executing.  The spinner is automatically suppressed when stderr
+    is not a TTY (e.g. piped output) and includes a configurable start-up
+    delay so that fast commands never flash a spinner.
 
     Usage::
 
@@ -43,12 +43,18 @@ class Spinner:
             do_work()
     """
 
-    FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+    # Fabric-branded animation: lightning bolt with pulsing dots.
+    FRAMES = ("⚡", "⚡.", "⚡..", "⚡...", "⚡..", "⚡.")
+
+    # Fabric CLI brand teal color (#49C5B1) as ANSI 256-color escape.
+    _COLOR = "\033[38;2;73;197;177m"
+    _GREY = "\033[90m"
+    _RESET = "\033[0m"
 
     def __init__(
         self,
         message: str = "Working...",
-        delay: float = 0.08,
+        delay: float = 0.15,
         min_lifetime: float = 0.3,
     ) -> None:
         self._message = message
@@ -102,8 +108,8 @@ class Spinner:
         """Return *True* when stderr is connected to a real terminal."""
         return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
 
-    # Extra characters beyond the message: "\r", frame char, " " separator.
-    _FRAME_OVERHEAD = 4
+    # Overhead accounts for "\r", the longest frame, colour escapes, and spaces.
+    _FRAME_OVERHEAD = 8
 
     def _spin(self) -> None:
         """Background thread: waits *min_lifetime*, then animates."""
@@ -120,14 +126,15 @@ class Spinner:
         idx = 0
         while self._running:
             frame = self.FRAMES[idx % len(self.FRAMES)]
-            line = f"\r{frame} {self._message}"
+            line = f"\r{self._COLOR}{frame}{self._RESET} {self._GREY}{self._message}{self._RESET}"
             sys.stderr.write(line)
             sys.stderr.flush()
             idx += 1
             time.sleep(self._delay)
 
         # Clear the spinner line once we're done.
-        clear = "\r" + " " * (len(self._message) + self._FRAME_OVERHEAD) + "\r"
+        max_frame = max(len(f) for f in self.FRAMES)
+        clear = "\r" + " " * (max_frame + len(self._message) + self._FRAME_OVERHEAD) + "\r"
         sys.stderr.write(clear)
         sys.stderr.flush()
 

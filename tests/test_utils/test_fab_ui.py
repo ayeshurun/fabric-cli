@@ -792,7 +792,7 @@ def test_spinner__init_defaults():
     """Test Spinner default initialization values."""
     spinner = ui.Spinner()
     assert spinner._message == "Working..."
-    assert spinner._delay == 0.08
+    assert spinner._delay == 0.15
     assert spinner._min_lifetime == 0.3
     assert spinner._running is False
     assert spinner._thread is None
