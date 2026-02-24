@@ -4,7 +4,7 @@
 import importlib
 from argparse import Namespace
 
-import_item = importlib.import_module("fabric_cli.commands.fs.import.fab_fs_import_item")
+import_item = importlib.import_module(".import.fab_fs_import_item", __package__)
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item
 from fabric_cli.utils import fab_util as utils
 
