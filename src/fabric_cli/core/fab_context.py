@@ -6,8 +6,13 @@ import json
 import os
 import platform
 import sys
+from typing import TYPE_CHECKING
 
 from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+
+if TYPE_CHECKING:
+    import psutil
+
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_element import FabricElement
