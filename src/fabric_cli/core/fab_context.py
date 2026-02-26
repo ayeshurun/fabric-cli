@@ -6,10 +6,13 @@ import json
 import os
 import platform
 import sys
-
-import psutil
+from typing import TYPE_CHECKING
 
 from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+
+if TYPE_CHECKING:
+    import psutil
+
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_element import FabricElement
@@ -242,7 +245,7 @@ class Context:
         """Check if running inside a virtual environment."""
         return sys.prefix != sys.base_prefix
 
-    def _get_session_process(self, parent_process: psutil.Process) -> psutil.Process:
+    def _get_session_process(self, parent_process: "psutil.Process") -> "psutil.Process":
         """
         Get the session process, handling virtual environments and fallbacks.
 
@@ -293,6 +296,8 @@ class Context:
         """
         parent_process = None
         try:
+            import psutil
+
             current_process = psutil.Process()
             parent_process = current_process.parent()
             if not parent_process:
