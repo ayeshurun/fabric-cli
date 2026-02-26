@@ -34,15 +34,18 @@ _shared_session = None
 
 
 def _get_session() -> requests.Session:
-    """Return a shared requests session with retry configuration."""
+    """Return a shared requests session with retry and connection pooling."""
     global _shared_session
     if _shared_session is None:
         _shared_session = requests.Session()
         retries = Retry(
             total=3, backoff_factor=1, status_forcelist=[502, 503, 504]
         )
-        adapter = HTTPAdapter(max_retries=retries)
+        adapter = HTTPAdapter(
+            max_retries=retries, pool_connections=20, pool_maxsize=20
+        )
         _shared_session.mount("https://", adapter)
+        _shared_session.headers.update({"Accept-Encoding": "gzip, deflate"})
     return _shared_session
 
 
@@ -51,7 +54,7 @@ def do_request(
     json=None,
     data=None,
     files=None,
-    timeout_sec=240,
+    timeout_sec=None,
     continuation_token=None,
     hostname=None,
 ) -> ApiResponse:
@@ -59,6 +62,8 @@ def do_request(
     audience_value = getattr(args, "audience", None)
     headers_value = getattr(args, "headers", None)
     method = getattr(args, "method", "get")
+    if timeout_sec is None:
+        timeout_sec = 30 if method.lower() == "get" else 240
     wait = getattr(args, "wait", True)  # Operations are synchronous by default
     raw_response = getattr(args, "raw_response", False)
     request_params = getattr(args, "request_params", {})
