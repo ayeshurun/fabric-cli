@@ -43,8 +43,7 @@ class Spinner:
             do_work()
     """
 
-    # Fabric-branded animation: lightning bolt with pulsing dots.
-    FRAMES = ("⚡", "⚡.", "⚡..", "⚡...", "⚡..", "⚡.")
+    FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
     # Fabric CLI brand teal color (#49C5B1) as ANSI 256-color escape.
     _COLOR = "\033[38;2;73;197;177m"
@@ -54,7 +53,7 @@ class Spinner:
     def __init__(
         self,
         message: str = "Working...",
-        delay: float = 0.15,
+        delay: float = 0.08,
         min_lifetime: float = 0.3,
     ) -> None:
         self._message = message
