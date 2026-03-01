@@ -201,6 +201,7 @@ def print_grey(text: str, to_stderr: bool = True) -> None:
 
 
 def print_progress(text, progress: Optional[str] = None) -> None:
+    stop_active_spinner()
     progress_text = f": {progress}%" if progress else ""
     print_grey(f"∟ {text}{progress_text}")
 
@@ -264,6 +265,7 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text)
     _safe_print_formatted_text(
@@ -272,6 +274,7 @@ def print_done(text: str, to_stderr: bool = False) -> None:
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     text = text.rstrip(".")
     escaped_text = html.escape(text)
@@ -327,6 +330,7 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text.rstrip("."))
     command_text = f"{command}: " if command else ""
