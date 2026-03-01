@@ -781,3 +781,115 @@ def test_print_version_seccess():
     ui.print_version()
     ui.print_version(None)
     # Just verify it doesn't crash - output verification would require mocking
+
+
+# ---------------------------------------------------------------------------
+# Spinner tests
+# ---------------------------------------------------------------------------
+
+
+def test_spinner__init_defaults():
+    """Test Spinner default initialization values."""
+    spinner = ui.Spinner()
+    assert spinner._message == "Working..."
+    assert spinner._delay == 0.08
+    assert spinner._min_lifetime == 0.3
+    assert spinner._running is False
+    assert spinner._thread is None
+
+
+def test_spinner__init_custom_message():
+    """Test Spinner with a custom message."""
+    spinner = ui.Spinner(message="Loading data...")
+    assert spinner._message == "Loading data..."
+
+
+def test_spinner__noop_when_not_tty(monkeypatch):
+    """Spinner must not start a thread when stderr is not a TTY."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: False))
+    spinner = ui.Spinner()
+    spinner.start()
+    assert spinner._thread is None
+    assert not spinner._running
+    spinner.stop()  # should be safe to call
+
+
+def test_spinner__context_manager_when_not_tty(monkeypatch):
+    """Using Spinner as context manager when not a TTY should be a no-op."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: False))
+    with ui.Spinner() as s:
+        assert s._thread is None
+        assert not s._running
+
+
+def test_spinner__start_and_stop_when_tty(monkeypatch):
+    """Spinner should start a background thread when stderr is a TTY."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    spinner = ui.Spinner(min_lifetime=0.0, delay=0.02)
+    spinner.start()
+    assert spinner._running is True
+    assert spinner._thread is not None
+    assert spinner._thread.is_alive()
+    spinner.stop()
+    assert spinner._running is False
+    assert spinner._thread is None
+
+
+def test_spinner__context_manager_when_tty(monkeypatch):
+    """Spinner context manager should start/stop cleanly in TTY mode."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    with ui.Spinner(min_lifetime=0.0, delay=0.02):
+        pass  # spinner should auto-stop on exit
+
+
+def test_spinner__stop_is_idempotent(monkeypatch):
+    """Calling stop() multiple times must not raise."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    spinner = ui.Spinner(min_lifetime=0.0, delay=0.02)
+    spinner.start()
+    spinner.stop()
+    spinner.stop()  # second call should be a no-op
+    assert spinner._running is False
+
+
+def test_spinner__sets_active_spinner_global(monkeypatch):
+    """Starting a spinner should register it as the active spinner."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    assert ui._active_spinner is None
+    spinner = ui.Spinner(min_lifetime=0.0, delay=0.02)
+    spinner.start()
+    assert ui._active_spinner is spinner
+    spinner.stop()
+    assert ui._active_spinner is None
+
+
+def test_stop_active_spinner__clears_global(monkeypatch):
+    """stop_active_spinner() must stop and clear the module-level reference."""
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    spinner = ui.Spinner(min_lifetime=0.0, delay=0.02)
+    spinner.start()
+    assert ui._active_spinner is spinner
+    ui.stop_active_spinner()
+    assert ui._active_spinner is None
+    assert spinner._running is False
+
+
+def test_stop_active_spinner__noop_when_none():
+    """stop_active_spinner() should be safe to call when no spinner is active."""
+    ui._active_spinner = None
+    ui.stop_active_spinner()  # must not raise
+
+
+def test_spinner__fast_command_skips_animation(monkeypatch):
+    """A command finishing before min_lifetime should never display frames."""
+    import io
+
+    fake_stderr = io.StringIO()
+    monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
+    monkeypatch.setattr("sys.stderr", fake_stderr)
+
+    with ui.Spinner(min_lifetime=5.0):
+        pass  # exits immediately, well before 5 s
+
+    # The background thread should have exited without writing any frames.
+    assert fake_stderr.getvalue() == ""
