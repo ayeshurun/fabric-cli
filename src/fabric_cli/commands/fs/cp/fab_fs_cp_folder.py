@@ -63,7 +63,7 @@ def copy_folder(
         if not args.force and not utils_ui.prompt_confirm(
             f"Folder '{from_folder.name}' contains items that do not support copying: {unsupported_items_names}. Do you still want to proceed?"
         ):
-            return 0
+            return fab_constant.EXIT_CODE_SUCCESS
 
     supported_items: list[Item] = []
     folders: list[Folder] = []

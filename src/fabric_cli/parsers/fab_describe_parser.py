@@ -77,7 +77,7 @@ def _show_commands_supported(args: Namespace) -> None:
                 f"Usage:  {usage_format}\n\n" f"Available elements:\n  {element_list}\n"
             )
             utils_ui.print(custom_message)
-            sys.exit(2)
+            sys.exit(fab_constant.EXIT_CODE_CANCELLED_OR_MISUSE_BUILTINS)
 
 
 def _print_supported_commands_by_element(element_or_path: str) -> None:

@@ -283,11 +283,18 @@ ERROR_UNIVERSAL_SECURITY_DISABLED = "UniversalSecurityDisabled"
 ERROR_SPN_AUTH_MISSING = "ServicePrincipalAuthMissing"
 ERROR_JOB_FAILED = "JobFailed"
 
-# Exit codes
+# Exit codes (POSIX compliant)
+# 0 - Success
+# 1 - General errors
+# 2 - Misuse of shell builtins
+# 126 - Command cannot execute
+# 127 - Command not found
+# 128+n - Fatal error signal "n"
 EXIT_CODE_SUCCESS = 0
 EXIT_CODE_ERROR = 1
 EXIT_CODE_CANCELLED_OR_MISUSE_BUILTINS = 2
-EXIT_CODE_AUTHORIZATION_REQUIRED = 4
+EXIT_CODE_CANNOT_EXECUTE = 126  # Used for authorization/permission errors
+EXIT_CODE_COMMAND_NOT_FOUND = 127
 
 # Contextual commands
 OS_COMMANDS = {
