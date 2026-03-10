@@ -73,6 +73,10 @@ def exec_command(args: Namespace, context: OneLakeItem) -> None:
             if format_options.get("delimiter") is not None:
                 _payload["formatOptions"]["delimiter"] = format_options.get("delimiter")
 
+    # Add schema name for schema-enabled lakehouses
+    if args.schema:
+        _payload["schemaName"] = args.schema
+
     # Add the file extension if it is defined
     if args.extension:
         _payload["extension"] = args.extension

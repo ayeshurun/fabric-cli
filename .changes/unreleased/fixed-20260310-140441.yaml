@@ -1,0 +1,6 @@
+kind: fixed
+body: Support schema-enabled lakehouses in table load command by passing schemaName in the API payload
+time: 2026-03-10T14:04:41.462Z
+custom:
+    Author: copilot
+    AuthorLink: https://github.com/copilot
