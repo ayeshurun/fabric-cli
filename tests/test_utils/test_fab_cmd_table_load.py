@@ -24,6 +24,11 @@ def _create_mock_response(status_code=202, resource_type="file"):
     return mock_response
 
 
+def _extract_payload(mock_tables_api):
+    call_args = mock_tables_api.load_table.call_args
+    return json.loads(call_args.kwargs.get("payload") or call_args[1].get("payload") or call_args[0][1])
+
+
 @patch("fabric_cli.commands.tables.fab_tables_load.utils_ui")
 @patch("fabric_cli.commands.tables.fab_tables_load.tables_api")
 @patch("fabric_cli.commands.tables.fab_tables_load.onelake_api")
@@ -54,8 +59,7 @@ def test_exec_command__schema_included_in_payload(
 
     # Verify load_table was called
     mock_tables_api.load_table.assert_called_once()
-    call_args = mock_tables_api.load_table.call_args
-    payload = json.loads(call_args.kwargs.get("payload") or call_args[1].get("payload") or call_args[0][1])
+    payload = _extract_payload(mock_tables_api)
 
     assert payload["schemaName"] == "dbo"
 
@@ -89,8 +93,7 @@ def test_exec_command__no_schema_omits_schema_from_payload(
     exec_command(args, context)
 
     mock_tables_api.load_table.assert_called_once()
-    call_args = mock_tables_api.load_table.call_args
-    payload = json.loads(call_args.kwargs.get("payload") or call_args[1].get("payload") or call_args[0][1])
+    payload = _extract_payload(mock_tables_api)
 
     assert "schemaName" not in payload
 
@@ -124,8 +127,7 @@ def test_exec_command__schema_with_parquet_format(
     exec_command(args, context)
 
     mock_tables_api.load_table.assert_called_once()
-    call_args = mock_tables_api.load_table.call_args
-    payload = json.loads(call_args.kwargs.get("payload") or call_args[1].get("payload") or call_args[0][1])
+    payload = _extract_payload(mock_tables_api)
 
     assert payload["schemaName"] == "sales"
     assert payload["formatOptions"]["format"] == "Parquet"
@@ -160,8 +162,7 @@ def test_exec_command__folder_with_schema(
     exec_command(args, context)
 
     mock_tables_api.load_table.assert_called_once()
-    call_args = mock_tables_api.load_table.call_args
-    payload = json.loads(call_args.kwargs.get("payload") or call_args[1].get("payload") or call_args[0][1])
+    payload = _extract_payload(mock_tables_api)
 
     assert payload["schemaName"] == "dbo"
     assert payload["pathType"] == "Folder"
