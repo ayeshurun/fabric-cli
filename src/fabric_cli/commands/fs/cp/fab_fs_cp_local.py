@@ -9,6 +9,7 @@ enabling POSIX-style `cp <local_path> <fabric_path>` and
 """
 
 import os
+import shutil
 from argparse import Namespace
 
 from fabric_cli.core import fab_constant
@@ -102,29 +103,59 @@ def copy_local_to_folder(
 def copy_item_to_local(
     from_context: Item, to_context: LocalPath, args: Namespace
 ) -> None:
-    """Copy (export) a Fabric item to a local directory."""
+    """Copy (export) a Fabric item to a local directory.
+
+    If the target local path does not exist but its parent directory does,
+    and the target basename contains a dot-suffix (e.g., ``MyRenamed.Notebook``),
+    the item is exported into the parent directory and then renamed to the
+    requested name.  This enables
+    ``cp ws.Workspace/MyNotebook.Notebook /local/MyRenamed.Notebook``.
+    """
     from fabric_cli.commands.fs.export import fab_fs_export_item as export_item
     from fabric_cli.utils import fab_item_util
 
     local_path = to_context.path
+    rename_to: str | None = None
 
-    # Validate local directory exists
-    if not os.path.exists(local_path):
-        raise FabricCLIError(
-            f"Local path '{local_path}' does not exist",
-            fab_constant.ERROR_INVALID_PATH,
-        )
+    if os.path.exists(local_path):
+        # Target exists and is a directory – export directly into it
+        export_dir = local_path
+    else:
+        # Target does not exist – check if this is a rename request
+        parent_dir = os.path.dirname(local_path)
+        target_name = os.path.basename(local_path.rstrip(os.sep))
+
+        if parent_dir and os.path.isdir(parent_dir) and "." in target_name:
+            # Looks like a rename: parent exists, target has a type suffix
+            export_dir = parent_dir
+            rename_to = target_name
+        else:
+            raise FabricCLIError(
+                f"Local path '{local_path}' does not exist",
+                fab_constant.ERROR_INVALID_PATH,
+            )
 
     fab_item_util.item_sensitivity_label_warnings(args, "exported")
 
     # Build args compatible with export_single_item
-    args.output = local_path
+    args.output = export_dir
 
     if not hasattr(args, "format"):
         args.format = None
 
     export_item.export_single_item(from_context, args)
-    fab_ui.print_output_format(args, message=f"'{from_context.full_name}' exported")
+
+    # If a rename was requested, rename the exported folder
+    if rename_to is not None:
+        exported_path = os.path.join(export_dir, from_context.full_name)
+        renamed_path = os.path.join(export_dir, rename_to)
+        if os.path.exists(exported_path) and exported_path != renamed_path:
+            if os.path.exists(renamed_path):
+                shutil.rmtree(renamed_path)
+            os.rename(exported_path, renamed_path)
+
+    display_name = rename_to if rename_to else from_context.full_name
+    fab_ui.print_output_format(args, message=f"'{display_name}' exported")
 
 
 def copy_workspace_to_local(

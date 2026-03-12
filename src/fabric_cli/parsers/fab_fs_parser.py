@@ -194,8 +194,12 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace\n",
         "# copy (import) a local item to a Fabric item",
         "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace/MyNotebook.Notebook\n",
+        "# copy (import) a local item with a different name in Fabric",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace/MyNotebookRenamed.Notebook\n",
         "# copy (export) a Fabric item to a local directory",
-        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp\n",
+        "# copy (export) a Fabric item with a different local name",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp/MyNotebookRenamed.Notebook",
     ]
 
     cp_parser = subparsers.add_parser(

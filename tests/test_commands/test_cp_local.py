@@ -458,6 +458,154 @@ class TestCPLocal:
 
     # endregion
 
+    # region rename tests
+
+    def test_cp_item_to_local__rename_exports_with_new_name(self):
+        """Test that cp from item to non-existent local path with dot-suffix renames the export."""
+        with tempfile.TemporaryDirectory() as td:
+            from_context = MagicMock(spec=Item)
+            from_context.full_name = "MyNotebook.Notebook"
+
+            # Target path doesn't exist but parent does – triggers rename
+            renamed_target = os.path.join(td, "MyNotebookRenamed.Notebook")
+            to_context = LocalPath(renamed_target)
+
+            args = argparse.Namespace(
+                command="cp",
+                command_path="cp",
+                force=True,
+                recursive=False,
+                format=None,
+            )
+
+            # After export, simulate that the original folder was created
+            exported_dir = os.path.join(td, "MyNotebook.Notebook")
+
+            def create_exported_dir(*a, **kw):
+                os.makedirs(exported_dir, exist_ok=True)
+                # Create a dummy file inside
+                with open(os.path.join(exported_dir, "content.py"), "w") as f:
+                    f.write("# test")
+
+            with patch(
+                "fabric_cli.commands.fs.export.fab_fs_export_item.export_single_item",
+                side_effect=create_exported_dir,
+            ), patch(
+                "fabric_cli.utils.fab_item_util.item_sensitivity_label_warnings"
+            ), patch(
+                "fabric_cli.utils.fab_ui.print_output_format"
+            ) as mock_print:
+                cp_local.copy_item_to_local(from_context, to_context, args)
+
+                # Assert export was called with parent dir as output
+                assert args.output == td
+
+                # Assert the exported folder was renamed
+                assert os.path.exists(renamed_target)
+                assert not os.path.exists(exported_dir)
+                assert os.path.exists(
+                    os.path.join(renamed_target, "content.py")
+                )
+
+                # Assert the output message uses the renamed name
+                mock_print.assert_called_once()
+                call_args = mock_print.call_args
+                assert "MyNotebookRenamed.Notebook" in call_args[1]["message"]
+
+    def test_cp_item_to_local__rename_nonexistent_parent_fails(self):
+        """Test that cp to a renamed path with non-existent parent dir raises error."""
+        from_context = MagicMock(spec=Item)
+        from_context.full_name = "nb.Notebook"
+        to_context = LocalPath("/nonexistent/dir/MyRenamed.Notebook")
+
+        args = argparse.Namespace(
+            command="cp",
+            force=True,
+            format=None,
+        )
+
+        with pytest.raises(FabricCLIError) as exc_info:
+            cp_local.copy_item_to_local(from_context, to_context, args)
+
+        assert exc_info.value.status_code == constant.ERROR_INVALID_PATH
+
+    def test_cp_item_to_local__rename_no_dot_suffix_fails(self):
+        """Test that cp to a non-existent path without dot-suffix raises error."""
+        with tempfile.TemporaryDirectory() as td:
+            from_context = MagicMock(spec=Item)
+            to_context = LocalPath(os.path.join(td, "nodotsuffix"))
+
+            args = argparse.Namespace(
+                command="cp",
+                force=True,
+                format=None,
+            )
+
+            with pytest.raises(FabricCLIError) as exc_info:
+                cp_local.copy_item_to_local(from_context, to_context, args)
+
+            assert exc_info.value.status_code == constant.ERROR_INVALID_PATH
+
+    def test_cp_item_to_local__existing_dir_still_works(self):
+        """Test that cp to an existing directory still works without rename."""
+        with tempfile.TemporaryDirectory() as td:
+            from_context = MagicMock(spec=Item)
+            from_context.full_name = "nb1.Notebook"
+            to_context = LocalPath(td)
+
+            args = argparse.Namespace(
+                command="cp",
+                force=True,
+                format=None,
+            )
+
+            with patch(
+                "fabric_cli.commands.fs.export.fab_fs_export_item.export_single_item"
+            ) as mock_export, patch(
+                "fabric_cli.utils.fab_item_util.item_sensitivity_label_warnings"
+            ), patch(
+                "fabric_cli.utils.fab_ui.print_output_format"
+            ) as mock_print:
+                cp_local.copy_item_to_local(from_context, to_context, args)
+
+                mock_export.assert_called_once()
+                assert args.output == td
+                # Message should use original name
+                mock_print.assert_called_once()
+                assert "nb1.Notebook" in mock_print.call_args[1]["message"]
+
+    def test_cp_local_to_item__rename_uses_target_item_name(self):
+        """Test that cp from local to an item uses the target item's name (rename on import)."""
+        with tempfile.TemporaryDirectory() as td:
+            # Local dir has original name
+            local_dir = os.path.join(td, "OriginalName.Notebook")
+            os.makedirs(local_dir)
+            with open(os.path.join(local_dir, "content.py"), "w") as f:
+                f.write("# notebook")
+
+            from_context = LocalPath(local_dir)
+
+            # Target item has a different name (renamed)
+            to_context = MagicMock(spec=Item)
+            to_context.short_name = "RenamedNotebook"
+
+            args = argparse.Namespace(
+                command="cp",
+                force=True,
+                format=None,
+            )
+
+            with patch(
+                "fabric_cli.commands.fs.impor.fab_fs_import_item.import_single_item"
+            ) as mock_import:
+                cp_local.copy_local_to_item(from_context, to_context, args)
+
+                # Import should use the target item (which has the renamed name)
+                mock_import.assert_called_once_with(to_context, args)
+                assert args.input == local_dir
+
+    # endregion
+
     # region backward compatibility tests
 
     def test_cp_parser_has_format_flag(self, cli_executor: CLIExecutor):
