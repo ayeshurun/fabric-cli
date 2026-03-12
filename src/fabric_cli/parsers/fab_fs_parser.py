@@ -189,7 +189,13 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         "# copy a notebook",
         "$ cp nb1.Notebook nb2.Notebook\n",
         "# copy file from one folder to another",
-        "$ cp Files/csv/fab.csv Files/dest/copy_fab.csv",
+        "$ cp Files/csv/fab.csv Files/dest/copy_fab.csv\n",
+        "# copy (import) a local item to a Fabric workspace",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace\n",
+        "# copy (import) a local item to a Fabric item",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace/MyNotebook.Notebook\n",
+        "# copy (export) a Fabric item to a local directory",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp",
     ]
 
     cp_parser = subparsers.add_parser(
@@ -223,6 +229,11 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         required=False,
         action="store_true",
         help="Block on path collision. Optional, prevents copying when an item with the same name exists in a different folder within the target workspace.",
+    )
+    cp_parser.add_argument(
+        "--format",
+        metavar="",
+        help="Format of the item definition for import/export. Optional",
     )
 
     cp_parser.usage = f"{utils_error_parser.get_usage_prog(cp_parser)}"

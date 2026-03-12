@@ -6,6 +6,7 @@ from typing import Optional
 
 from fabric_cli.commands.fs.cp import fab_fs_cp_folder as cp_folder
 from fabric_cli.commands.fs.cp import fab_fs_cp_item as cp_item
+from fabric_cli.commands.fs.cp import fab_fs_cp_local as cp_local
 from fabric_cli.commands.fs.cp import fab_fs_cp_onelake as cp_onelake
 from fabric_cli.commands.fs.cp import fab_fs_cp_workspace as cp_workspace
 from fabric_cli.core import fab_constant
@@ -59,6 +60,26 @@ def exec_command(
     # OneLake to Local
     elif isinstance(from_context, OneLakeItem) and isinstance(to_context, LocalPath):
         cp_onelake.copy_onelake_2_local(from_context, to_context, args)
+
+    # Local to Item (import)
+    elif isinstance(from_context, LocalPath) and isinstance(to_context, Item):
+        cp_local.copy_local_to_item(from_context, to_context, args)
+
+    # Local to Workspace (import)
+    elif isinstance(from_context, LocalPath) and isinstance(to_context, Workspace):
+        cp_local.copy_local_to_workspace(from_context, to_context, args)
+
+    # Local to Folder (import)
+    elif isinstance(from_context, LocalPath) and isinstance(to_context, Folder):
+        cp_local.copy_local_to_folder(from_context, to_context, args)
+
+    # Item to Local (export)
+    elif isinstance(from_context, Item) and isinstance(to_context, LocalPath):
+        cp_local.copy_item_to_local(from_context, to_context, args)
+
+    # Workspace to Local (export)
+    elif isinstance(from_context, Workspace) and isinstance(to_context, LocalPath):
+        cp_local.copy_workspace_to_local(from_context, to_context, args)
 
     # Source and target items must be same types
     elif from_context.type != to_context.type:
