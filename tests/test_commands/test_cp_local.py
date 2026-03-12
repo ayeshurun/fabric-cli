@@ -575,7 +575,13 @@ class TestCPLocal:
                 assert "nb1.Notebook" in mock_print.call_args[1]["message"]
 
     def test_cp_local_to_item__rename_uses_target_item_name(self):
-        """Test that cp from local to an item uses the target item's name (rename on import)."""
+        """Test that cp from local to an item passes the target item context to import.
+
+        The target Item already carries the desired (renamed) name because
+        ``get_command_context`` resolved it from the user-provided Fabric path.
+        This verifies that ``copy_local_to_item`` correctly forwards that
+        context so import uses the target name, not the local directory name.
+        """
         with tempfile.TemporaryDirectory() as td:
             # Local dir has original name
             local_dir = os.path.join(td, "OriginalName.Notebook")

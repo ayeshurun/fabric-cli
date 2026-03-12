@@ -230,7 +230,7 @@ def extract_from_to_paths(
                 to_context = handle_context.get_command_context(
                     args.path, raise_error=False, supports_local_path=True
                 )
-                # Check that all paths are of valid types for cp
+                # Check that the from_context and to_context combination is valid for cp
                 if all(
                     isinstance(context, OneLakeItem)
                     or isinstance(context, Item)
