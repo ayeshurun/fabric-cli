@@ -233,7 +233,7 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
     cp_parser.add_argument(
         "--format",
         metavar="",
-        help="Format of the item definition for import/export. Optional",
+        help="Format of the item definition for import/export (e.g., .ipynb, .py for Notebooks; TMDL, TMSL for Semantic Models). Optional",
     )
 
     cp_parser.usage = f"{utils_error_parser.get_usage_prog(cp_parser)}"
