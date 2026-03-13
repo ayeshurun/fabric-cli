@@ -18,7 +18,7 @@ Usage (standalone PoC):
     python -m fabric_cli.typer_poc.config_app clear-cache
 """
 
-from typing import Optional
+from typing import Callable, Optional
 
 import typer
 
@@ -31,6 +31,25 @@ config_app = typer.Typer(
     help="Manage Fabric CLI configuration settings.",
     no_args_is_help=True,
 )
+
+
+# --- Helper ---
+
+
+def _run_command(exec_fn: Callable, args: TyperArgs) -> None:
+    """Run an exec_command function with standard decorators applied.
+
+    Wraps the given function with handle_exceptions and set_command_context
+    decorators, then invokes it with the provided TyperArgs.
+    """
+    from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
+
+    @handle_exceptions()
+    @set_command_context()
+    def _run(a):
+        exec_fn(a)
+
+    _run(args)
 
 
 # --- Commands ---
@@ -59,16 +78,12 @@ def set(
 ) -> None:
     """Set a configuration key to a specified value."""
     from fabric_cli.commands.config import fab_config_set as config_set
-    from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 
-    args = TyperArgs(command="config", subcommand="set", output_format=output_format, key=key, value=value)
-
-    @handle_exceptions()
-    @set_command_context()
-    def _run(args):
-        config_set.exec_command(args)
-
-    _run(args)
+    args = TyperArgs(
+        command="config", subcommand="set", output_format=output_format,
+        key=key, value=value,
+    )
+    _run_command(config_set.exec_command, args)
 
 
 @config_app.command(
@@ -93,16 +108,11 @@ def get(
 ) -> None:
     """Get the value of a configuration key."""
     from fabric_cli.commands.config import fab_config_get as config_get
-    from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 
-    args = TyperArgs(command="config", subcommand="get", output_format=output_format, key=key)
-
-    @handle_exceptions()
-    @set_command_context()
-    def _run(args):
-        config_get.exec_command(args)
-
-    _run(args)
+    args = TyperArgs(
+        command="config", subcommand="get", output_format=output_format, key=key,
+    )
+    _run_command(config_get.exec_command, args)
 
 
 @config_app.command(
@@ -125,16 +135,11 @@ def list_configs(
 ) -> None:
     """List all configuration keys and their values."""
     from fabric_cli.commands.config import fab_config_ls as config_ls
-    from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 
-    args = TyperArgs(command="config", subcommand="ls", output_format=output_format)
-
-    @handle_exceptions()
-    @set_command_context()
-    def _run(args):
-        config_ls.exec_command(args)
-
-    _run(args)
+    args = TyperArgs(
+        command="config", subcommand="ls", output_format=output_format,
+    )
+    _run_command(config_ls.exec_command, args)
 
 
 @config_app.command(
@@ -157,18 +162,11 @@ def clear_cache(
 ) -> None:
     """Clear the CLI cache."""
     from fabric_cli.commands.config import fab_config_clear_cache as config_clear_cache
-    from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 
     args = TyperArgs(
-        command="config", subcommand="clear-cache", output_format=output_format
+        command="config", subcommand="clear-cache", output_format=output_format,
     )
-
-    @handle_exceptions()
-    @set_command_context()
-    def _run(args):
-        config_clear_cache.exec_command(args)
-
-    _run(args)
+    _run_command(config_clear_cache.exec_command, args)
 
 
 # --- Main App (for standalone PoC execution) ---

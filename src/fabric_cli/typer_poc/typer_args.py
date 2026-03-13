@@ -10,6 +10,7 @@ exec_command(args) functions without modification.
 """
 
 from argparse import Namespace
+from typing import Optional
 
 
 class TyperArgs(Namespace):
@@ -33,7 +34,7 @@ class TyperArgs(Namespace):
         self,
         command: str = "",
         subcommand: str = "",
-        output_format: str = None,
+        output_format: Optional[str] = None,
         **kwargs,
     ):
         super().__init__()
