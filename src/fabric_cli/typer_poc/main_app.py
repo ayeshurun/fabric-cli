@@ -72,7 +72,11 @@ def ls_command(
         typer.Option("--output", "-o", help="Output format: text, json"),
     ] = None,
 ) -> None:
-    """List items — delegates to existing ``fs.ls_command`` via TyperArgs bridge."""
+    """List items — delegates to existing ``fs.ls_command`` via TyperArgs bridge.
+
+    Note: The original argparse ``ls`` command uses ``nargs="*"`` for path,
+    producing a list.  The TyperArgs bridge preserves this as a list.
+    """
     args = TyperArgs(
         command="ls",
         path=[path] if path else None,
@@ -103,10 +107,14 @@ def mkdir_command(
         typer.Option("--output", "-o", help="Output format: text, json"),
     ] = None,
 ) -> None:
-    """Create — delegates to existing ``fs.mkdir_command`` via TyperArgs bridge."""
+    """Create — delegates to existing ``fs.mkdir_command`` via TyperArgs bridge.
+
+    Note: The original argparse ``mkdir`` command uses ``nargs="+"`` for path,
+    producing a list.  The TyperArgs bridge preserves this as a list.
+    """
     args = TyperArgs(
         command="mkdir",
-        path=path,
+        path=[path],
         params=params or [],
         output_format=output_format,
     )

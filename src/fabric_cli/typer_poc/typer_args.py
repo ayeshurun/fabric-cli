@@ -40,23 +40,23 @@ class TyperArgs:
         assert args.path == "/ws.Workspace"
     """
 
-    # Default values that every command handler may expect
-    _defaults: dict[str, Any] = {
-        "command": None,
-        "output_format": None,
-        "json_file": None,
-        "query": None,
-        "all": False,
-        "long": False,
-        "force": False,
-        "recursive": False,
-        "fab_mode": "commandline",
-        "command_path": None,
-    }
+    # Default values that every command handler may expect (read-only)
+    _DEFAULTS: tuple[tuple[str, Any], ...] = (
+        ("command", None),
+        ("output_format", None),
+        ("json_file", None),
+        ("query", None),
+        ("all", False),
+        ("long", False),
+        ("force", False),
+        ("recursive", False),
+        ("fab_mode", "commandline"),
+        ("command_path", None),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         # Apply defaults first, then overwrite with provided kwargs
-        for key, default in self._defaults.items():
+        for key, default in self._DEFAULTS:
             setattr(self, key, kwargs.pop(key, default))
 
         # Set any remaining kwargs as attributes

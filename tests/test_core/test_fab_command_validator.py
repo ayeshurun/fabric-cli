@@ -24,7 +24,7 @@ def validator():
 
 @pytest.fixture
 def custom_validator(tmp_path):
-    """CommandValidator with a minimal custom YAML for deterministic tests."""
+    """CommandValidator with custom YAML for deterministic test scenarios."""
     yaml_content = """\
 ---
 commands:
