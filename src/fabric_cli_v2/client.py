@@ -68,6 +68,9 @@ def _get_session() -> requests.Session:
 # ---------------------------------------------------------------------------
 
 
+_MAX_RETRIES = 5
+
+
 def request(
     method: str,
     path: str,
@@ -80,6 +83,7 @@ def request(
     timeout: int = 240,
     paginate: bool = False,
     wait_lro: bool = True,
+    _retry_count: int = 0,
 ) -> dict[str, Any]:
     """Execute an authenticated HTTP request to a Fabric API.
 
@@ -140,11 +144,14 @@ def request(
 
     # -- Rate limiting
     if resp.status_code == 429:
+        if _retry_count >= _MAX_RETRIES:
+            _raise_for_status(resp)
         retry_after = int(resp.headers.get("Retry-After", "5"))
         time.sleep(retry_after)
         return request(method, path, host=host, json=json, data=data,
                        params=params, headers=headers, timeout=timeout,
-                       paginate=paginate, wait_lro=wait_lro)
+                       paginate=paginate, wait_lro=wait_lro,
+                       _retry_count=_retry_count + 1)
 
     # -- Error handling
     if resp.status_code >= 400:

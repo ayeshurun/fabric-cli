@@ -23,6 +23,7 @@ Design goals:
 from __future__ import annotations
 
 import os
+import time
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
@@ -184,7 +185,7 @@ class FabricAuth:
 
             def get_token(self, *scopes: str, **kwargs: Any) -> AccessToken:
                 token = os.environ.get(ENV_TOKEN, "")
-                return AccessToken(token=token, expires_on=0)
+                return AccessToken(token=token, expires_on=int(time.time()) + 86400)
 
         self._credential = _StaticTokenCredential()  # type: ignore[assignment]
         self._mode = "env"
