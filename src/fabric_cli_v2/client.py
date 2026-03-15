@@ -185,6 +185,9 @@ def request(
 # ---------------------------------------------------------------------------
 
 
+MAX_LRO_POLL_ITERATIONS = 120  # ~10 min at default 5s retry intervals
+
+
 def _poll_lro(
     resp: requests.Response,
     session: requests.Session,
@@ -198,7 +201,7 @@ def _poll_lro(
 
     retry_after = int(resp.headers.get("Retry-After", "5"))
 
-    for _ in range(120):  # max ~10 minutes with 5s intervals
+    for _ in range(MAX_LRO_POLL_ITERATIONS):
         time.sleep(retry_after)
         poll = session.get(location, headers=headers, timeout=timeout)
         if poll.status_code >= 400:

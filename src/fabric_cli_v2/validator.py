@@ -70,10 +70,8 @@ class CommandValidator:
         if item_type:
             unsup = eff.get("unsupported_items", [])
             if item_type in unsup:
-                hint = ""
                 sup = eff.get("supported_items", [])
-                if sup:
-                    hint = f" Supported: {', '.join(sorted(sup))}"
+                hint = f" Supported: {', '.join(sorted(sup))}" if sup else ""
                 raise ValueError(
                     f"'{display}' does not support '{item_type}'.{hint}"
                 )

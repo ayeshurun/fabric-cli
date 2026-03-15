@@ -155,6 +155,8 @@ class Context:
     @staticmethod
     def _deserialise(data: dict[str, Any]) -> FabricElement:
         """Reconstruct element chain from serialised dict."""
+        from fabric_cli_v2.types import ItemType  # lazy to avoid circular import
+
         chain = data["chain"]
         parent: Optional[FabricElement] = None
         elem: Optional[FabricElement] = None
@@ -171,7 +173,3 @@ class Context:
         if elem is None:
             raise KeyError("Empty context chain")
         return elem
-
-
-# Import here to avoid circular — only needed in _deserialise
-from fabric_cli_v2.types import ItemType  # noqa: E402

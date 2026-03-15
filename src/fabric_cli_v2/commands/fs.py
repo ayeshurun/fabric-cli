@@ -64,7 +64,7 @@ def ls_command(
                            columns=["displayName", "id", "type"] if long else None)
         return
 
-    # TODO: resolve path relative to context, list items/folders/onelake
+    # TODO(v2): implement full path resolution and API calls for listing items
     output.print_info(f"ls {path or ctx.path} — path resolution not yet implemented")
 
 
@@ -90,7 +90,7 @@ def cd_command(
         output.print_info(f"Context: /")
         return
 
-    # TODO: full path resolution
+    # TODO(v2): implement full path resolution for cd
     output.print_info(f"cd {path} — path resolution not yet implemented")
 
 
@@ -114,7 +114,7 @@ def mkdir_command(
     """Create a workspace, item, or OneLake directory."""
     from fabric_cli_v2 import output as out
 
-    # TODO: implement creation logic
+    # TODO(v2): implement workspace/item/onelake creation
     out.print_info(f"mkdir {path} — not yet implemented")
 
 
@@ -133,7 +133,7 @@ def rm_command(
     """Remove a workspace, item, or OneLake resource."""
     from fabric_cli_v2 import output as out
 
-    # TODO: implement deletion logic
+    # TODO(v2): implement workspace/item/onelake deletion
     out.print_info(f"rm {path} — not yet implemented")
 
 

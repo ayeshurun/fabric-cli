@@ -4,7 +4,7 @@
 """Fabric CLI v2 — Typer application definition.
 
 This is the main entry point.  All command groups are registered here
-using lazy imports so that startup stays fast (< 100 ms target).
+using lazy imports to keep startup fast.
 
 Entry point (from pyproject.toml):  ``fab2 = "fabric_cli_v2.app:main"``
 """

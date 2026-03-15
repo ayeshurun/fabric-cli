@@ -158,13 +158,18 @@ class FabricElement:
 
     @property
     def path(self) -> str:
-        """Full path from root, e.g. ``/ws.Workspace/nb.Notebook``."""
+        """Full path from root, e.g. ``/ws.Workspace/nb.Notebook``.
+
+        The tenant node (root of the hierarchy) is excluded from the
+        display path since it is implicit.
+        """
         parts: list[str] = []
         node: Optional[FabricElement] = self
         while node is not None:
             parts.append(node.name)
             node = node.parent
-        return "/" + "/".join(reversed(parts[:-1]))  # skip tenant
+        # Skip the tenant node (last in reversed chain) from the display
+        return "/" + "/".join(reversed(parts[:-1]))
 
     def __repr__(self) -> str:
         return f"FabricElement({self.name!r}, {self.element_type.value})"

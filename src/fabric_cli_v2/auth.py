@@ -3,8 +3,8 @@
 
 """Authentication for Fabric CLI v2 — built on ``azure-identity``.
 
-Replaces the 785-line MSAL-based auth module from v1 with a clean,
-standards-based implementation using Azure Identity credentials.
+Replaces the MSAL-based auth module from v1 with a streamlined
+implementation using Azure Identity credentials.
 
 Supported flows:
  - Interactive browser login (default for users)

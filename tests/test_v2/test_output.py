@@ -4,7 +4,6 @@
 """Tests for fabric_cli_v2.output module."""
 
 import json
-from io import StringIO
 
 import pytest
 
