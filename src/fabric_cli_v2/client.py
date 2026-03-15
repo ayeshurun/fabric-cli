@@ -53,6 +53,8 @@ def _get_session() -> requests.Session:
     global _session
     if _session is None:
         _session = requests.Session()
+        # 429 (rate limiting) is handled separately in request() so that
+        # the Retry-After header value is respected precisely.
         retries = Retry(
             total=3,
             backoff_factor=1,

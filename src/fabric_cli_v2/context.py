@@ -117,7 +117,7 @@ class Context:
     def cleanup_stale_files(self) -> None:
         """Remove context files for processes that no longer exist."""
         try:
-            import psutil  # optional dep; skip if unavailable
+            import psutil  # psutil is a project dependency but guard for safety
         except ImportError:
             return
 

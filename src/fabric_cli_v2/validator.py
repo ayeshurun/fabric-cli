@@ -32,7 +32,7 @@ class CommandValidator:
                 "command_support.yaml",
             )
         self._path = yaml_path
-        self._config: dict[str, Any] | None = None
+        self._config: Optional[dict[str, Any]] = None
 
     def _load(self) -> dict[str, Any]:
         if self._config is None:
