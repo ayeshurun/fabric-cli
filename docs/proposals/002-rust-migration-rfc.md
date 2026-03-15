@@ -295,7 +295,8 @@ impl FabAuth {
         // 3. Azure CLI credential
         // 4. Azure Developer CLI credential
         // 5. Interactive browser (if enabled)
-        let credential = DefaultAzureCredential::new()?;
+        let credential = DefaultAzureCredential::new()
+            .map_err(|e| FabError::auth(format!("Failed to initialize Azure credential chain: {e}")))?;
         Ok(Self { credential: Arc::new(credential) })
     }
 
@@ -347,7 +348,8 @@ fn resolve_credential(config: &FabConfig) -> Arc<dyn TokenCredential> {
             env::set_var("AZURE_CLIENT_SECRET", &secret);
         }
     }
-    Arc::new(DefaultAzureCredential::new().expect("Azure Identity initialization failed"))
+    Arc::new(DefaultAzureCredential::new()
+        .map_err(|e| FabError::auth(format!("Failed to initialize Azure credential chain: {e}")))?)
 }
 ```
 
@@ -401,8 +403,8 @@ use criterion::{criterion_group, criterion_main, Criterion};
 fn bench_cli_parse(c: &mut Criterion) {
     c.bench_function("parse_ls_command", |b| {
         b.iter(|| {
-            let cli = Cli::parse_from(["fab", "ls", "/workspace.Workspace"]);
-            std::hint::black_box(cli);
+            let parsed_command = Cli::parse_from(["fab", "ls", "/workspace.Workspace"]);
+            std::hint::black_box(parsed_command);
         })
     });
 }
@@ -706,7 +708,9 @@ fn main() -> Result<(), FabError> {
                 repl::start(&mut ctx, &auth, &config).await
             }
             Err(e) => {
-                e.exit(); // clap error (--help, --version, unknown flag)
+                // clap error (--help, --version, unknown flag) — exits process
+                // with appropriate exit code (0 for help/version, 2 for errors)
+                e.exit();
             }
         }
     })
