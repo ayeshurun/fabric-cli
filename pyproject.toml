@@ -20,6 +20,7 @@ dependencies = [
     "msal>=1.34,<2",
     "msal_extensions",
     "azure-core>=1.29.0",
+    "azure-identity>=1.17.0",
     "questionary",
     "prompt_toolkit>=3.0.41",
     "cachetools>=5.5.0",
@@ -30,10 +31,12 @@ dependencies = [
     "requests",
     "cryptography",
     "fabric-cicd>=0.3.0",
+    "typer>=0.9.0",
 ]
 
 [project.scripts]
 fab = "fabric_cli.main:main"
+fab2 = "fabric_cli_v2.app:main"
 
 [project.urls]
 Repository = "https://github.com/microsoft/fabric-cli.git"
