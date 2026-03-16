@@ -2,7 +2,6 @@
 # Licensed under the MIT License.
 
 import builtins
-import html
 import sys
 import unicodedata
 from argparse import Namespace

@@ -7,13 +7,11 @@ This module provides a shared Console instance and helper functions
 so the entire CLI uses consistent styling and formatting.
 """
 
-import sys
 from typing import Any, Optional, Sequence
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 from rich.theme import Theme
 
 # Consistent color theme for the CLI
