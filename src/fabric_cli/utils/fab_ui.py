@@ -14,6 +14,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+from fabric_cli.utils.console import console, console_err
 
 
 def get_common_style():
@@ -71,11 +72,11 @@ def print(text: str) -> None:
 
 
 def print_fabric(text: str) -> None:
-    _safe_print(text, style="fg:#49C5B1")
+    _safe_print(text, style="fabric")
 
 
 def print_grey(text: str, to_stderr: bool = True) -> None:
-    _safe_print(text, style="fg:grey", to_stderr=to_stderr)
+    _safe_print(text, style="muted", to_stderr=to_stderr)
 
 
 def print_progress(text, progress: Optional[str] = None) -> None:
@@ -141,23 +142,20 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
-    escaped_text = html.escape(text)
-    _safe_print_formatted_text(
-        f"\n<ansigreen>*</ansigreen> {escaped_text}", escaped_text, to_stderr
-    )
+    target = console_err if to_stderr else console
+    try:
+        target.print(f"\n[success]✔[/success] {text}")
+    except Exception as e:
+        _print_fallback(text, e, to_stderr=to_stderr)
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
     text = text.rstrip(".")
-    escaped_text = html.escape(text)
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(
-        f"<ansiyellow>!</ansiyellow> {command_text}{escaped_text}",
-        escaped_text,
-        to_stderr=True,
-    )
+    try:
+        console_err.print(f"[warning]![/warning] {command_text}{text}")
+    except Exception as e:
+        _print_fallback(text, e, to_stderr=True)
 
 
 def print_output_error(
@@ -202,14 +200,12 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
-    escaped_text = html.escape(text.rstrip("."))
+    text = str(text).rstrip(".")
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(
-        f"<ansiblue>*</ansiblue> {command_text}{escaped_text}",
-        escaped_text,
-        to_stderr=True,
-    )
+    try:
+        console_err.print(f"[info]ℹ[/info] {command_text}{text}")
+    except Exception as e:
+        _print_fallback(text, e, to_stderr=True)
 
 
 # Display
@@ -219,6 +215,8 @@ def print_info(text, command: Optional[str] = None) -> None:
 def display_help(
     commands: dict[str, dict[str, str]], custom_header: Optional[str] = None
 ) -> None:
+    from rich.table import Table
+
     if not commands or len(commands) == 0:
         print("No commands available.")
         return
@@ -228,16 +226,20 @@ def display_help(
         print("Work seamlessly with Fabric from the command line.\n")
         print("Usage: fab <command> <subcommand> [flags]\n")
 
-    max_command_length = max(
-        len(cmd) for cmd_dict in commands.values() for cmd in cmd_dict
-    )
-
     for category, cmd_dict in commands.items():
-        print(f"{category}:")
+        table = Table(
+            title=category,
+            show_header=False,
+            title_style="bold",
+            box=None,
+            padding=(0, 2),
+        )
+        table.add_column("Command", style="fabric")
+        table.add_column("Description")
         for command, description in cmd_dict.items():
-            padded_command = f"{command:<{max_command_length}}"
-            print(f"  {padded_command}: {description}")
-        print("")
+            table.add_row(command, description)
+        console.print(table)
+        console.print()
 
     # Learn more
     print("Learn More:")
@@ -259,6 +261,8 @@ def get_visual_length(entry: dict, field: Any) -> int:
 def print_entries_unix_style(
     entries: Any, fields: Any, header: Optional[bool] = False
 ) -> None:
+    from rich.table import Table
+
     if isinstance(entries, dict):
         _entries = [entries]
     elif isinstance(entries, list):
@@ -274,27 +278,12 @@ def print_entries_unix_style(
             fab_constant.ERROR_INVALID_ENTRIES_FORMAT,
         )
 
-    if header:
-        widths = [
-            max(len(field), max(get_visual_length(entry, field) for entry in _entries))
-            for field in fields
-        ]
-
-    else:
-        widths = [
-            max(len(str(entry.get(field, ""))) for entry in _entries)
-            for field in fields
-        ]
-    # Add extra space for better alignment
-    # Adjust this value for more space if needed
-    widths = [w + 2 for w in widths]
-    if header:
-        print_grey(_format_unix_style_field(fields, widths), to_stderr=False)
-        # Print a separator line, offset of 1 for each field
-        print_grey("-" * (sum(widths) + len(widths)), to_stderr=False)
-
+    table = Table(show_header=bool(header), box=None, padding=(0, 2), highlight=False)
+    for field in fields:
+        table.add_column(field, style="muted")
     for entry in _entries:
-        print_grey(_format_unix_style_entry(entry, fields, widths), to_stderr=False)
+        table.add_row(*(str(entry.get(field, "")) for field in fields))
+    console.print(table)
 
 
 # Others
@@ -308,11 +297,8 @@ def _safe_print(
 ) -> None:
 
     try:
-        # Redirect to stderr if `to_stderr` is True
-        output_stream = sys.stderr if to_stderr else sys.stdout
-        questionary_module = fab_lazy_load.questionary()
-        questionary_module.print(text, style=style, file=output_stream)
-
+        target = console_err if to_stderr else console
+        target.print(text, style=style)
     except (RuntimeError, AttributeError, Exception) as e:
         _print_fallback(text, e, to_stderr=to_stderr)
 
@@ -320,11 +306,9 @@ def _safe_print(
 def _safe_print_formatted_text(
     formatted_text: str, escaped_text: str, to_stderr: bool = False
 ) -> None:
-    from prompt_toolkit import HTML, print_formatted_text
-
     try:
-        output_stream = sys.stderr if to_stderr else sys.stdout
-        print_formatted_text(HTML(formatted_text), file=output_stream)
+        target = console_err if to_stderr else console
+        target.print(escaped_text)
     except (RuntimeError, AttributeError, Exception) as e:
         _print_fallback(escaped_text, e, to_stderr)
 
@@ -439,8 +423,19 @@ def _print_error_format_json(output: str) -> None:
 
 
 def _print_error_format_text(message: str, command: Optional[str] = None) -> None:
+    from rich.panel import Panel
+
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(f"<ansired>x</ansired> {command_text}{message}", message)
+    try:
+        console_err.print(
+            Panel(
+                f"{command_text}{message}",
+                title="[error]✘ Error[/error]",
+                border_style="red",
+            )
+        )
+    except Exception as e:
+        _print_fallback(f"x {command_text}{message}", e, to_stderr=True)
 
 
 def _print_fallback(text: str, e: Exception, to_stderr: bool = False) -> None:
@@ -519,9 +514,9 @@ def _print_entries_key_value_list_style(entries: Any) -> None:
     for i, entry in enumerate(_entries):
         for key, value in entry.items():
             pretty_key = _format_key_to_convert_to_title_case(key)
-            print_grey(f"{pretty_key}: {value}", to_stderr=False)
+            console.print(f"[muted]{pretty_key}: {value}[/muted]")
         if i < len(_entries) - 1:
-            print_grey("", to_stderr=False)  # Empty line between entries
+            console.print()  # Empty line between entries
 
 
 def _format_key_to_convert_to_title_case(key: str) -> str:

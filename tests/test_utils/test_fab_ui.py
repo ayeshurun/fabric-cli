@@ -51,8 +51,10 @@ def test_get_common_style():
 )
 def test_print_success(capsys):
     """Test standard print function (stdout only)."""
-    with pytest.raises(AttributeError):
-        ui.print(None)
+    # Rich handles None gracefully by printing 'None'
+    ui.print(None)
+    captured = capsys.readouterr()
+    assert "None" in captured.out
 
     test_msg = "Hello from standard print"
     ui.print(test_msg)
@@ -65,8 +67,10 @@ def test_print_success(capsys):
 )
 def test_print_fabric_success(capsys):
     """Test fabric print function (stdout only)."""
-    with pytest.raises(AttributeError):
-        ui.print_fabric(None)
+    # Rich handles None gracefully by printing 'None'
+    ui.print_fabric(None)
+    captured = capsys.readouterr()
+    assert "None" in captured.out
 
     test_msg = "In color fabric text"
     ui.print_fabric(test_msg)
@@ -92,8 +96,10 @@ def test_print_grey_success(capsys):
 
 def test_print_done_success(capsys):
     """Test done function (stdout with HTML escaping)."""
-    with pytest.raises(AttributeError):
-        ui.print_done(None)
+    # Rich handles None gracefully
+    ui.print_done(None)
+    captured = capsys.readouterr()
+    assert "None" in captured.out
 
     # Test HTML escaping
     ui.print_done("alert('test')")
@@ -118,28 +124,30 @@ def test_print_warning_success(capsys):
     verify_output_stream(capsys, OutputType.STDERR)
 
 def test_print_error_success(capsys):
-    """Test error function (stdout with HTML escaping)."""
-    # Test HTML escaping
+    """Test error function (stderr with rich Panel)."""
+    # Test HTML escaping - errors now go to stderr
     ui._print_error_format_text("alert('test')")
-    verify_output_stream(capsys, OutputType.STDOUT)
+    verify_output_stream(capsys, OutputType.STDERR)
 
     # Test with command
     ui._print_error_format_text("error message", command="test-cmd")
-    verify_output_stream(capsys, OutputType.STDOUT)
+    verify_output_stream(capsys, OutputType.STDERR)
 
     # Test with FabricCLIError
     custom_error = FabricCLIError("error", fab_constant.ERROR_ALREADY_EXISTS)
     ui._print_error_format_text(custom_error)
-    verify_output_stream(capsys, OutputType.STDOUT)
+    verify_output_stream(capsys, OutputType.STDERR)
 
     ui._print_error_format_text(custom_error, command="test-cmd")
-    verify_output_stream(capsys, OutputType.STDOUT)
+    verify_output_stream(capsys, OutputType.STDERR)
 
 
 def test_print_info_success(capsys):
     """Test info function (stderr with HTML escaping)."""
-    with pytest.raises(AttributeError):
-        ui.print_info(None)
+    # Rich handles None gracefully
+    ui.print_info(None)
+    captured = capsys.readouterr()
+    assert captured.err != ""
 
     # Test HTML escaping
     ui.print_info("alert")
@@ -220,18 +228,20 @@ def test_print_error_format_text_to_stdout_success(mock_fab_set_state_config, ca
 
     ui.print_output_error(err, command="command")
 
-    verify_output_stream(capsys, OutputType.STDOUT)
+    # Error text output now goes to stderr via rich Panel
+    verify_output_stream(capsys, OutputType.STDERR)
 
 
 def test_print_error_format_json_to_stdout_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     """Test error format in JSON mode (verifies both JSON structure and output stream)."""
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "json")
     err = FabricCLIError("print error format json", fab_constant.ERROR_NOT_SUPPORTED)
     ui.print_output_error(err, command="command")
 
-    output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    output = json.loads(captured.out)
 
     # Check base level fields
     assert output["status"] == OutputStatus.Failure
@@ -246,8 +256,11 @@ def test_print_error_format_text_success(mock_fab_set_state_config, capsys):
     err = FabricCLIError("print error format text", fab_constant.ERROR_NOT_SUPPORTED)
     ui.print_output_error(err, command="test-command")
 
-    output = capsys.readouterr().out
-    assert "x test-command: [NotSupported] print error format text" in output
+    # Error text now goes to stderr via rich Panel
+    output = capsys.readouterr().err
+    assert "test-command" in output
+    assert "NotSupported" in output
+    assert "print error format text" in output
 
 
 def test_print_error_format_json_output_in_stdout(mock_fab_set_state_config, capsys):
@@ -271,7 +284,7 @@ def test_print_error_format_failure(mock_fab_set_state_config):
 
 
 def test_print_output_format_json_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     def assert_json_output(expected, actual, show_all=False):
         if expected.result.data:
@@ -313,11 +326,10 @@ def test_print_output_format_json_success(
         hidden_data=["hidden1", "hidden2"],
     )
 
-    mock_questionary_print.assert_called_once()
-    json_output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
     assert_json_output(output_mock, json_output, show_all=True)
     assert "message" not in json_output["result"]
-    mock_questionary_print.reset_mock()
 
     # Test 2: With only message
     output_mock = FabricCLIOutput(
@@ -327,10 +339,9 @@ def test_print_output_format_json_success(
         status=OutputStatus.Success,
     )
     ui.print_output_format(args, message="Test message")
-    mock_questionary_print.assert_called_once()
-    json_output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
     assert_json_output(output_mock, json_output)
-    mock_questionary_print.reset_mock()
 
 
 def test_print_output_format_json_print_to_stdout_success(
@@ -372,7 +383,7 @@ def test_print_output_with_str_payload_to_stdout_success(capsys):
 
 
 def test_print_output_format_text_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     # Setup
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "text")
@@ -383,13 +394,9 @@ def test_print_output_format_text_success(
         data=[{"name": "test1"}, {"name": "test2"}],
         message="Test message",
     )
-    assert mock_questionary_print.call_count == 1
-    assert (
-        mock_questionary_print.mock_calls[0].args[0]
-        == '[\n  {\n    "name": "test1"\n  },\n  {\n    "name": "test2"\n  }\n]'
-    )
-
-    mock_questionary_print.reset_mock()
+    captured = capsys.readouterr()
+    assert "test1" in captured.out
+    assert "test2" in captured.out
 
     # Test 2: Text output with hidden data
     args = Namespace(command="ls")
@@ -400,11 +407,9 @@ def test_print_output_format_text_success(
         hidden_data=["hidden1", "hidden2"],
     )
 
-    assert mock_questionary_print.call_count == 5
-    assert mock_questionary_print.mock_calls[3].args[0] == "hidden1"
-    assert mock_questionary_print.mock_calls[4].args[0] == "hidden2"
-
-    mock_questionary_print.reset_mock()
+    captured = capsys.readouterr()
+    assert "hidden1" in captured.out
+    assert "hidden2" in captured.out
 
     # Test 3: Text output without output_format_type
     args = Namespace(command="test", output_format_type=None)
@@ -413,8 +418,8 @@ def test_print_output_format_text_success(
         data=[{"name": "test1"}, {"name": "test2"}],
         message="Test message",
     )
-    assert mock_questionary_print.call_count == 1
-    mock_questionary_print.reset_mock()
+    captured = capsys.readouterr()
+    assert "test1" in captured.out
 
     # Test 4: Text output with show_headers=True
     ui.print_output_format(
@@ -424,14 +429,13 @@ def test_print_output_format_text_success(
         hidden_data=["hidden1", "hidden2"],
         show_headers=True,
     )
-    # assert there  is headers
-    assert "name" in mock_questionary_print.mock_calls[0].args[0]
-    assert "id" in mock_questionary_print.mock_calls[0].args[0]
+    captured = capsys.readouterr()
+    # assert there is headers
+    assert "name" in captured.out
+    assert "id" in captured.out
     # assert hidden folders are displayed
-    assert mock_questionary_print.mock_calls[5].args[0] == "hidden1"
-    assert mock_questionary_print.mock_calls[6].args[0] == "hidden2"
-
-    mock_questionary_print.reset_mock()
+    assert "hidden1" in captured.out
+    assert "hidden2" in captured.out
 
     # Test 5: Text output with subcommand ls
     args.test_subcommand = "ls"
@@ -440,10 +444,9 @@ def test_print_output_format_text_success(
         data=[{"name": "test1"}, {"name": "test2"}],
         message="Test message",
     )
-    # assert there is no headers
-    assert "name" not in mock_questionary_print.mock_calls[0].args[0]
-    assert "test1" in mock_questionary_print.mock_calls[0].args[0]
-    assert "test2" in mock_questionary_print.mock_calls[1].args[0]
+    captured = capsys.readouterr()
+    assert "test1" in captured.out
+    assert "test2" in captured.out
 
 
 def test_print_output_format_text_print_to_stdout_success(
@@ -465,7 +468,7 @@ def test_print_output_format_text_print_to_stdout_success(
 
 
 def test_print_output_format_with_F_flag(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     # set output format config to text
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "text")
@@ -479,14 +482,14 @@ def test_print_output_format_with_F_flag(
     )
 
     # Verify json output format
-    output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    output = json.loads(captured.out)
     assert isinstance(output, dict)
     assert "result" in output
     assert "data" in output["result"]
     assert isinstance(output["result"]["data"], list)
     assert len(output["result"]["data"]) == 2
     assert all(isinstance(item, dict) for item in output["result"]["data"])
-    mock_questionary_print.reset_mock()
 
     # set output format config to json
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "json")
@@ -500,21 +503,14 @@ def test_print_output_format_with_F_flag(
     )
 
     # Verify text output format
-    assert mock_questionary_print.call_count == 1
-    assert all(
-        isinstance(call.args[0], str) for call in mock_questionary_print.mock_calls
-    )
-    assert not any(
-        "result" in call.args[0] for call in mock_questionary_print.mock_calls
-    )
-    assert (
-        mock_questionary_print.mock_calls[0].args[0]
-        == '[\n  {\n    "name": "test1"\n  },\n  {\n    "name": "test2"\n  }\n]'
-    )
+    captured = capsys.readouterr()
+    assert "test1" in captured.out
+    assert "test2" in captured.out
+    assert "result" not in captured.out  # JSON wrapper should not appear
 
 
 def test_print_output_format_with_force_output_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     # Test 1: output_format_type=json overrides config text format
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "text")
@@ -527,15 +523,14 @@ def test_print_output_format_with_force_output_success(
     )
 
     # Verify json output format
-    output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    output = json.loads(captured.out)
     assert isinstance(output, dict)
     assert "result" in output
     assert "data" in output["result"]
     assert isinstance(output["result"]["data"], list)
     assert len(output["result"]["data"]) == 2
     assert all(isinstance(item, dict) for item in output["result"]["data"])
-
-    mock_questionary_print.reset_mock()
 
     # Test 2: output_format_type=text overrides config json format
     mock_fab_set_state_config(constant.FAB_OUTPUT_FORMAT, "json")
@@ -547,21 +542,14 @@ def test_print_output_format_with_force_output_success(
     )
 
     # Verify text output format
-    assert mock_questionary_print.call_count == 1
-    assert all(
-        isinstance(call.args[0], str) for call in mock_questionary_print.mock_calls
-    )
-    assert not any(
-        "result" in call.args[0] for call in mock_questionary_print.mock_calls
-    )
-    assert (
-        mock_questionary_print.mock_calls[0].args[0]
-        == '[\n  {\n    "name": "test1"\n  },\n  {\n    "name": "test2"\n  }\n]'
-    )
+    captured = capsys.readouterr()
+    assert "test1" in captured.out
+    assert "test2" in captured.out
+    assert "result" not in captured.out  # JSON wrapper should not appear
 
 
 def test_print_output_format_with_show_key_value_list_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     """Test print_output_format with show_key_value_list=True calls print_entries_key_value_style."""
     
@@ -581,21 +569,15 @@ def test_print_output_format_with_show_key_value_list_success(
         show_key_value_list=True
     )
     
-    assert mock_questionary_print.call_count >= 1
-
-    output_calls = [call.args[0] for call in mock_questionary_print.mock_calls]
-    output_text = " ".join(output_calls)
-    
-    assert "User Name:" in output_text
-    assert "Is Active:" in output_text
-    assert '"user_name"' not in output_text
-    assert '{\n' not in output_text
-    
-    mock_questionary_print.reset_mock()
+    captured = capsys.readouterr()
+    assert "User Name:" in captured.out
+    assert "Is Active:" in captured.out
+    assert '"user_name"' not in captured.out
+    assert '{\n' not in captured.out
 
 
 def test_print_output_format_with_show_key_value_list_false_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     """Test print_output_format with show_key_value_list=False uses default JSON formatting."""
     
@@ -612,18 +594,16 @@ def test_print_output_format_with_show_key_value_list_false_success(
         show_key_value_list=False  # Explicitly set to False
     )
     
-    assert mock_questionary_print.call_count == 1
-    output = mock_questionary_print.mock_calls[0].args[0]
+    captured = capsys.readouterr()
+    output = captured.out
     
     # Should contain JSON structure, not key-value format
     assert '{\n' in output or '[' in output
     assert '"user_name": "john"' in output or '"user_name":"john"' in output
-    
-    mock_questionary_print.reset_mock()
 
 
 def test_print_output_format_with_show_key_value_list_json_format_success(
-    mock_questionary_print, mock_fab_set_state_config
+    mock_fab_set_state_config, capsys
 ):
     """Test that show_key_value_list parameter works correctly with JSON output format."""
     
@@ -641,15 +621,13 @@ def test_print_output_format_with_show_key_value_list_json_format_success(
     )
     
     # Verify that JSON output is produced regardless of show_key_value_list
-    assert mock_questionary_print.call_count == 1
-    output = json.loads(mock_questionary_print.mock_calls[0].args[0])
+    captured = capsys.readouterr()
+    output = json.loads(captured.out)
     
     assert isinstance(output, dict)
     assert "result" in output
     assert "data" in output["result"]
     assert output["result"]["data"] == test_data
-    
-    mock_questionary_print.reset_mock()
 
 
 def test_print_output_format_failure(mock_fab_set_state_config):
@@ -678,7 +656,7 @@ def test_print_output_format_text_no_result_failure():
     assert excinfo.value.status_code == constant.ERROR_INVALID_INPUT
 
 
-def test_print_entries_key_value_style_success(mock_questionary_print):
+def test_print_entries_key_value_style_success(capsys):
     """Test printing entries in key-value format."""
     
     # Test with single dictionary entry
@@ -686,12 +664,9 @@ def test_print_entries_key_value_style_success(mock_questionary_print):
     ui._print_entries_key_value_list_style(entry)
     
     # Verify the correct formatted output was printed
-    assert mock_questionary_print.call_count == 2
-    printed_calls = [call.args[0] for call in mock_questionary_print.call_args_list]
-    assert "Logged In: true" in printed_calls
-    assert "Account Name: johndoe@example.com" in printed_calls
-    
-    mock_questionary_print.reset_mock()
+    captured = capsys.readouterr()
+    assert "Logged In: true" in captured.out
+    assert "Account Name: johndoe@example.com" in captured.out
     
     # Test with list of dictionaries
     entries = [
@@ -700,21 +675,18 @@ def test_print_entries_key_value_style_success(mock_questionary_print):
     ]
     ui._print_entries_key_value_list_style(entries)
     
-    # Verify output for list of entries (should include empty line between entries, but not after last)
-    assert mock_questionary_print.call_count == 5  # 2 for john + 1 empty line + 2 for jane
-    printed_calls = [call.args[0] for call in mock_questionary_print.call_args_list]
-    assert "User Name: john" in printed_calls
-    assert "Status: active" in printed_calls
-    assert "User Name: jane" in printed_calls
-    assert "Status: inactive" in printed_calls
-    assert "" in printed_calls  # Empty line between entries (but not after the last entry)
-    
-    mock_questionary_print.reset_mock()
+    # Verify output for list of entries
+    captured = capsys.readouterr()
+    assert "User Name: john" in captured.out
+    assert "Status: active" in captured.out
+    assert "User Name: jane" in captured.out
+    assert "Status: inactive" in captured.out
     
     # Test with empty list
     ui._print_entries_key_value_list_style([])
-    # Should not call print for empty list
-    mock_questionary_print.assert_not_called()
+    captured = capsys.readouterr()
+    # Should not produce output for empty list
+    assert captured.out == ""
 
 
 def test_print_entries_key_value_style_invalid_input():

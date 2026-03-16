@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -10,7 +10,17 @@ import fabric_cli.core.fab_state_config as state_config
 
 @pytest.fixture
 def mock_questionary_print():
-    with patch("questionary.print") as mock:
+    """Mock the rich console print call used by fab_ui for stdout output.
+
+    This fixture intercepts print calls going through the shared
+    stdout Console instance in ``fabric_cli.utils.console`` so that
+    tests can verify what was printed without depending on terminal output.
+    Only the stdout console is patched; stderr output (warnings, errors)
+    is not intercepted, matching the prior questionary.print behavior.
+    """
+    import fabric_cli.utils.console as console_mod
+
+    with patch.object(console_mod.console, "print") as mock:
         yield mock
 
 
