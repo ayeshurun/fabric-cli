@@ -176,7 +176,7 @@ def _setup_logger(file_name: str):
     _logger_instance = logging.getLogger("FabricCLI")
     _logger_instance.setLevel(logging.DEBUG)
 
-    # Configure the log file rotation.
+    # Configure the log file rotation (plain text for machine readability).
     file_handler = RotatingFileHandler(
         file_name,
         maxBytes=5 * 1024 * 1024,  # 5 MB
@@ -187,6 +187,22 @@ def _setup_logger(file_name: str):
 
     # Attach the file handler to the logger
     _logger_instance.addHandler(file_handler)
+
+    # Add RichHandler for styled console logging when debug is enabled.
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+        from rich.logging import RichHandler
+
+        from fabric_cli.utils.console import console_err
+
+        rich_handler = RichHandler(
+            console=console_err,
+            show_time=True,
+            show_path=False,
+            rich_tracebacks=True,
+            markup=True,
+        )
+        rich_handler.setLevel(logging.DEBUG)
+        _logger_instance.addHandler(rich_handler)
 
     return _logger_instance
 

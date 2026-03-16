@@ -25,6 +25,12 @@ def main():
 
     try:
         fab_state_config.init_defaults()
+
+        # Enable rich tracebacks for better debug experience
+        if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+            from rich.traceback import install as install_rich_traceback
+
+            install_rich_traceback(show_locals=True)
         
         if args.command == "auth" and args.auth_command == None:
             auth_parser.show_help(args)
