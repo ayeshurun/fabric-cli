@@ -127,5 +127,6 @@ def print_file_written(path: str, *, overwritten: bool = False) -> None:
     """Inform the user that a file was written successfully."""
     if overwritten:
         print_warning(f"File overwritten: {path}")
-    print_success(f"File written\n")
+    print_success("File written")
+    console.print()
     print_muted(f"  Path: {path}")
