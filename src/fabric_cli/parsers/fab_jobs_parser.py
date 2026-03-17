@@ -116,7 +116,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         "--cancel_on_timeout",
         metavar="",
         choices=["false", "true"],
-        help="Whether to cancel the job when timeout is reached. Optional",
+        help="Whether to cancel the job when timeout is reached. Optional (default: true).",
     )
 
     run_parser.usage = f"{utils_error_parser.get_usage_prog(run_parser)}"

@@ -18,7 +18,7 @@ def exec(workspace: Workspace, args):
     sorted_elements_dict = utils_fs.sort_ws_elements(
         ws_elements,
         show_details,
-        sort_criteria=getattr(args, "item_sort", None),
+        sort_criteria=getattr(args, "sort_by", None),
     )
 
     show_hidden = (

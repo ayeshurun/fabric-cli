@@ -59,7 +59,11 @@ def sort_ws_elems_by_config(
         sort_criteria = fab_state_config.get_config(
             fab_constant.FAB_OUTPUT_ITEM_SORT_CRITERIA
         )
-    if sort_criteria not in {"byname", "bytype"}:
+    if sort_criteria in {"name", "byname"}:
+        sort_criteria = "byname"
+    elif sort_criteria in {"type", "bytype"}:
+        sort_criteria = "bytype"
+    else:
         sort_criteria = "byname"
 
     if sort_criteria == "bytype":

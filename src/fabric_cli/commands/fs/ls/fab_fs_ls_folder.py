@@ -16,7 +16,7 @@ def exec(folder: Folder, args):
     sort_elements = utils_fs.sort_ws_elements(
         ws_elements,
         show_details,
-        sort_criteria=getattr(args, "item_sort", None),
+        sort_criteria=getattr(args, "sort_by", None),
     )
 
     utils_ui.print_output_format(args, data=sort_elements, show_headers=show_details)

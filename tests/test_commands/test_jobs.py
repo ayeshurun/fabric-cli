@@ -298,6 +298,40 @@ class TestJobs:
 
         mock_cancel.assert_called_once()
 
+    def test_run_job_timeout_missing_legacy_config_defaults_to_cancel(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            cancel_on_timeout=None,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(state_config, "get_config", return_value=None),
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "cancel_item_job_instance",
+                return_value=argparse.Namespace(status_code=202),
+            ) as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_called_once()
+
     def test_start_job_notebook_and_cancel(
         self, item_factory, cli_executor, mock_questionary_print
     ):
