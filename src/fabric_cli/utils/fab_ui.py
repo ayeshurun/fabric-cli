@@ -43,8 +43,7 @@ class Spinner:
             do_work()
     """
 
-    # Fabric-branded animation: lightning bolt with pulsing dots.
-    FRAMES = ("⚡", "⚡.", "⚡..", "⚡...", "⚡..", "⚡.")
+    FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
     # Fabric CLI brand teal color (#49C5B1) as ANSI 256-color escape.
     _COLOR = "\033[38;2;73;197;177m"
@@ -54,7 +53,7 @@ class Spinner:
     def __init__(
         self,
         message: str = "Working...",
-        delay: float = 0.15,
+        delay: float = 0.08,
         min_lifetime: float = 0.3,
     ) -> None:
         self._message = message
@@ -202,6 +201,7 @@ def print_grey(text: str, to_stderr: bool = True) -> None:
 
 
 def print_progress(text, progress: Optional[str] = None) -> None:
+    stop_active_spinner()
     progress_text = f": {progress}%" if progress else ""
     print_grey(f"∟ {text}{progress_text}")
 
@@ -265,6 +265,7 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text)
     _safe_print_formatted_text(
@@ -273,6 +274,7 @@ def print_done(text: str, to_stderr: bool = False) -> None:
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     text = text.rstrip(".")
     escaped_text = html.escape(text)
@@ -328,6 +330,7 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text.rstrip("."))
     command_text = f"{command}: " if command else ""
