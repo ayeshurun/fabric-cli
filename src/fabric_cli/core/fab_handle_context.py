@@ -101,15 +101,18 @@ def get_command_context(
             utils_ui.print_grey(
                 f"{local_path} not found in Fabric, checking local file system"
             )
+            # Expand ~ so that paths like ~/Desktop work on the local file system
+            expanded_path = os.path.expanduser(local_path)
             # If the local path exists in the local file system, return the local path
-            if os.path.exists(local_path) and os.access(local_path, os.R_OK):
-                return LocalPath(local_path)
-            # IF the parent directory of the local path exists in the local file system, return the local path
-            elif not raise_error and os.path.exists(
-                os.path.dirname(local_path)
-                and os.access(os.path.dirname(local_path), os.W_OK)
+            if os.path.exists(expanded_path) and os.access(expanded_path, os.R_OK):
+                return LocalPath(expanded_path)
+            # If the parent directory of the local path exists in the local file system, return the local path
+            elif (
+                not raise_error
+                and os.path.exists(os.path.dirname(expanded_path))
+                and os.access(os.path.dirname(expanded_path), os.W_OK)
             ):
-                return LocalPath(local_path)
+                return LocalPath(expanded_path)
 
         raise e
 

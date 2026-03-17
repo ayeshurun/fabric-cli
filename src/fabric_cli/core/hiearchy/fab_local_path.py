@@ -10,6 +10,8 @@ from fabric_cli.core.hiearchy.fab_tenant import Tenant
 
 class LocalPath(FabricElement):
     def __init__(self, path):
+        # Expand ~ to the user's home directory so OS operations work correctly
+        path = os.path.expanduser(path)
         # Get the node id from the path
         _id = str(hash(path))
         _name = os.path.basename(path)
