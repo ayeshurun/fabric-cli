@@ -17,7 +17,7 @@ interactions:
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "8064b273-89e2-43e7-8416-6900b9586d03",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "6b484b92-1d17-4201-978c-56f2d4d92f08",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -28,15 +28,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1594'
+      - '1589'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:43 GMT
+      - Tue, 17 Mar 2026 12:22:32 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 7d3dd5ba-1d4d-4993-8c1b-c1a64a50a593
+      - 6a6ad33c-1fbf-4fde-8ec2-78cd64d12cee
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -64,7 +64,7 @@ interactions:
       User-Agent:
       - ms-fabric-cli-test/1.4.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/8064b273-89e2-43e7-8416-6900b9586d03/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/6b484b92-1d17-4201-978c-56f2d4d92f08/items
   response:
     body:
       string: '{"value": []}'
@@ -80,11 +80,11 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:44 GMT
+      - Tue, 17 Mar 2026 12:22:33 GMT
       Pragma:
       - no-cache
       RequestId:
-      - b9bcb41c-00a2-43ac-ae49-2f6e9455f0e1
+      - b7d29be5-9198-4897-b868-6165d9cb7c09
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -112,7 +112,7 @@ interactions:
       User-Agent:
       - ms-fabric-cli-test/1.4.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/8064b273-89e2-43e7-8416-6900b9586d03/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/6b484b92-1d17-4201-978c-56f2d4d92f08/items
   response:
     body:
       string: '{"value": []}'
@@ -128,11 +128,11 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:44 GMT
+      - Tue, 17 Mar 2026 12:22:33 GMT
       Pragma:
       - no-cache
       RequestId:
-      - ceefeba5-9f9c-48e9-8cd5-7210b5bf85fe
+      - c66de967-68f4-44df-9022-0b2191be6413
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -163,11 +163,11 @@ interactions:
       User-Agent:
       - ms-fabric-cli-test/1.4.0
     method: POST
-    uri: https://api.fabric.microsoft.com/v1/workspaces/8064b273-89e2-43e7-8416-6900b9586d03/maps
+    uri: https://api.fabric.microsoft.com/v1/workspaces/6b484b92-1d17-4201-978c-56f2d4d92f08/maps
   response:
     body:
-      string: '{"id": "45adf224-de5f-4d00-84fb-b4893eeb7e65", "type": "Map", "displayName":
-        "fabcli000001", "description": "Created by fab", "workspaceId": "8064b273-89e2-43e7-8416-6900b9586d03"}'
+      string: '{"id": "1b8e1c12-08ce-4b9f-8415-7b927b8b3f0e", "type": "Map", "displayName":
+        "fabcli000001", "description": "Created by fab", "workspaceId": "6b484b92-1d17-4201-978c-56f2d4d92f08"}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId,ETag
@@ -176,17 +176,17 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '163'
+      - '164'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:46 GMT
+      - Tue, 17 Mar 2026 12:22:37 GMT
       ETag:
       - '""'
       Pragma:
       - no-cache
       RequestId:
-      - 9f9df4fc-30f7-4aed-a4ed-c5f82a4954a1
+      - 917d76a6-930a-400e-b084-650c2d833b71
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -218,7 +218,7 @@ interactions:
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "8064b273-89e2-43e7-8416-6900b9586d03",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "6b484b92-1d17-4201-978c-56f2d4d92f08",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -229,15 +229,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1594'
+      - '1589'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:47 GMT
+      - Tue, 17 Mar 2026 12:22:38 GMT
       Pragma:
       - no-cache
       RequestId:
-      - fd604519-4eff-485a-b6e1-9401c8e172f8
+      - 47090506-496c-4f3c-bbf2-7bf3e25a8298
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -265,12 +265,12 @@ interactions:
       User-Agent:
       - ms-fabric-cli-test/1.4.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/8064b273-89e2-43e7-8416-6900b9586d03/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/6b484b92-1d17-4201-978c-56f2d4d92f08/items
   response:
     body:
-      string: '{"value": [{"id": "45adf224-de5f-4d00-84fb-b4893eeb7e65", "type": "Map",
+      string: '{"value": [{"id": "1b8e1c12-08ce-4b9f-8415-7b927b8b3f0e", "type": "Map",
         "displayName": "fabcli000001", "description": "Created by fab", "workspaceId":
-        "8064b273-89e2-43e7-8416-6900b9586d03"}]}'
+        "6b484b92-1d17-4201-978c-56f2d4d92f08"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -283,11 +283,11 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Tue, 17 Mar 2026 09:28:48 GMT
+      - Tue, 17 Mar 2026 12:22:39 GMT
       Pragma:
       - no-cache
       RequestId:
-      - c6729e1b-c558-47c6-aa1b-3088078bfa27
+      - 47f3aa1a-bb90-4948-b4b4-4e6e08f05120
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
