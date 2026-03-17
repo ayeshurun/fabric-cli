@@ -4,11 +4,11 @@
 import builtins
 import html
 import sys
-import threading
-import time
 import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
+
+from rich.console import Console as RichConsole
 
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
@@ -16,6 +16,12 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+
+# Rich console bound to stderr — shared by the Spinner and intermediate
+# output helpers (print_progress / print_warning / print_info).  Using
+# the *same* console instance lets Rich's Live display properly interleave
+# spinner animation with log-style messages.
+_stderr_console = RichConsole(stderr=True, highlight=False)
 
 # Module-level reference to the currently active spinner (if any).
 _active_spinner: Optional["Spinner"] = None
@@ -32,10 +38,13 @@ def stop_active_spinner() -> None:
 class Spinner:
     """Fabric-branded progress spinner for long-running CLI commands.
 
-    Displays a lightning-bolt animation in Fabric teal on *stderr* while a
-    command is executing.  The spinner is automatically suppressed when stderr
-    is not a TTY (e.g. piped output) and includes a configurable start-up
-    delay so that fast commands never flash a spinner.
+    Wraps :pymod:`rich`'s ``Console.status()`` to display a braille-dot
+    animation in Fabric teal on *stderr*.  Because ``print_progress``,
+    ``print_warning`` and ``print_info`` share the same Rich console
+    instance, their output is properly interleaved: it scrolls *above*
+    the spinner while the animation keeps running at the bottom.
+
+    The spinner is automatically suppressed when stderr is not a TTY.
 
     Usage::
 
@@ -43,51 +52,41 @@ class Spinner:
             do_work()
     """
 
-    FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
+    _SPINNER_STYLE = "#49C5B1"  # Fabric teal
+    _MESSAGE_STYLE = "dim"
 
-    # Fabric CLI brand teal color (#49C5B1) as ANSI 256-color escape.
-    _COLOR = "\033[38;2;73;197;177m"
-    _GREY = "\033[90m"
-    _RESET = "\033[0m"
-
-    def __init__(
-        self,
-        message: str = "Working...",
-        delay: float = 0.08,
-        min_lifetime: float = 0.3,
-    ) -> None:
+    def __init__(self, message: str = "Working...") -> None:
         self._message = message
-        self._delay = delay
-        self._min_lifetime = min_lifetime
+        self._status: Any = None
         self._running = False
-        self._thread: Optional[threading.Thread] = None
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def start(self) -> "Spinner":
-        """Begin the spinner animation (background thread)."""
+        """Begin the spinner animation."""
         if not self._is_interactive():
             return self
 
         global _active_spinner
         self._running = True
         _active_spinner = self
-        self._thread = threading.Thread(target=self._spin, daemon=True)
-        self._thread.start()
+        self._status = _stderr_console.status(
+            f"[{self._MESSAGE_STYLE}]{self._message}[/{self._MESSAGE_STYLE}]",
+            spinner="dots",
+            spinner_style=self._SPINNER_STYLE,
+        )
+        self._status.start()
         return self
 
     def stop(self) -> None:
-        """Stop the spinner and clear its line on stderr."""
-        if not self._running:
-            return
-
+        """Stop the spinner and remove it from the screen."""
         global _active_spinner
         self._running = False
-        if self._thread is not None:
-            self._thread.join()
-            self._thread = None
+        if self._status is not None:
+            self._status.stop()
+            self._status = None
         if _active_spinner is self:
             _active_spinner = None
 
@@ -107,35 +106,22 @@ class Spinner:
         """Return *True* when stderr is connected to a real terminal."""
         return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
 
-    # Overhead accounts for "\r", the longest frame, colour escapes, and spaces.
-    _FRAME_OVERHEAD = 8
 
-    def _spin(self) -> None:
-        """Background thread: waits *min_lifetime*, then animates."""
-        # Sleep for the minimum lifetime so fast commands never see a
-        # spinner.  Check _running after the sleep in case the command
-        # already finished.
-        deadline = time.monotonic() + self._min_lifetime
-        while time.monotonic() < deadline and self._running:
-            time.sleep(min(0.05, max(0, deadline - time.monotonic())))
+def _with_status_stopped(fn: Any) -> Any:
+    """Run *fn* with the spinner's status display temporarily stopped.
 
-        if not self._running:
-            return
-
-        idx = 0
-        while self._running:
-            frame = self.FRAMES[idx % len(self.FRAMES)]
-            line = f"\r{self._COLOR}{frame}{self._RESET} {self._GREY}{self._message}{self._RESET}"
-            sys.stderr.write(line)
-            sys.stderr.flush()
-            idx += 1
-            time.sleep(self._delay)
-
-        # Clear the spinner line once we're done.
-        max_frame = max(len(f) for f in self.FRAMES)
-        clear = "\r" + " " * (max_frame + len(self._message) + self._FRAME_OVERHEAD) + "\r"
-        sys.stderr.write(clear)
-        sys.stderr.flush()
+    Questionary / prompt-toolkit manage the terminal themselves, so the
+    Rich ``Live`` display must be suspended while they run.  The status
+    is restarted automatically afterward.
+    """
+    spinner = _active_spinner
+    if spinner is not None and spinner._status is not None:
+        spinner._status.stop()
+        try:
+            return fn()
+        finally:
+            spinner._status.start()
+    return fn()
 
 
 def get_common_style():
@@ -156,36 +142,37 @@ def get_common_style():
 
 
 def prompt_ask(text: str = "Question") -> Any:
-    return fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_password(text: str = "password") -> Any:
-    return fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_confirm(text: str = "Are you sure?") -> Any:
-    return fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_select_items(question: str, choices: Sequence) -> Any:
-    selected_items = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .checkbox(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
 
-    return selected_items
-
 
 def prompt_select_item(question: str, choices: Sequence) -> Any:
-    # Prompt the user to select a single item from a list of choices
-    selected_item = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .select(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
-
-    return selected_item
 
 
 def print(text: str) -> None:
@@ -201,7 +188,6 @@ def print_grey(text: str, to_stderr: bool = True) -> None:
 
 
 def print_progress(text, progress: Optional[str] = None) -> None:
-    stop_active_spinner()
     progress_text = f": {progress}%" if progress else ""
     print_grey(f"∟ {text}{progress_text}")
 
@@ -274,7 +260,6 @@ def print_done(text: str, to_stderr: bool = False) -> None:
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
-    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     text = text.rstrip(".")
     escaped_text = html.escape(text)
@@ -330,7 +315,6 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
-    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text.rstrip("."))
     command_text = f"{command}: " if command else ""
@@ -432,9 +416,22 @@ def print_entries_unix_style(
 # Utils
 
 
+# Map questionary/prompt-toolkit style strings to Rich equivalents.
+_STYLE_MAP: dict[Optional[str], Optional[str]] = {
+    None: None,
+    "fg:grey": "dim",
+    "fg:#49C5B1": "#49C5B1",
+}
+
+
 def _safe_print(
     text: str, style: Optional[str] = None, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stderr writes must go through the same
+    # Rich console so that the Live display can properly interleave them.
+    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
+        _stderr_console.print(text, style=_STYLE_MAP.get(style, style))
+        return
 
     try:
         # Redirect to stderr if `to_stderr` is True
@@ -449,6 +446,11 @@ def _safe_print(
 def _safe_print_formatted_text(
     formatted_text: str, escaped_text: str, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stderr writes must go through Rich.
+    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
+        _stderr_console.print(escaped_text)
+        return
+
     from prompt_toolkit import HTML, print_formatted_text
 
     try:
