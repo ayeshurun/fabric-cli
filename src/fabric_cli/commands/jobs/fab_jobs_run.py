@@ -71,4 +71,7 @@ def _should_cancel_on_timeout(args: Namespace) -> bool:
         return cancel_on_timeout == "true"
 
     # Backward compatibility for existing config files
-    return config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT) != "false"
+    legacy_value = config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT)
+    if legacy_value in {"false", "true"}:
+        return legacy_value == "true"
+    return True

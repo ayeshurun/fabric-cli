@@ -172,3 +172,27 @@ def test_sort_ws_elems_by_config_legacy_config_fallback(monkeypatch):
     sorted_items = item_utils.sort_ws_elems_by_config([notebook, pipeline])
 
     assert [item.short_name for item in sorted_items] == ["zeta", "alpha"]
+
+
+def test_sort_ws_elems_by_config_invalid_legacy_value_defaults_byname(monkeypatch):
+    tenant = Tenant(name="tenant_name", id="0000")
+    workspace = Workspace(
+        name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
+    )
+    notebook = Item(
+        name="alpha",
+        id="item_id_1",
+        parent=workspace,
+        item_type="Notebook",
+    )
+    pipeline = Item(
+        name="zeta",
+        id="item_id_2",
+        parent=workspace,
+        item_type="DataPipeline",
+    )
+
+    monkeypatch.setattr(fab_state_config, "get_config", lambda _key: "invalid")
+    sorted_items = item_utils.sort_ws_elems_by_config([notebook, pipeline])
+
+    assert [item.short_name for item in sorted_items] == ["alpha", "zeta"]
