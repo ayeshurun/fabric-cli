@@ -799,6 +799,7 @@ def mkdir(element_full_path, params=None):
         command_path="mkdir",
         path=element_full_path,
         params=params if params else ["run=true"],
+        output_format="text",
     )
 
     context = handle_context.get_command_context(args.path, False)
@@ -812,6 +813,7 @@ def rm(element_full_path):
         command_path="rm",
         path=element_full_path,
         force=True,
+        output_format="text",
     )
 
     context = handle_context.get_command_context(args.path)

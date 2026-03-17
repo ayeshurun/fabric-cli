@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from unittest.mock import patch
+
 import pytest
 
 import fabric_cli.core.fab_constant as fab_constant
@@ -8,6 +10,10 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import *
 from fabric_cli.core.hiearchy.fab_hiearchy import *
+from fabric_cli.utils.fab_cmd_import_utils import (
+    _build_definition,
+    get_payload_for_item_type,
+)
 
 
 def test_create_tenant():
@@ -386,6 +392,12 @@ def test_get_item_payloads():
         }
     }
 
+    def _mock_build(path, resolved_format=""):
+        result = {"parts": _base_payload["parts"]}
+        if resolved_format:
+            result["format"] = resolved_format
+        return result
+
     # Test Notebook
     notebook = Item(
         name="item_name",
@@ -403,7 +415,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert notebook.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", notebook, "ipynb") == _expected_payload
 
     # Test Spark Job Definition
     spark_job_def = Item(
@@ -425,8 +439,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert spark_job_def.get_payload(
-        _base_payload, "SparkJobDefinitionV2") == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy",
+                                         spark_job_def, "SparkJobDefinitionV2") == _expected_payload
 
     _expected_payload = {
         "type": "SparkJobDefinition",
@@ -440,7 +455,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert spark_job_def.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", spark_job_def, "SparkJobDefinitionV1") == _expected_payload
 
     # Test EventHouse
     event_house = Item(
@@ -455,11 +472,13 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
     # Check that the payload is correct
-    assert event_house.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", event_house) == _expected_payload
 
     # Test Report
     report = Item(
@@ -474,7 +493,7 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
     # Check that the payload is correct for SemanticModel which can have different formatting
@@ -490,11 +509,12 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
-    assert smenticModel.get_payload(
-        _base_payload) == _expected_payload_without_format
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy",
+                                         smenticModel) == _expected_payload_without_format
 
     _expected_payload_with_format = {
         "type": "SemanticModel",
@@ -507,24 +527,112 @@ def test_get_item_payloads():
         },
     }
 
-    assert (
-        smenticModel.get_payload(_base_payload, input_format="TMDL")
-        == _expected_payload_with_format
-    )
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert (
+            get_payload_for_item_type("dummy", smenticModel, "TMDL")
+            == _expected_payload_with_format
+        )
 
     # Check that the payload is correct
-    assert report.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy", report) == _expected_payload
 
-    # Unsuported item
-    with pytest.raises(FabricCLIError) as e:
-        unsupported_item = Item(
-            name="item_name",
-            id="item_id",
-            parent=workspace,
-            item_type="Lakehouse",
-        )
-        unsupported_item.get_payload(_base_payload)
-    assert e.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND
+
+# -------------------------------------------------------------------
+# Tests for _build_definition format handling
+# -------------------------------------------------------------------
+
+
+def _make_item(item_type: str, parent=None) -> Item:
+    """Helper to create an Item with minimal boilerplate."""
+    if parent is None:
+        tenant = Tenant(name="t", id="tid")
+        parent = Workspace(name="ws", id="wsid",
+                           parent=tenant, type="Workspace")
+    return Item(name="item", id="iid", parent=parent, item_type=item_type)
+
+
+class TestBuildPayload:
+    """Validate _build_definition includes format when provided."""
+
+    def test_with_format__includes_format_key(self, tmp_path):
+        (tmp_path / "notebook.ipynb").write_text("{}")
+        result = _build_definition(str(tmp_path), "ipynb")
+        assert result["format"] == "ipynb"
+        assert len(result["parts"]) == 1
+        assert result["parts"][0]["path"] == "notebook.ipynb"
+
+    def test_without_format__no_format_key(self, tmp_path):
+        (tmp_path / "notebook.ipynb").write_text("{}")
+        result = _build_definition(str(tmp_path))
+        assert "format" not in result
+        assert len(result["parts"]) == 1
+
+    def test_empty_format__no_format_key(self, tmp_path):
+        (tmp_path / "file.json").write_text("{}")
+        result = _build_definition(str(tmp_path), "")
+        assert "format" not in result
+
+    # -- Payload construction tests -------------------------------------------
+
+    def test_payload__lakehouse(self):
+        """Any item type can have a payload constructed."""
+        item = _make_item("Lakehouse")
+
+        def _mock_build(path, resolved_format=""):
+            return {"parts": {"key": "value"}}
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item)
+        assert payload["type"] == "Lakehouse"
+        assert payload["displayName"] == "item"
+        assert payload["definition"] == {"parts": {"key": "value"}}
+
+    def test_payload__kql_dashboard(self):
+        """KQLDashboard (was in ImportDefinitionTypes) still works."""
+        item = _make_item("KQLDashboard")
+
+        def _mock_build(path, resolved_format=""):
+            return {"parts": {"key": "value"}}
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item)
+        assert payload["definition"] == {"parts": {"key": "value"}}
+
+    # -- Folder-based items include folderId ----------------------------------
+
+    def test_payload__item_in_folder__includes_folder_id(self):
+        """Items inside a folder should have folderId set."""
+        tenant = Tenant(name="t", id="tid")
+        ws = Workspace(name="ws", id="wsid", parent=tenant, type="Workspace")
+        folder = Folder(name="myfolder", id="folder123", parent=ws)
+        item = Item(name="nb", id="nbid", parent=folder, item_type="Notebook")
+
+        def _mock_build(path, resolved_format=""):
+            result = {"parts": {"key": "value"}}
+            if resolved_format:
+                result["format"] = resolved_format
+            return result
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item, "ipynb")
+        assert payload["folderId"] == "folder123"
+        assert payload["definition"]["format"] == "ipynb"
+
+    def test_payload__item_in_workspace__folder_id_none(self):
+        """Items directly under workspace should have folderId=None."""
+        item = _make_item("Notebook")
+        assert item.folder_id is None
+
+    # -- Unknown format is now validated upstream by resolve_definition_format --
+
+    def test_unknown_format__raises_error(self):
+        """Unknown format raises FabricCLIError during resolution."""
+        from fabric_cli.utils.fab_item_util import resolve_definition_format
+
+        item = _make_item("SemanticModel")
+        with pytest.raises(FabricCLIError):
+            resolve_definition_format(item.item_type, "UnknownFormat")
 
 
 def test_create_folder():

@@ -1165,6 +1165,7 @@ def _build_export_args(path, output, force=True):
         path=path,
         output=output,
         force=force,
+        output_format="text",
     )
 
 
@@ -1183,6 +1184,7 @@ def _build_export_format_args(path, output, force=True, format=None):
         output=output,
         force=force,
         format=format,
+        output_format="text",
     )
 
 
