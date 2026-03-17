@@ -6,7 +6,7 @@ from functools import wraps
 import fabric_cli.core.fab_logger as fab_logger
 from fabric_cli.core.fab_constant import (
     ERROR_UNAUTHORIZED,
-    EXIT_CODE_AUTHORIZATION_REQUIRED,
+    EXIT_CODE_CANNOT_EXECUTE,
     EXIT_CODE_ERROR,
 )
 from fabric_cli.core.fab_exceptions import FabricCLIError
@@ -42,9 +42,9 @@ def handle_exceptions():
                     args[0].command_path,
                     output_format_type=args[0].output_format,
                 )
-                # If the error is an unauthorized error, return 4
+                # If the error is an unauthorized error, return 126 (POSIX: command cannot execute)
                 if e.status_code == ERROR_UNAUTHORIZED:
-                    return EXIT_CODE_AUTHORIZATION_REQUIRED
+                    return EXIT_CODE_CANNOT_EXECUTE
                 # Return a generic error code
                 return EXIT_CODE_ERROR
 
