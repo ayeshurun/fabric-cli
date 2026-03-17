@@ -31,13 +31,7 @@ def main():
             return
 
         if args.command == "auth" and args.auth_command == "login":
-            if login.init(args):
-                if (
-                    fab_state_config.get_config(fab_constant.FAB_MODE)
-                    == fab_constant.FAB_MODE_INTERACTIVE
-                ):
-                    start_interactive_mode()
-                    return
+            login.init(args)
 
         if args.command == "auth" and args.auth_command == "logout":
             login.logout(args)

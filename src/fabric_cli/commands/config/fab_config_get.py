@@ -11,6 +11,16 @@ from fabric_cli.utils import fab_ui as utils_ui
 
 def exec_command(args: Namespace) -> None:
     key = args.key.lower()
+
+    # Backward compatibility: 'mode' is no longer a configurable setting.
+    if key == fab_constant.FAB_MODE:
+        utils_ui.print_warning(
+            "The 'mode' setting has been removed. "
+            "Run 'fab' without arguments to enter REPL mode, "
+            "or use 'fab <command>' for command-line mode."
+        )
+        return
+
     if key not in fab_constant.FAB_CONFIG_KEYS_TO_VALID_VALUES:
         raise FabricCLIError(
             ErrorMessages.Config.unknown_configuration_key(key),

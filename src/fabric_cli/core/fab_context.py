@@ -126,12 +126,11 @@ class Context:
 
     def _should_use_context_file(self) -> bool:
         """Determine if the context file should be used based on the current mode and persistence settings."""
-        mode = fab_state_config.get_config(fab_constant.FAB_MODE)
         persistence_enabled = fab_state_config.get_config(
             fab_constant.FAB_CONTEXT_PERSISTENCE_ENABLED
         )
         return (
-            mode == fab_constant.FAB_MODE_COMMANDLINE
+            fab_constant.get_runtime_mode() == fab_constant.FAB_MODE_COMMANDLINE
             and persistence_enabled == "true"
             and not self._loading_context
         )
