@@ -15,7 +15,11 @@ def exec(workspace: Workspace, args):
     show_details = bool(args.long)
     show_all = bool(args.all)
     ws_elements: list[Union[Item, Folder]] = utils_fs.get_ws_elements(workspace)
-    sorted_elements_dict = utils_fs.sort_ws_elements(ws_elements, show_details)
+    sorted_elements_dict = utils_fs.sort_ws_elements(
+        ws_elements,
+        show_details,
+        sort_criteria=getattr(args, "item_sort", None),
+    )
 
     show_hidden = (
         show_all or fab_state_config.get_config(fab_constant.FAB_SHOW_HIDDEN) == "true"

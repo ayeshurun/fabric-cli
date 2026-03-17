@@ -548,15 +548,6 @@ class FabAuth:
         config.set_config(
             con.FAB_SHOW_HIDDEN, con.CONFIG_DEFAULT_VALUES[con.FAB_SHOW_HIDDEN]
         )
-        config.set_config(
-            con.FAB_JOB_CANCEL_ONTIMEOUT,
-            con.CONFIG_DEFAULT_VALUES[con.FAB_JOB_CANCEL_ONTIMEOUT],
-        )
-        config.set_config(
-            con.FAB_DEFAULT_OPEN_EXPERIENCE,
-            con.CONFIG_DEFAULT_VALUES[con.FAB_DEFAULT_OPEN_EXPERIENCE],
-        )
-
         # Reset settings
         config.set_config(con.FAB_LOCAL_DEFINITION_LABELS, "")
         config.set_config(con.FAB_DEFAULT_CAPACITY, "")

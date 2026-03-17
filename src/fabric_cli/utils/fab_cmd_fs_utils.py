@@ -78,12 +78,18 @@ def get_ws_elements(parent: Workspace | Folder) -> list[Union[Item, Folder]]:
     return ws_elements
 
 
-def sort_ws_elements(ws_elements: list[Union[Item, Folder]], show_details):
+def sort_ws_elements(
+    ws_elements: list[Union[Item, Folder]],
+    show_details,
+    sort_criteria: str | None = None,
+):
 
     if not ws_elements:
         return []
 
-    sorted_elements = item_utils.sort_ws_elems_by_config(ws_elements)
+    sorted_elements = item_utils.sort_ws_elems_by_config(
+        ws_elements, sort_criteria=sort_criteria
+    )
     columns = ["name", "id"] if show_details else ["name"]
 
     return [

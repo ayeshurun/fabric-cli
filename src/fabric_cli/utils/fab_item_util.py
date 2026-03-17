@@ -52,11 +52,15 @@ def _get_elem_type(elem: FabricElement) -> str:
 
 def sort_ws_elems_by_config(
     ws_items: Sequence[Union[Item, Folder]],
+    sort_criteria: str | None = None,
 ) -> list[Union[Item, Folder]]:
-    if (
-        fab_state_config.get_config(fab_constant.FAB_OUTPUT_ITEM_SORT_CRITERIA)
-        == "bytype"
-    ):
+    if sort_criteria is None:
+        # Backward compatibility for existing config files
+        sort_criteria = fab_state_config.get_config(
+            fab_constant.FAB_OUTPUT_ITEM_SORT_CRITERIA
+        )
+
+    if sort_criteria == "bytype":
         return sorted(
             ws_items,
             key=lambda elem: (_get_elem_type(elem), elem.short_name.lower()),

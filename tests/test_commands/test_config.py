@@ -4,6 +4,7 @@
 from unittest.mock import patch
 
 import fabric_cli.core.fab_constant as constant
+import pytest
 from fabric_cli.errors import ErrorMessages
 from tests.test_commands.commands_parser import CLIExecutor
 from tests.test_commands.data.static_test_data import StaticTestData
@@ -69,6 +70,28 @@ class TestConfig:
         cli_executor.exec_command(f"config set {key} {constant.FAB_MODE_INTERACTIVE}")
 
         # Assert
+        mock_print_done.assert_not_called()
+        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, expected_message)
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "default_open_experience",
+            "output_item_sort_criteria",
+            "job_cancel_ontimeout",
+        ],
+    )
+    def test_config_set_removed_key_failure(
+        self,
+        key: str,
+        mock_print_done,
+        assert_fabric_cli_error,
+        cli_executor: CLIExecutor,
+    ):
+        expected_message = ErrorMessages.Config.unknown_configuration_key(key)
+
+        cli_executor.exec_command(f"config set {key} value")
+
         mock_print_done.assert_not_called()
         assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, expected_message)
 
@@ -140,6 +163,28 @@ class TestConfig:
         cli_executor.exec_command(f"config get {key}")
 
         # Assert
+        mock_questionary_print.assert_not_called()
+        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, expected_message)
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "default_open_experience",
+            "output_item_sort_criteria",
+            "job_cancel_ontimeout",
+        ],
+    )
+    def test_config_get_removed_key_failure(
+        self,
+        key: str,
+        mock_questionary_print,
+        assert_fabric_cli_error,
+        cli_executor: CLIExecutor,
+    ):
+        expected_message = ErrorMessages.Config.unknown_configuration_key(key)
+
+        cli_executor.exec_command(f"config get {key}")
+
         mock_questionary_print.assert_not_called()
         assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, expected_message)
 

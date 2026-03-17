@@ -39,14 +39,14 @@ def exec_command(args: Namespace, item: Item) -> None:
                 )
             except TimeoutError as e:
                 fab_ui.print_warning(str(e))
-                # Get the configuration to check if we should cancel the job
-                if config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT) == "false":
+                cancel_on_timeout = _should_cancel_on_timeout(args)
+                if not cancel_on_timeout:
                     fab_ui.print_grey(
-                        f"Job still running. To change this behaviour and cancel on timeout, set {con.FAB_JOB_CANCEL_ONTIMEOUT} config property to 'true'"
+                        "Job still running. Use '--cancel_on_timeout true' to cancel when timeout is reached."
                     )
                 else:
                     fab_ui.print_grey(
-                        f"Cancelling job instance '{job_instance_id}' (timeout). To change this behaviour and continue running on timeout, set {con.FAB_JOB_CANCEL_ONTIMEOUT} config property to 'false'"
+                        f"Cancelling job instance '{job_instance_id}' (timeout). Use '--cancel_on_timeout false' to keep running on timeout."
                     )
                     args.instance_id = job_instance_id
                     response = jobs_api.cancel_item_job_instance(args)
@@ -63,3 +63,12 @@ def exec_command(args: Namespace, item: Item) -> None:
             fab_ui.print_grey(
                 f"→ To see status run 'job run-status {item.path} --id {job_instance_id}'"
             )
+
+
+def _should_cancel_on_timeout(args: Namespace) -> bool:
+    cancel_on_timeout = getattr(args, "cancel_on_timeout", None)
+    if cancel_on_timeout is not None:
+        return cancel_on_timeout == "true"
+
+    # Backward compatibility for existing config files
+    return config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT) != "false"
