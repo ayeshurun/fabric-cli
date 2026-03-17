@@ -34,6 +34,7 @@ from fabric_cli.core.fab_context import Context
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_element import FabricElement
+from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import (
     Item,
     LocalPath,
@@ -229,7 +230,7 @@ def extract_from_to_paths(
                 to_context = handle_context.get_command_context(
                     args.path, raise_error=False, supports_local_path=True
                 )
-                # Check that all paths are of type OneLakeItem
+                # Check that the from_context and to_context combination is valid for cp
                 if all(
                     isinstance(context, OneLakeItem)
                     or isinstance(context, Item)
@@ -238,6 +239,12 @@ def extract_from_to_paths(
                 ) or (
                     isinstance(from_context, Workspace)
                     and isinstance(to_context, Workspace)
+                ) or (
+                    isinstance(from_context, LocalPath)
+                    and isinstance(to_context, (Workspace, Folder))
+                ) or (
+                    isinstance(from_context, (Item, Workspace))
+                    and isinstance(to_context, LocalPath)
                 ):
                     return from_context, to_context
             except FabricCLIError:

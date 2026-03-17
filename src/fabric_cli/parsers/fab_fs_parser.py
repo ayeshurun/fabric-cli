@@ -189,7 +189,21 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         "# copy a notebook",
         "$ cp nb1.Notebook nb2.Notebook\n",
         "# copy file from one folder to another",
-        "$ cp Files/csv/fab.csv Files/dest/copy_fab.csv",
+        "$ cp Files/csv/fab.csv Files/dest/copy_fab.csv\n",
+        "# copy (import) a local item to a Fabric workspace",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace\n",
+        "# copy (import) a local item to a Fabric item",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace/MyNotebook.Notebook\n",
+        "# copy (import) a local item with a different name in Fabric",
+        "$ cp /tmp/MyNotebook.Notebook myworkspace.Workspace/MyNotebookRenamed.Notebook\n",
+        "# copy (export) a Fabric item to a local directory",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp\n",
+        "# copy (export) a Fabric item with a different local name",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook /tmp/MyNotebookRenamed.Notebook\n",
+        "# copy (import) from home directory using ~",
+        "$ cp ~/Desktop/MyNotebook.Notebook myworkspace.Workspace\n",
+        "# copy (export) to home directory using ~",
+        "$ cp myworkspace.Workspace/MyNotebook.Notebook ~/Desktop",
     ]
 
     cp_parser = subparsers.add_parser(
@@ -223,6 +237,11 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         required=False,
         action="store_true",
         help="Block on path collision. Optional, prevents copying when an item with the same name exists in a different folder within the target workspace.",
+    )
+    cp_parser.add_argument(
+        "--format",
+        metavar="",
+        help="Format of the item definition for import/export (e.g., .ipynb, .py for Notebooks; TMDL, TMSL for Semantic Models). Optional",
     )
 
     cp_parser.usage = f"{utils_error_parser.get_usage_prog(cp_parser)}"
