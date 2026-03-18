@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 
-from typing import Union
+from typing import Optional, Union
 
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_commands import Command
@@ -81,7 +81,7 @@ def get_ws_elements(parent: Workspace | Folder) -> list[Union[Item, Folder]]:
 def sort_ws_elements(
     ws_elements: list[Union[Item, Folder]],
     show_details,
-    sort_criteria: str | None = None,
+    sort_criteria: Optional[str] = None,
 ):
 
     if not ws_elements:

@@ -57,7 +57,7 @@ def sort_ws_elems_by_config(
     if sort_criteria is None:
         # Backward compatibility for existing config files
         sort_criteria = fab_state_config.get_config(
-            fab_constant.FAB_OUTPUT_ITEM_SORT_CRITERIA
+            fab_constant.FAB_DEPRECATED_OUTPUT_ITEM_SORT_CRITERIA
         )
     if sort_criteria in {"name", "byname"}:
         sort_criteria = "byname"

@@ -60,7 +60,10 @@ def register_ls_parser(subparsers: _SubParsersAction) -> None:
         metavar="",
         dest="sort_by",
         choices=["name", "type"],
-        help="Sort workspace items by name or type. Optional (default: name).",
+        help=(
+            "Sort workspace items by name or type. Optional "
+            "(default: legacy config if set, otherwise name)."
+        ),
     )
 
     ls_parser.usage = f"{utils_error_parser.get_usage_prog(ls_parser)}"
