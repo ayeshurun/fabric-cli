@@ -57,7 +57,6 @@ def register_ls_parser(subparsers: _SubParsersAction) -> None:
     )
     ls_parser.add_argument(
         "--sort_by",
-        "--sort",
         metavar="",
         dest="sort_by",
         choices=["name", "type"],

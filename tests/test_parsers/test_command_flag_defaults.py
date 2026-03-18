@@ -20,7 +20,7 @@ def test_ls_sort_flag_accepts_name_and_type():
     args = parser.parse_args(["ls", "ws1.Workspace", "--sort_by", "name"])
     assert args.sort_by == "name"
 
-    args = parser.parse_args(["ls", "ws1.Workspace", "--sort", "type"])
+    args = parser.parse_args(["ls", "ws1.Workspace", "--sort_by", "type"])
     assert args.sort_by == "type"
 
 
