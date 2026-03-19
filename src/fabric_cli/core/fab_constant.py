@@ -343,17 +343,3 @@ ITEM_SET_ALLOWED_METADATA_KEYS = [
 # Invalid query parameters for set command across all fabric resources
 SET_COMMAND_INVALID_QUERIES = ["id", "type", "workspaceId", "folderId"]
 
-# Runtime mode tracking — detected from context, not persisted in config.
-# FAB_MODE_COMMANDLINE is the default; InteractiveCLI sets FAB_MODE_INTERACTIVE on start.
-_runtime_mode: str = FAB_MODE_COMMANDLINE
-
-
-def set_runtime_mode(mode: str) -> None:
-    """Set the current runtime mode. Called when entering or leaving the REPL."""
-    global _runtime_mode
-    _runtime_mode = mode
-
-
-def get_runtime_mode() -> str:
-    """Return the current runtime mode (FAB_MODE_INTERACTIVE or FAB_MODE_COMMANDLINE)."""
-    return _runtime_mode
