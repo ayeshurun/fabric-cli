@@ -84,7 +84,7 @@ def _add_claims_as_query_param(url: str, claims: Optional[dict[str, str]]) -> st
 
 def _get_ux_experience() -> str:
     if (
-        fab_state_config.get_config(fab_constant.FAB_DEFAULT_OPEN_EXPERIENCE)
+        fab_state_config.get_config(fab_constant.FAB_DEFAULT_OPEN_EXPERIENCE_DEPRECATED)
         == "powerbi"
     ):
         return fab_constant.FAB_DEFAULT_OPEN_EXPERIENCE_POWERBI
