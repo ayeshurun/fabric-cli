@@ -464,15 +464,15 @@ After completing all steps, verify:
 
 ### Simple Item (no definition, no params)
 
-Only needs Steps 1–3 and Step 10 (add to the standard multi-case match).
+Only needs Steps 1–3, 10 (add to the standard multi-case match), and 12 (ALL_ITEM_TYPES + basic_item_parametrize).
 
-**Examples:** `Dashboard`, `Datamart`
+**Examples:** `Dashboard`, `Datamart`, `Map`
 
 ### Item with Definition Support (most common)
 
 Needs Steps 1–4, 10, 11 (export + import + cp + mv), 12 (ALL_ITEM_TYPES + basic_item_parametrize + mv params), 13, and 14.
 
-**Examples:** `Map`, `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
+**Examples:** `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
 
 ### Item with Creation Parameters
 
@@ -502,19 +502,17 @@ Needs all steps 1–14.
 
 ## Reference: Complete Onboarding Example (Map Item Type)
 
-Here is a real example of onboarding the `Map` item type, which supports definition APIs (export, import, cp, mv):
+Here is a real example of onboarding the `Map` item type as a **simple item** (no definition formats, no jobs, no OneLake folders, no creation parameters):
 
 ### Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/fabric_cli/core/fab_types.py` | Added `MAP = "Map"` enum, `"maps"` in format_mapping, `"maps"` in uri_mapping, `{"default": ""}` in definition_format_mapping |
+| `src/fabric_cli/core/fab_types.py` | Added `MAP = "Map"` enum, `"maps"` in format_mapping, `"maps"` in uri_mapping |
 | `src/fabric_cli/core/hiearchy/fab_item.py` | Added `ItemType.MAP` to the standard multi-case match in `get_payload()` |
-| `src/fabric_cli/core/fab_config/command_support.yaml` | Added `map` to `export`, `import`, `mv`, `cp` supported_items |
 | `tests/test_commands/conftest.py` | Added `ItemType.MAP` to `ALL_ITEM_TYPES` and `basic_item_parametrize` |
-| `.changes/unreleased/new-items-*.yaml` | Changelog entry: `Add support to Map item type` |
-| `docs/essentials/resource_types.md` | Added `.Map` row to the Item Types table |
-| `docs/examples/item_examples.md` | Added `.Map` to copy and export supported types lists |
+
+> **Note:** Map does not support definition APIs, so no changes were needed for `command_support.yaml` (export/import/mv/cp), `definition_format_mapping`, changelog, or documentation pages.
 
 ---
 
@@ -523,7 +521,7 @@ Here is a real example of onboarding the `Map` item type, which supports definit
 | Item Type | Enum | Complexity | Good Reference For |
 |-----------|------|------------|-------------------|
 | `Dashboard` | `DASHBOARD` | Simple | Minimal integration |
-| `Map` | `MAP` | Standard with definitions | Definition support, standard onboarding pattern |
+| `Map` | `MAP` | Simple | Minimal integration, no definition/jobs/folders |
 | `Lakehouse` | `LAKEHOUSE` | Medium | Creation params, OneLake folders, jobs |
 | `Notebook` | `NOTEBOOK` | Full | Definitions, jobs, mutable props, custom payload |
 | `SemanticModel` | `SEMANTIC_MODEL` | Medium | Definition formats (TMDL/TMSL), payload templates |
