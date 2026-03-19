@@ -13,15 +13,15 @@ def mock_questionary_print():
     """Mock the stdout rich Console.print used for CLI output.
 
     This fixture patches the ``print`` method of the shared stdout
-    ``Console`` instance defined in ``fabric_cli.utils.console`` so
+    ``Console`` instance defined in ``fabric_cli.utils.fab_output_manager`` so
     that tests can verify what was printed without depending on
     terminal output.  Only the stdout console is patched; stderr
     output (warnings, errors) is not intercepted, matching the prior
     ``questionary.print`` behavior.
     """
-    import fabric_cli.utils.console as console_mod
+    import fabric_cli.utils.fab_output_manager as output_mgr
 
-    with patch.object(console_mod.console, "print") as mock:
+    with patch.object(output_mgr.console, "print") as mock:
         yield mock
 
 

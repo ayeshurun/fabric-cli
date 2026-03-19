@@ -1,24 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Tests for the centralized rich console utility module."""
+"""Tests for the centralized output manager and console utilities."""
 
 import pytest
 
-from fabric_cli.utils.console import (
+from fabric_cli.utils.fab_output_manager import (
+    OutputManager,
     console,
     console_err,
-    print_error,
-    print_error_panel,
-    print_fabric,
-    print_file_written,
-    print_info,
-    print_muted,
-    print_plain,
-    print_success,
-    print_table,
-    print_warning,
+    output_manager,
+    reset_instance,
 )
+
+
+@pytest.fixture(autouse=True)
+def _fresh_manager():
+    """Reset the OutputManager singleton between tests."""
+    reset_instance()
+    yield
+    reset_instance()
 
 
 class TestConsoleInstances:
@@ -32,142 +33,106 @@ class TestConsoleInstances:
         assert console_err.stderr
 
 
-class TestPrintSuccess:
-    """Tests for print_success helper."""
+class TestOutputManagerSingleton:
+    """Verify singleton accessor and reset behaviour."""
 
-    def test_print_success__stdout(self, capsys):
-        print_success("All good")
+    def test_instance__returns_same_object(self):
+        a = output_manager()
+        b = output_manager()
+        assert a is b
+
+    def test_reset__creates_new_instance(self):
+        a = output_manager()
+        reset_instance()
+        b = output_manager()
+        assert a is not b
+
+
+class TestModeAndFormat:
+    """Verify mode and output-format awareness."""
+
+    def test_default_mode__is_commandline(self):
+        mgr = output_manager()
+        assert mgr.get_mode() == "command_line"
+        assert not mgr.is_interactive
+
+    def test_set_interactive_mode(self):
+        mgr = output_manager()
+        mgr.set_mode("interactive")
+        assert mgr.is_interactive
+
+    def test_default_output_format__is_text(self):
+        mgr = output_manager()
+        assert mgr.get_output_format() == "text"
+        assert not mgr.is_json_mode
+
+    def test_set_json_format(self):
+        mgr = output_manager()
+        mgr.set_output_format("json")
+        assert mgr.is_json_mode
+
+
+class TestDiagnosticOutput:
+    """Verify diagnostic helpers write to the correct stream."""
+
+    def test_status__stdout_by_default(self, capsys):
+        output_manager().status("All good")
         captured = capsys.readouterr()
         assert "✔" in captured.out
         assert "All good" in captured.out
 
-    def test_print_success__stderr(self, capsys):
-        print_success("All good", to_stderr=True)
+    def test_status__stderr_when_requested(self, capsys):
+        output_manager().status("All good", to_stderr=True)
         captured = capsys.readouterr()
         assert "✔" in captured.err
 
-
-class TestPrintError:
-    """Tests for print_error helper."""
-
-    def test_print_error__stderr_by_default(self, capsys):
-        print_error("Something broke")
-        captured = capsys.readouterr()
-        assert "✘" in captured.err
-        assert "Something broke" in captured.err
-
-    def test_print_error__stdout_when_requested(self, capsys):
-        print_error("Something broke", to_stderr=False)
-        captured = capsys.readouterr()
-        assert "Something broke" in captured.out
-
-
-class TestPrintWarning:
-    """Tests for print_warning helper."""
-
-    def test_print_warning__stderr_by_default(self, capsys):
-        print_warning("Careful")
+    def test_warning__always_stderr(self, capsys):
+        output_manager().warning("Careful")
         captured = capsys.readouterr()
         assert "!" in captured.err
         assert "Careful" in captured.err
 
+    def test_error__always_stderr(self, capsys):
+        output_manager().error("Something broke")
+        captured = capsys.readouterr()
+        assert "✘" in captured.err
+        assert "Something broke" in captured.err
 
-class TestPrintInfo:
-    """Tests for print_info helper."""
-
-    def test_print_info__stderr_by_default(self, capsys):
-        print_info("FYI")
+    def test_info__always_stderr(self, capsys):
+        output_manager().info("FYI")
         captured = capsys.readouterr()
         assert "ℹ" in captured.err
         assert "FYI" in captured.err
 
 
-class TestPrintMuted:
-    """Tests for print_muted helper."""
+class TestStyledOutput:
+    """Verify styled text helpers."""
 
-    def test_print_muted__stdout_by_default(self, capsys):
-        print_muted("quiet text")
+    def test_plain__stdout(self, capsys):
+        output_manager().plain("plain text")
+        captured = capsys.readouterr()
+        assert "plain text" in captured.out
+
+    def test_muted__stderr_by_default(self, capsys):
+        output_manager().muted("quiet text")
+        captured = capsys.readouterr()
+        assert "quiet text" in captured.err
+
+    def test_muted__stdout_when_requested(self, capsys):
+        output_manager().muted("quiet text", to_stderr=False)
         captured = capsys.readouterr()
         assert "quiet text" in captured.out
 
-
-class TestPrintFabric:
-    """Tests for print_fabric helper."""
-
-    def test_print_fabric__stdout(self, capsys):
-        print_fabric("brand message")
+    def test_fabric__stdout(self, capsys):
+        output_manager().fabric("brand message")
         captured = capsys.readouterr()
         assert "brand message" in captured.out
 
 
-class TestPrintPlain:
-    """Tests for print_plain helper."""
+class TestPrintVersion:
+    """Verify version output."""
 
-    def test_print_plain__stdout(self, capsys):
-        print_plain("plain text")
+    def test_print_version__stdout(self, capsys):
+        output_manager().print_version()
         captured = capsys.readouterr()
-        assert "plain text" in captured.out
-
-    def test_print_plain__stderr(self, capsys):
-        print_plain("plain text", to_stderr=True)
-        captured = capsys.readouterr()
-        assert "plain text" in captured.err
-
-
-class TestPrintErrorPanel:
-    """Tests for print_error_panel helper."""
-
-    def test_print_error_panel__basic(self, capsys):
-        print_error_panel("Request failed")
-        captured = capsys.readouterr()
-        assert "Request failed" in captured.err
-
-    def test_print_error_panel__with_reason_and_suggestion(self, capsys):
-        print_error_panel(
-            "Auth failed",
-            reason="Token expired",
-            suggestion="Run `fab auth login`",
-        )
-        captured = capsys.readouterr()
-        assert "Token expired" in captured.err
-        assert "fab auth login" in captured.err
-
-
-class TestPrintTable:
-    """Tests for print_table helper."""
-
-    def test_print_table__basic(self, capsys):
-        rows = [{"name": "ws1", "type": "Workspace"}, {"name": "ws2", "type": "Workspace"}]
-        print_table(rows)
-        captured = capsys.readouterr()
-        assert "ws1" in captured.out
-        assert "ws2" in captured.out
-
-    def test_print_table__empty_rows(self, capsys):
-        print_table([])
-        captured = capsys.readouterr()
-        assert captured.out == ""
-
-    def test_print_table__custom_columns(self, capsys):
-        rows = [{"name": "ws1", "type": "Workspace", "id": "123"}]
-        print_table(rows, columns=["name", "type"])
-        captured = capsys.readouterr()
-        assert "ws1" in captured.out
-        # id column should not appear since we only specified name and type
-        assert "123" not in captured.out
-
-
-class TestPrintFileWritten:
-    """Tests for print_file_written helper."""
-
-    def test_print_file_written__basic(self, capsys):
-        print_file_written("/tmp/config.yaml")
-        captured = capsys.readouterr()
-        assert "File written" in captured.out
-        assert "/tmp/config.yaml" in captured.out
-
-    def test_print_file_written__overwritten(self, capsys):
-        print_file_written("/tmp/config.yaml", overwritten=True)
-        captured = capsys.readouterr()
-        combined = captured.out + captured.err
-        assert "overwritten" in combined.lower() or "File written" in combined
+        assert "fab version" in captured.out

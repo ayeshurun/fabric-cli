@@ -871,19 +871,19 @@ def mock_questionary_confirm():
 
 @pytest.fixture
 def mock_print_done():
-    with patch("fabric_cli.utils.fab_ui.print_done") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.OutputManager.status") as mock:
         yield mock
 
 
 @pytest.fixture()
 def mock_print_grey():
-    with patch("fabric_cli.utils.fab_ui.print_grey") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.OutputManager.muted") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_fab_ui_print_error():
-    with patch("fabric_cli.utils.fab_ui.print_output_error") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.OutputManager.print_output_error") as mock:
         yield mock
 
 

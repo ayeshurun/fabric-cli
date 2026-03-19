@@ -14,6 +14,7 @@ from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
 from fabric_cli.parsers import fab_auth_parser as auth_parser
 from fabric_cli.utils import fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
+from fabric_cli.utils.fab_output_manager import output_manager
 
 
 def main():
@@ -25,6 +26,11 @@ def main():
 
     try:
         fab_state_config.init_defaults()
+
+        # Initialise the central output facade with the requested format
+        output_manager().set_output_format(
+            getattr(args, "output_format", None)
+        )
 
         # Enable rich tracebacks for better debug experience
         if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
@@ -59,6 +65,7 @@ def main():
             if args.command not in ["auth"]:
                 fab_logger.print_log_file_path()
                 parser.set_mode(fab_constant.FAB_MODE_COMMANDLINE)
+                output_manager().set_mode(fab_constant.FAB_MODE_COMMANDLINE)
 
                 if isinstance(args.command, list):
                     commands_execs = 0

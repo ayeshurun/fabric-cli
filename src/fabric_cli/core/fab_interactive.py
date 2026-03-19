@@ -16,6 +16,7 @@ from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.utils import fab_commands
 from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
+from fabric_cli.utils.fab_output_manager import output_manager
 
 @singleton
 class InteractiveCLI:
@@ -26,6 +27,7 @@ class InteractiveCLI:
 
         self.parser = parser
         self.parser.set_mode(fab_constant.FAB_MODE_INTERACTIVE)
+        output_manager().set_mode(fab_constant.FAB_MODE_INTERACTIVE)
         self.subparsers = subparsers
         self.history = InMemoryHistory()
         self.session = self.init_session(self.history)
