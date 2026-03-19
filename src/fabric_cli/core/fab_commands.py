@@ -162,7 +162,10 @@ def _get_property_from_commands_and_subcommands(
     _sub_command_dict = _command_group_dict.get("subcommands", {}).get(_sub_command, {})
     _sub_command_dict = {} if _sub_command_dict is None else _sub_command_dict
 
-    return _command_group_elements + _sub_command_dict.get(property, [])
+    _sub_command_elements = _sub_command_dict.get(property, [])
+    _sub_command_elements = [] if _sub_command_elements is None else _sub_command_elements
+
+    return _command_group_elements + _sub_command_elements
 
 
 def get_supported_elements(command: Command) -> list[FabricElementType]:
