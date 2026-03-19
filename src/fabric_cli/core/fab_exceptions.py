@@ -1,9 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import html
 import json
 import re
+
+from rich.markup import escape as markup_escape
 
 # Default error constants - avoids circular imports
 DEFAULT_ERROR_MESSAGE = "An error occurred while processing the operation"
@@ -35,7 +36,7 @@ class FabricCLIError(Exception):
         )
 
     def formatted_message(self, verbose=False):
-        escaped_text = html.escape(self.message)
+        escaped_text = markup_escape(self.message)
 
         return (
             f"[{self.status_code}] {escaped_text}"
@@ -90,7 +91,7 @@ class FabricAPIError(FabricCLIError):
     def formatted_message(self, verbose=False):
         base_message = super().formatted_message(verbose)
 
-        detailed_message = html.escape(
+        detailed_message = markup_escape(
             "\n".join(
                 [
                     f"∟ [{detail.get('errorCode')}] {detail.get('message')}"
@@ -102,10 +103,10 @@ class FabricAPIError(FabricCLIError):
         final_message = (
             base_message
             if detailed_message == "" or not verbose
-            else f"{base_message}\n<grey>{detailed_message}</grey>"
+            else f"{base_message}\n[muted]{detailed_message}[/muted]"
         )
 
-        return f"{final_message}\n<grey>∟ Request Id: {self.request_id}</grey>"
+        return f"{final_message}\n[muted]∟ Request Id: {self.request_id}[/muted]"
 
 
 class OnelakeAPIError(FabricCLIError):
@@ -154,10 +155,10 @@ class OnelakeAPIError(FabricCLIError):
         message = super().formatted_message(verbose)
 
         if self.timestamp:
-            message += f"\n<grey>∟ Timestamp: {self.timestamp}</grey>"
+            message += f"\n[muted]∟ Timestamp: {self.timestamp}[/muted]"
 
         if self.request_id:
-            message += f"\n<grey>∟ Request Id: {self.request_id}</grey>"
+            message += f"\n[muted]∟ Request Id: {self.request_id}[/muted]"
 
         return message
 
@@ -224,6 +225,6 @@ class AzureAPIError(FabricCLIError):
         final_message = super().formatted_message(verbose)
 
         if self.request_id:
-            final_message += f"\n<grey>∟ Request Id: {self.request_id}</grey>"
+            final_message += f"\n[muted]∟ Request Id: {self.request_id}[/muted]"
 
         return final_message

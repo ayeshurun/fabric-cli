@@ -12,34 +12,38 @@ from logging.handlers import RotatingFileHandler
 
 import fabric_cli.core.fab_constant as fab_constant
 import fabric_cli.core.fab_state_config as fab_state_config
-import fabric_cli.utils.fab_ui as utils_ui
 
 _logger_instance = None  # Singleton instance
 log_file_path = None  # Path to the current log file
 
 
 def log_warning(message, command=None):
-    """Print a warning message."""
-    utils_ui.print_warning(message, command)
+    """Print a warning message via OutputManager."""
+    from fabric_cli.utils.fab_output_manager import output_manager
+
+    output_manager().warning(message, command)
 
 
 def log_debug(message):
-    """Print a debug message."""
-    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
-        formatted_message = f"[debug] {message}"
-        utils_ui.print_grey(formatted_message)
+    """Print a debug message via OutputManager."""
+    from fabric_cli.utils.fab_output_manager import output_manager
+
+    output_manager().debug(message)
 
 
 def log_info(message):
-    """Print an info message."""
-    formatted_message = f"[info] {message}"
-    utils_ui.print_info(formatted_message)
+    """Print an info message via OutputManager."""
+    from fabric_cli.utils.fab_output_manager import output_manager
+
+    output_manager().info(f"[info] {message}")
 
 
 def log_progress(message, progress=None):
+    """Print a progress message via OutputManager (debug only)."""
     if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
-        formatted_message = f"[debug] {message}"
-        utils_ui.print_progress(formatted_message, progress)
+        from fabric_cli.utils.fab_output_manager import output_manager
+
+        output_manager().progress(f"[debug] {message}", progress)
 
 
 def log_debug_http_request(
@@ -176,7 +180,7 @@ def _setup_logger(file_name: str):
     _logger_instance = logging.getLogger("FabricCLI")
     _logger_instance.setLevel(logging.DEBUG)
 
-    # Configure the log file rotation.
+    # Configure the log file rotation (plain text for machine readability).
     file_handler = RotatingFileHandler(
         file_name,
         maxBytes=5 * 1024 * 1024,  # 5 MB

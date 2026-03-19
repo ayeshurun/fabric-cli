@@ -193,7 +193,7 @@ def test_cli_version_check_disabled_by_config_success(
 
 @patch("fabric_cli.utils.fab_version_check._fetch_latest_version_from_pypi")
 def test_cli_version_check_new_version_available_success(
-    mock_fetch, mock_fab_set_state_config, mock_questionary_print
+    mock_fetch, mock_fab_set_state_config, capsys
 ):
     """Should display notification when newer version is available."""
     newer_version = _increment_version("major")
@@ -202,10 +202,10 @@ def test_cli_version_check_new_version_available_success(
 
     fab_version_check.check_and_notify_update()
 
-    mock_questionary_print.assert_called()
-    call_msg = str(mock_questionary_print.call_args)
-    assert newer_version in call_msg
-    assert "pip install --upgrade" in call_msg
+    captured = capsys.readouterr()
+    # print_grey defaults to stderr
+    assert newer_version in captured.err
+    assert "pip install --upgrade" in captured.err
 
 
 @patch("fabric_cli.core.fab_logger.log_debug")
