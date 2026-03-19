@@ -37,6 +37,7 @@ import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
 
+from rich import box as rich_box
 from rich.console import Console
 from rich.table import Table
 from rich.theme import Theme
@@ -94,7 +95,8 @@ class OutputManager:
 
     def __init__(self) -> None:
         self._mode: str = fab_constant.FAB_MODE_COMMANDLINE
-        self._output_format: Optional[str] = None  # resolved lazily from config
+        # resolved lazily from config
+        self._output_format: Optional[str] = None
         self.console = console
         self.console_err = console_err
 
@@ -165,7 +167,8 @@ class OutputManager:
                 self._print_text_result(output)
             case _:
                 raise FabricCLIError(
-                    ErrorMessages.Common.output_format_not_supported(str(format_type)),
+                    ErrorMessages.Common.output_format_not_supported(
+                        str(format_type)),
                     fab_constant.ERROR_NOT_SUPPORTED,
                 )
 
@@ -193,7 +196,8 @@ class OutputManager:
                 self._print_error_text(error.formatted_message(), command)
             case _:
                 raise FabricCLIError(
-                    ErrorMessages.Common.output_format_not_supported(str(format_type)),
+                    ErrorMessages.Common.output_format_not_supported(
+                        str(format_type)),
                     fab_constant.ERROR_NOT_SUPPORTED,
                 )
 
@@ -214,7 +218,8 @@ class OutputManager:
         text = text.rstrip(".")
         command_text = f"{command}: " if command else ""
         try:
-            self.console_err.print(f"[warning]![/warning] {command_text}{text}")
+            self.console_err.print(
+                f"[warning]![/warning] {command_text}{text}")
         except Exception as e:
             self._fallback(text, e, to_stderr=True)
 
@@ -269,6 +274,7 @@ class OutputManager:
         entries: Any,
         fields: Any,
         header: Optional[bool] = False,
+        footer_items: Optional[list[str]] = None,
     ) -> None:
         """Print a list of entries in Unix-like column format (stdout)."""
         if isinstance(entries, dict):
@@ -281,11 +287,18 @@ class OutputManager:
                 fab_constant.ERROR_INVALID_ENTRIES_FORMAT,
             )
 
-        table = Table(show_header=bool(header), box=None, padding=(0, 2), highlight=False)
+        table = Table(show_header=bool(header), box=None if bool(
+            header) == False else rich_box.ROUNDED, padding=(0, 2), expand=True, highlight=True)
         for field in fields:
             table.add_column(field, style="muted")
         for entry in _entries:
             table.add_row(*(str(entry.get(field, "")) for field in fields))
+
+        if footer_items:
+            table.add_row()
+            for item in footer_items:
+                table.add_row(str(item), *[""] * (len(fields) - 1), style="dim italic")
+
         self.console.print(table)
 
     def display_help(
@@ -322,7 +335,8 @@ class OutputManager:
         self.plain(
             "  Use `fab <command> <subcommand> --help` for more information about a command."
         )
-        self.plain("  Use `fab config set mode interactive` to enable interactive mode.")
+        self.plain(
+            "  Use `fab config set mode interactive` to enable interactive mode.")
         self.plain("  Read the docs at https://aka.ms/fabric-cli.\n")
 
     def print_version(self, args: Any = None) -> None:
@@ -406,6 +420,8 @@ class OutputManager:
             )
 
         show_headers = output.show_headers
+        hidden_items = output_result.hidden_data if output_result.hidden_data else None
+
         if output_result.data:
             entries_unix_style_command = ["ls", "dir"]
             if (
@@ -419,17 +435,18 @@ class OutputManager:
                         output_result.data,
                         data_keys,
                         header=(len(data_keys) > 1 or show_headers),
+                        footer_items=hidden_items,
                     )
                 else:
                     self._print_raw_data(output_result.data)
+                    if hidden_items:
+                        self._print_raw_data(hidden_items)
             elif output.show_key_value_list:
                 self.print_key_value_list(output_result.data)
             else:
                 self._print_raw_data(output_result.data)
-
-        if output_result.hidden_data:
-            self.muted("------------------------------", to_stderr=True)
-            self._print_raw_data(output_result.hidden_data)
+        elif hidden_items:
+            self._print_raw_data(hidden_items)
 
         if output_result.message:
             self.status(f"{output_result.message}\n")
