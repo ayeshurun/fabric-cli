@@ -365,6 +365,47 @@ get_item_with_properties_success_params = pytest.mark.parametrize("item_type,exp
 ])
 ```
 
+#### 12e. Add to export test parametrize lists (if export is supported)
+
+If the item type was added to `export` in `command_support.yaml`, add it to all export-related test lists:
+
+```python
+# Export with file extension check
+export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expected_file_extension", [
+    # ... existing items ...
+    (ItemType.NEW_ITEM, ".json"),    # ← Add here with expected extension
+])
+
+# Export item types
+export_item_types_parameters = pytest.mark.parametrize("item_type", [
+    # ... existing items ...
+    ItemType.NEW_ITEM,    # ← Add here
+])
+
+# Export default format (expected file count)
+export_item_default_format_parameters = pytest.mark.parametrize("item_type,expected_file_count", [
+    # ... existing items ...
+    (ItemType.NEW_ITEM, 2),    # ← Add here with expected count
+])
+
+# Export invalid format
+export_item_invalid_format_parameters = pytest.mark.parametrize("item_type,invalid_format", [
+    # ... existing items ...
+    (ItemType.NEW_ITEM, ".txt"),    # ← Add here
+])
+```
+
+#### 12f. Add to `set_item_metadata_for_all_types_success_item_params` (if applicable)
+
+If the item type supports `fab set` for metadata (displayName, description), add it:
+
+```python
+set_item_metadata_for_all_types_success_item_params = pytest.mark.parametrize("item_type", [
+    # ... existing items ...
+    ItemType.NEW_ITEM,    # ← Add here
+])
+```
+
 ### Step 13 — Add Changelog Entry
 
 Create a changelog entry file in `.changes/unreleased/` using the changie format:
@@ -452,7 +493,9 @@ After completing all steps, verify:
 - [ ] `command_support.yaml` lists the item for `export`/`import`/`mv`/`cp` as applicable (Step 11)
 - [ ] `ALL_ITEM_TYPES` in `tests/test_commands/conftest.py` includes the new type (Step 12a)
 - [ ] `basic_item_parametrize` includes the new type if it's a basic item (Step 12b)
-- [ ] `mv_item_to_item_success_params` includes the new type if mv is supported (Step 12c)
+- [ ] `mv_item_to_item_success_params` and `mv_item_within_workspace_rename_success_params` include the new type if mv is supported (Step 12c)
+- [ ] Export test lists (`export_item_with_extension_parameters`, `export_item_types_parameters`, `export_item_default_format_parameters`, `export_item_invalid_format_parameters`) include the new type if export is supported (Step 12e)
+- [ ] `set_item_metadata_for_all_types_success_item_params` includes the new type if set metadata is supported (Step 12f)
 - [ ] Changelog entry created in `.changes/unreleased/` (Step 13)
 - [ ] `docs/essentials/resource_types.md` updated with the new extension (Step 14a)
 - [ ] `docs/examples/item_examples.md` updated with supported operations (Step 14b)
@@ -466,13 +509,13 @@ After completing all steps, verify:
 
 Only needs Steps 1–3, 10 (add to the standard multi-case match), and 12 (ALL_ITEM_TYPES + basic_item_parametrize).
 
-**Examples:** `Dashboard`, `Datamart`, `Map`
+**Examples:** `Dashboard`, `Datamart`
 
 ### Item with Definition Support (most common)
 
-Needs Steps 1–4, 10, 11 (export + import + cp + mv), 12 (ALL_ITEM_TYPES + basic_item_parametrize + mv params), 13, and 14.
+Needs Steps 1–4, 10, 11 (export + import + cp + mv), 12 (ALL_ITEM_TYPES + basic_item_parametrize + mv params + export params + set metadata params), 13, and 14.
 
-**Examples:** `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
+**Examples:** `Map`, `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
 
 ### Item with Creation Parameters
 
@@ -502,17 +545,19 @@ Needs all steps 1–14.
 
 ## Reference: Complete Onboarding Example (Map Item Type)
 
-Here is a real example of onboarding the `Map` item type as a **simple item** (no definition formats, no jobs, no OneLake folders, no creation parameters):
+Here is a real example of onboarding the `Map` item type, which is an **item with definition support** (supports export, import, mv, cp but has no special creation parameters, no OneLake folders, no jobs):
 
 ### Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/fabric_cli/core/fab_types.py` | Added `MAP = "Map"` enum, `"maps"` in format_mapping, `"maps"` in uri_mapping |
+| `src/fabric_cli/core/fab_types.py` | Added `MAP = "Map"` enum, `"maps"` in format_mapping, `"maps"` in uri_mapping, `{"default": ""}` in definition_format_mapping |
 | `src/fabric_cli/core/hiearchy/fab_item.py` | Added `ItemType.MAP` to the standard multi-case match in `get_payload()` |
-| `tests/test_commands/conftest.py` | Added `ItemType.MAP` to `ALL_ITEM_TYPES` and `basic_item_parametrize` |
-
-> **Note:** Map does not support definition APIs, so no changes were needed for `command_support.yaml` (export/import/mv/cp), `definition_format_mapping`, changelog, or documentation pages.
+| `src/fabric_cli/core/fab_config/command_support.yaml` | Added `map` to `export`, `import`, `mv`, `cp` supported_items |
+| `tests/test_commands/conftest.py` | Added `ItemType.MAP` to `ALL_ITEM_TYPES`, `basic_item_parametrize`, `mv_item_to_item_success_params`, `mv_item_within_workspace_rename_success_params`, `set_item_metadata_for_all_types_success_item_params`, `export_item_with_extension_parameters`, `export_item_types_parameters` |
+| `.changes/unreleased/new-items-*.yaml` | Changelog entry for Map item type |
+| `docs/essentials/resource_types.md` | Added `.Map` row to the Item Types table |
+| `docs/examples/item_examples.md` | Added `.Map` to copy and export supported types lists |
 
 ---
 
@@ -521,7 +566,7 @@ Here is a real example of onboarding the `Map` item type as a **simple item** (n
 | Item Type | Enum | Complexity | Good Reference For |
 |-----------|------|------------|-------------------|
 | `Dashboard` | `DASHBOARD` | Simple | Minimal integration |
-| `Map` | `MAP` | Simple | Minimal integration, no definition/jobs/folders |
+| `Map` | `MAP` | Standard with definitions | Definition support (export/import/mv/cp), no creation params, no jobs/folders |
 | `Lakehouse` | `LAKEHOUSE` | Medium | Creation params, OneLake folders, jobs |
 | `Notebook` | `NOTEBOOK` | Full | Definitions, jobs, mutable props, custom payload |
 | `SemanticModel` | `SEMANTIC_MODEL` | Medium | Definition formats (TMDL/TMSL), payload templates |
@@ -542,7 +587,7 @@ Here is a real example of onboarding the `Map` item type as a **simple item** (n
 | `src/fabric_cli/core/hiearchy/fab_item.py` | Import payload construction |
 | `src/fabric_cli/commands/fs/payloads/` | Blank item template files |
 | `src/fabric_cli/commands/fs/export/fab_fs_export_item.py` | Export logic |
-| `tests/test_commands/conftest.py` | Parametrized test lists (ALL_ITEM_TYPES, basic_item_parametrize, mv params) |
+| `tests/test_commands/conftest.py` | Parametrized test lists (ALL_ITEM_TYPES, basic_item_parametrize, mv params, export params, set metadata params) |
 | `tests/test_commands/` | Command tests |
 | `.changes/unreleased/` | Changelog entries (changie format) |
 | `.changie.yaml` | Changie configuration (kinds: new-items, added, fixed, etc.) |
