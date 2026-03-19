@@ -156,7 +156,7 @@ set_item_metadata_for_all_types_success_item_params = pytest.mark.parametrize("i
     ItemType.DATA_PIPELINE, ItemType.ENVIRONMENT, ItemType.EVENTSTREAM,
     ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET, ItemType.ML_EXPERIMENT,
     ItemType.NOTEBOOK, ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER
+    ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.MAP
 ])
 
 set_item_metadata_success_params = pytest.mark.parametrize(
@@ -212,7 +212,8 @@ export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expec
     (ItemType.MIRRORED_DATABASE, ".json"),
     (ItemType.COSMOS_DB_DATABASE, ".json"),
     (ItemType.USER_DATA_FUNCTION, ".json"),
-    (ItemType.GRAPH_QUERY_SET, ".json")
+    (ItemType.GRAPH_QUERY_SET, ".json"),
+    (ItemType.MAP, ".json")
 ])
 
 export_item_types_parameters = pytest.mark.parametrize("item_type", [
@@ -225,7 +226,8 @@ export_item_types_parameters = pytest.mark.parametrize("item_type", [
     ItemType.KQL_DATABASE,
     ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION,
-    ItemType.GRAPH_QUERY_SET
+    ItemType.GRAPH_QUERY_SET,
+    ItemType.MAP
 ])
 
 export_item_format_parameters = pytest.mark.parametrize(
@@ -1013,7 +1015,7 @@ def _create_config_file(
     config_name="config.yml"
 ):
     """Helper function for creating deploy configuration files with specified parameters.
-    
+
     Args:
         tmp_path: Temporary path for file creation
         workspace_name: Name of the workspace
@@ -1022,7 +1024,7 @@ def _create_config_file(
         target_env: Target environment name (if None, workspace_name is used directly)
         parameter_file: Path to parameter file (optional)
         config_name: Name of the config file to create
-        
+
     Returns:
         Path to the created configuration file
     """
@@ -1064,7 +1066,7 @@ def deploy_setup_factory(tmp_path, cli_executor, item_factory, workspace):
         path_override=None,
     ):
         """Create a complete deploy scenario with items, repository, and config file.
-        
+
         Args:
             item_type: Type of item to create (backwards compatibility, deprecated)
             target_env: Target environment name
