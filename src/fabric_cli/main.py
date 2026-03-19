@@ -29,9 +29,9 @@ def main():
             return
 
         if args.command == "auth" and args.auth_command == "login":
-            from fabric_cli.commands.auth import fab_auth as login
+            from fabric_cli.commands.auth import fab_auth
 
-            if login.init(args):
+            if fab_auth.init(args):
                 if (
                     fab_state_config.get_config(fab_constant.FAB_MODE)
                     == fab_constant.FAB_MODE_INTERACTIVE
@@ -42,15 +42,15 @@ def main():
                     return
 
         if args.command == "auth" and args.auth_command == "logout":
-            from fabric_cli.commands.auth import fab_auth as login
+            from fabric_cli.commands.auth import fab_auth
 
-            login.logout(args)
+            fab_auth.logout(args)
             return
 
         if args.command == "auth" and args.auth_command == "status":
-            from fabric_cli.commands.auth import fab_auth as login
+            from fabric_cli.commands.auth import fab_auth
 
-            login.status(args)
+            fab_auth.status(args)
             return
 
         last_exit_code = fab_constant.EXIT_CODE_SUCCESS

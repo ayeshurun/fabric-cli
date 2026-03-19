@@ -52,7 +52,7 @@ def do_request(
     json=None,
     data=None,
     files=None,
-    timeout_sec=None,
+    timeout_sec=240,
     continuation_token=None,
     hostname=None,
 ) -> ApiResponse:
@@ -60,8 +60,6 @@ def do_request(
     audience_value = getattr(args, "audience", None)
     headers_value = getattr(args, "headers", None)
     method = getattr(args, "method", "get")
-    if timeout_sec is None:
-        timeout_sec = 30 if method.lower() == "get" else 240
     wait = getattr(args, "wait", True)  # Operations are synchronous by default
     raw_response = getattr(args, "raw_response", False)
     request_params = getattr(args, "request_params", {})

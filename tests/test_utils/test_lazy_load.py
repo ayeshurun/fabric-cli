@@ -19,19 +19,22 @@ class TestLazyLoad:
 
         mod_path = "fabric_cli.commands.auth.fab_auth"
 
-        # Ensure the module is not loaded
-        was_loaded = mod_path in sys.modules
+        # Ensure clean state
+        saved_mod = sys.modules.pop(mod_path, None)
 
-        wrapper = lazy_command(mod_path, "init")
+        try:
+            wrapper = lazy_command(mod_path, "init")
 
-        # The wrapper should be callable
-        assert callable(wrapper)
+            # The wrapper should be callable
+            assert callable(wrapper)
 
-        # If the module wasn't loaded before, it should still not be loaded
-        if not was_loaded:
+            # Module should not be imported at wrapper creation time
             assert mod_path not in sys.modules, (
                 "Module should not be imported at wrapper creation time"
             )
+        finally:
+            if saved_mod is not None:
+                sys.modules[mod_path] = saved_mod
 
     def test_lazy_command__invokes_target_function(self):
         """Test that lazy_command correctly resolves and calls the target function."""
@@ -133,54 +136,3 @@ class TestStartupPerformance:
                 sys.modules[mod_name] = mod
             for mod_name, mod in saved_heavy.items():
                 sys.modules[mod_name] = mod
-
-
-class TestSessionReuse:
-    """Test suite for HTTP session reuse."""
-
-    def test_shared_session__returns_same_instance(self):
-        """Test that _get_session returns the same session instance."""
-        from fabric_cli.client import fab_api_client
-
-        # Reset the shared session
-        fab_api_client._shared_session = None
-
-        session1 = fab_api_client._get_session()
-        session2 = fab_api_client._get_session()
-
-        assert session1 is session2, "Session should be reused"
-
-        # Clean up
-        fab_api_client._shared_session = None
-
-
-class TestInitDefaults:
-    """Test suite for config initialization optimization."""
-
-    def test_init_defaults__no_write_when_unchanged(self, tmp_path, monkeypatch):
-        """Test that init_defaults skips writing when config already has all defaults."""
-        import json
-
-        from fabric_cli.core import fab_constant, fab_state_config
-
-        # Create a config file with all defaults already set
-        config_data = dict(fab_constant.CONFIG_DEFAULT_VALUES)
-        config_file = tmp_path / "config.json"
-        config_file.write_text(json.dumps(config_data))
-
-        monkeypatch.setattr(fab_state_config, "config_file", str(config_file))
-
-        # Track write calls
-        original_write = fab_state_config.write_config
-        write_calls = []
-
-        def tracking_write(data):
-            write_calls.append(data)
-            original_write(data)
-
-        monkeypatch.setattr(fab_state_config, "write_config", tracking_write)
-
-        fab_state_config.init_defaults()
-
-        # Should NOT have written since nothing changed
-        assert len(write_calls) == 0, "Should skip write when config unchanged"

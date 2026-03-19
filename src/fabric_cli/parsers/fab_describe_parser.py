@@ -7,7 +7,7 @@ from fabric_cli.core import fab_constant
 from fabric_cli.utils import fab_error_parser as utils_error_parser
 from fabric_cli.utils.fab_lazy_load import lazy_command
 
-_describe_module_path = "fabric_cli.parsers.fab_describe_commands"
+_describe_module_path = "fabric_cli.commands.desc.fab_describe"
 
 
 def register_parser(subparsers: _SubParsersAction) -> None:
