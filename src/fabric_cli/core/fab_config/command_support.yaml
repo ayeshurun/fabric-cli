@@ -200,7 +200,7 @@ commands:
           - dataflow
           - sql_database
           - user_data_function
-          - cp
+          - map
       ln:
         supported_elements:
           - onelake
