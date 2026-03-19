@@ -554,7 +554,7 @@ Here is a real example of onboarding the `Map` item type, which is an **item wit
 | `src/fabric_cli/core/fab_types.py` | Added `MAP = "Map"` enum, `"maps"` in format_mapping, `"maps"` in uri_mapping, `{"default": ""}` in definition_format_mapping |
 | `src/fabric_cli/core/hiearchy/fab_item.py` | Added `ItemType.MAP` to the standard multi-case match in `get_payload()` |
 | `src/fabric_cli/core/fab_config/command_support.yaml` | Added `map` to `export`, `import`, `mv`, `cp` supported_items |
-| `tests/test_commands/conftest.py` | Added `ItemType.MAP` to `ALL_ITEM_TYPES`, `basic_item_parametrize`, `mv_item_to_item_success_params`, `mv_item_within_workspace_rename_success_params`, `set_item_metadata_for_all_types_success_item_params`, `export_item_with_extension_parameters`, `export_item_types_parameters` |
+| `tests/test_commands/conftest.py` | Added `ItemType.MAP` to `ALL_ITEM_TYPES`, `basic_item_parametrize`, `mv_item_to_item_success_params`, `mv_item_within_workspace_rename_success_params`, `set_item_metadata_for_all_types_success_item_params`, `export_item_with_extension_parameters`, `export_item_types_parameters`, `export_item_default_format_parameters`, `export_item_invalid_format_parameters` |
 | `.changes/unreleased/new-items-*.yaml` | Changelog entry for Map item type |
 | `docs/essentials/resource_types.md` | Added `.Map` row to the Item Types table |
 | `docs/examples/item_examples.md` | Added `.Map` to copy and export supported types lists |
