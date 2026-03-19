@@ -24,6 +24,13 @@ def test_ls_sort_flag_accepts_name_and_type():
     assert args.sort_by == "type"
 
 
+def test_ls_sort_flag_defaults_to_name():
+    parser = _build_parser()
+
+    args = parser.parse_args(["ls", "ws1.Workspace"])
+    assert args.sort_by == "name"
+
+
 def test_job_run_cancel_on_timeout_flag_accepts_true_false():
     parser = _build_parser()
 

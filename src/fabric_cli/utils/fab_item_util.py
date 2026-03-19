@@ -52,12 +52,12 @@ def _get_elem_type(elem: FabricElement) -> str:
 
 def sort_ws_elems_by_config(
     ws_items: Sequence[Union[Item, Folder]],
-    sort_criteria: str | None = None,
+    sort_criteria: Optional[str] = None,
 ) -> list[Union[Item, Folder]]:
     if sort_criteria is None:
         # Backward compatibility for existing config files
         sort_criteria = fab_state_config.get_config(
-            fab_constant.FAB_DEPRECATED_OUTPUT_ITEM_SORT_CRITERIA
+            fab_constant.FAB_OUTPUT_ITEM_SORT_CRITERIA_DEPRECATED
         )
     if sort_criteria in {"name", "byname"}:
         sort_criteria = "byname"

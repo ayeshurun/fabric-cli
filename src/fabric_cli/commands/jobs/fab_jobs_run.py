@@ -42,11 +42,11 @@ def exec_command(args: Namespace, item: Item) -> None:
                 cancel_on_timeout = _should_cancel_on_timeout(args)
                 if not cancel_on_timeout:
                     fab_ui.print_grey(
-                        "Job still running. Use '--cancel_on_timeout true' to cancel when timeout is reached."
+                        "Job still running. Use '--cancel_on_timeout true' to cancel when timeout is reached"
                     )
                 else:
                     fab_ui.print_grey(
-                        f"Cancelling job instance '{job_instance_id}' (timeout). Use '--cancel_on_timeout false' to keep running on timeout."
+                        f"Cancelling job instance '{job_instance_id}' (timeout). Use '--cancel_on_timeout false' to keep running on timeout"
                     )
                     args.instance_id = job_instance_id
                     response = jobs_api.cancel_item_job_instance(args)
@@ -71,7 +71,7 @@ def _should_cancel_on_timeout(args: Namespace) -> bool:
         return cancel_on_timeout == "true"
 
     # Backward compatibility for existing config files
-    legacy_value = config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT)
+    legacy_value = config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT_DEPRECATED)
     if legacy_value in {"false", "true"}:
         return legacy_value == "true"
     return True
