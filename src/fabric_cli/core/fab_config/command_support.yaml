@@ -171,6 +171,7 @@ commands:
           - dataflow
           - sql_database
           - user_data_function
+          - graph_query_set
       cp:
         supported_elements:
           - workspace
@@ -199,6 +200,7 @@ commands:
           - dataflow
           - sql_database
           - user_data_function
+          - graph_query_set
       ln:
         supported_elements:
           - onelake
@@ -276,8 +278,8 @@ commands:
           - sql_database
           - cosmos_db_database
           - user_data_function
-        unsupported_items:
           - graph_query_set
+        unsupported_items:
       get:
         supported_elements:
           - workspace

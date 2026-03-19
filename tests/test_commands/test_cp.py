@@ -5,16 +5,25 @@ import argparse
 import os
 import shutil
 import tempfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 import fabric_cli.commands.fs.fab_fs_cp as fab_cp
 import fabric_cli.commands.fs.fab_fs_ls as fab_ls
 from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_constant as constant
 from fabric_cli.core import fab_handle_context as handle_context
+from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceType
 from fabric_cli.core.hiearchy.fab_folder import Folder
-from fabric_cli.core.hiearchy.fab_hiearchy import LocalPath, OneLakeItem
+from fabric_cli.core.hiearchy.fab_hiearchy import (
+    Item,
+    LocalPath,
+    OneLakeItem,
+    Workspace,
+)
+from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.errors import ErrorMessages
 from tests.test_commands.commands_parser import CLIExecutor
 from tests.test_commands.conftest import rm
@@ -1105,3 +1114,5 @@ def _generate_test_binary_file(file_path: str):
 
 
 # endregion
+
+
