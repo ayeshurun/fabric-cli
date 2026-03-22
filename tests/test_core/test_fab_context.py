@@ -436,3 +436,46 @@ def mock_psutil_process():
 def mock_get_command_context():
     with patch("fabric_cli.core.fab_handle_context.get_command_context") as mock:
         yield mock
+
+
+# region Runtime Mode
+
+class TestRuntimeMode:
+    """Verify Context.set_runtime_mode / get_runtime_mode behaviour after mode-setting removal."""
+
+    def setup_method(self):
+        Context()._runtime_mode = fab_constant.FAB_MODE_COMMANDLINE
+
+    def teardown_method(self):
+        Context()._runtime_mode = fab_constant.FAB_MODE_COMMANDLINE
+
+    def test_default_runtime_mode__is_command_line(self):
+        """Default runtime mode must be COMMANDLINE when no REPL is active."""
+        assert Context().get_runtime_mode() == fab_constant.FAB_MODE_COMMANDLINE
+
+    def test_set_runtime_mode__to_interactive(self):
+        """set_runtime_mode(INTERACTIVE) should switch the mode."""
+        Context().set_runtime_mode(fab_constant.FAB_MODE_INTERACTIVE)
+        assert Context().get_runtime_mode() == fab_constant.FAB_MODE_INTERACTIVE
+
+    def test_set_runtime_mode__back_to_command_line(self):
+        """Switching to INTERACTIVE then back to COMMANDLINE must work."""
+        Context().set_runtime_mode(fab_constant.FAB_MODE_INTERACTIVE)
+        Context().set_runtime_mode(fab_constant.FAB_MODE_COMMANDLINE)
+        assert Context().get_runtime_mode() == fab_constant.FAB_MODE_COMMANDLINE
+
+    def test_runtime_mode__not_in_config_keys(self):
+        """'mode' must no longer appear in FAB_CONFIG_KEYS_TO_VALID_VALUES."""
+        assert fab_constant.FAB_MODE not in fab_constant.FAB_CONFIG_KEYS_TO_VALID_VALUES
+
+    def test_runtime_mode__not_in_config_defaults(self):
+        """'mode' must no longer appear in CONFIG_DEFAULT_VALUES."""
+        assert fab_constant.FAB_MODE not in fab_constant.CONFIG_DEFAULT_VALUES
+
+    def test_runtime_mode__not_module_level(self):
+        """Runtime mode must live on Context, not as module-level functions."""
+        from fabric_cli.core import fab_context as ctx_module
+        assert not hasattr(ctx_module, "set_runtime_mode")
+        assert not hasattr(ctx_module, "get_runtime_mode")
+
+# endregion

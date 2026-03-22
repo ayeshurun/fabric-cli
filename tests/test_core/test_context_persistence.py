@@ -30,7 +30,9 @@ def test_context_persistence_save(monkeypatch):
         return None
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
+
+    context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Create a secure temporary context file path
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
@@ -71,10 +73,10 @@ def test_context_persistence_load(monkeypatch):
         return None
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
-    # Create a context instance
     context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
+
     # Reset the context to force loading
     context._context = None
 
@@ -91,7 +93,8 @@ def test_context_persistence_not_used_in_interactive_mode(monkeypatch):
     """Test that context persistence is not used in REPL (interactive) mode."""
 
     # Set runtime mode to interactive and enable persistence
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_INTERACTIVE)
+    context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_INTERACTIVE)
 
     def mock_get_config(key):
         if key == fab_constant.FAB_CONTEXT_PERSISTENCE_ENABLED:
@@ -99,9 +102,6 @@ def test_context_persistence_not_used_in_interactive_mode(monkeypatch):
         return None
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
-
-    # Create a context instance
-    context = Context()
 
     # Create a mock tenant and workspace
     tenant = Tenant("test_tenant", "1234")
@@ -113,10 +113,10 @@ def test_context_persistence_not_used_in_interactive_mode(monkeypatch):
         patch.object(context, "_load_context_from_file") as mock_load,
     ):
 
-        # Set the context - this should NOT trigger file save in interactive mode
+        # Set the context - this should NOT trigger file save when persistence is disabled
         context.context = workspace
 
-        # Get the context - this should NOT trigger file load in interactive mode
+        # Get the context - this should NOT trigger file load when persistence is disabled
         result = context.context
 
         # Verify that file operations were not called
@@ -137,10 +137,9 @@ def test_context_persistence_disabled_by_default(monkeypatch):
         return None
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
-    # Create a context instance
     context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Create a mock tenant and workspace
     tenant = Tenant("test_tenant", "1234")
@@ -176,15 +175,15 @@ def test_context_persistence_enabled_when_configured(monkeypatch):
         return None
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
+
+    context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Create a secure temporary context file path
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
         temp_context_file = temp_file.name
 
     try:
-        # Create a context instance
-        context = Context()
         context._context_file = temp_context_file
 
         # Create a mock tenant and workspace
@@ -360,7 +359,8 @@ def test_loading_context_re_entrancy_guard(monkeypatch):
     """
 
     # Set runtime mode to command-line and enable context persistence
-    monkeypatch.setattr(fab_constant, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
+    context = Context()
+    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     def mock_get_config(key):
         if key == fab_constant.FAB_CONTEXT_PERSISTENCE_ENABLED:
@@ -369,8 +369,6 @@ def test_loading_context_re_entrancy_guard(monkeypatch):
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
 
-    # Create a context instance
-    context = Context()
     context._context = None  # Reset to force loading
 
     # Test that _should_use_context_file returns False when _loading_context is True

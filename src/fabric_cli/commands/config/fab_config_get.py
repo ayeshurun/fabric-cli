@@ -13,12 +13,16 @@ def exec_command(args: Namespace) -> None:
     key = args.key.lower()
 
     # Backward compatibility: 'mode' is no longer a configurable setting.
+    # Phase 1: warn but still return the runtime mode so existing scripts don't break.
     if key == fab_constant.FAB_MODE:
         utils_ui.print_warning(
-            "The 'mode' setting has been removed. "
+            "The 'mode' setting is deprecated and will be removed in a future release. "
             "Run 'fab' without arguments to enter REPL mode, "
             "or use 'fab <command>' for command-line mode."
         )
+        from fabric_cli.core.fab_context import Context
+
+        utils_ui.print_output_format(args, data=Context().get_runtime_mode())
         return
 
     if key not in fab_constant.FAB_CONFIG_KEYS_TO_VALID_VALUES:
