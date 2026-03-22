@@ -34,6 +34,21 @@ def copy_local_to_item(
             fab_constant.ERROR_INVALID_PATH,
         )
 
+    # Check for path collision: item with same name in a different folder
+    if getattr(args, "block_on_path_collision", False):
+        from fabric_cli.errors import ErrorMessages
+        from fabric_cli.utils import fab_mem_store as utils_mem_store
+
+        ws_items = utils_mem_store.get_workspace_items(to_context.workspace)
+        existing = next(
+            (i for i in ws_items if i.name == to_context.name), None
+        )
+        if existing and existing.parent != to_context.parent:
+            raise FabricCLIError(
+                ErrorMessages.Cp.item_exists_different_path(),
+                fab_constant.ERROR_INVALID_INPUT,
+            )
+
     # Build args compatible with import_single_item
     args.input = local_path
 
