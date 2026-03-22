@@ -142,6 +142,7 @@ class Item(_BaseItem):
                 | ItemType.GRAPH_QUERY_SET
                 | ItemType.USER_DATA_FUNCTION
                 | ItemType.MAP
+                | ItemType.SNOWFLAKE_DATABASE
             ):
                 return {
                     "type": str(self.item_type),
