@@ -21,7 +21,7 @@ fab cp <from_path> <to_path> [-r] [-f] [-bpc] [--format <format>]
 
 - `<from_path>`: Source path. Can be a Fabric path or a local file system path.
 - `<to_path>`: Destination path. Can be a Fabric path or a local file system path.
-- `-r, --recursive`: Copies all items in the source path recursively, including subfolders and their contents. Applicable for workspace/folder copies (Fabric→Fabric and Fabric→Local). Optional.
+- `-r, --recursive`: Copies all items in the source path recursively, including subfolders and their contents. Only applicable for Fabric→Fabric workspace/folder copies. Optional.
 - `-f, --force`: Force copy without confirmation. Optional.
 - `-bpc, --block_on_path_collision`: Block on path collision. Prevents copying when an item with the same name exists in a different folder within the target workspace. Only applicable for Fabric→Fabric copies. Optional.
 - `--format <format>`: Format of the item definition (e.g., `.ipynb`, `.py` for Notebooks; `TMDL`, `TMSL` for Semantic Models; `SparkJobDefinitionV1`, `SparkJobDefinitionV2` for Spark Job Definitions). Applicable for local↔Fabric copies. Optional.
@@ -31,7 +31,7 @@ fab cp <from_path> <to_path> [-r] [-f] [-bpc] [--format <format>]
 
 | Flag | Fabric→Fabric | Fabric→Local (export) | Local→Fabric (import) |
 |------|:---:|:---:|:---:|
-| `-r, --recursive` | ✅ | ✅ | — |
+| `-r, --recursive` | ✅ | — | — |
 | `-f, --force` | ✅ | ✅ | ✅ |
 | `-bpc, --block_on_path_collision` | ✅ | — | — |
 | `--format` | — | ✅ | ✅ |
@@ -76,10 +76,7 @@ fab cp ws1.Workspace/nb1.Notebook /tmp/MyRenamed.Notebook
 # export a notebook as .py format
 fab cp ws1.Workspace/nb1.Notebook /tmp --format .py
 
-# export all items from a workspace to local (recursive)
-fab cp ws1.Workspace /tmp -r -f
-
-# export selected items interactively
+# export items from a workspace (interactive selection)
 fab cp ws1.Workspace /tmp -f
 ```
 
@@ -110,7 +107,6 @@ The `cp` command replaces the standalone `import` and `export` commands with a u
 | Old command | Equivalent `cp` command |
 |---|---|
 | `export nb1.Notebook -o /tmp` | `cp nb1.Notebook /tmp` |
-| `export ws.Workspace -o /tmp -a` | `cp ws.Workspace /tmp -r` |
 | `export nb1.Notebook -o /tmp --format .py` | `cp nb1.Notebook /tmp --format .py` |
 | `import nb1.Notebook -i ~/nb1.Notebook` | `cp ~/nb1.Notebook nb1.Notebook` |
 | `import nb1.Notebook -i ~/nb1.Notebook -f` | `cp ~/nb1.Notebook nb1.Notebook -f` |

@@ -380,40 +380,6 @@ class TestCPLocal:
             mock_print_done.assert_called()
             mock_print_warning.assert_called_once()
 
-    def test_cp_workspace_to_local__recursive_export_success(
-        self,
-        item_factory,
-        folder_factory,
-        workspace,
-        cli_executor: CLIExecutor,
-        mock_print_done,
-        mock_print_warning,
-        tmp_path,
-    ):
-        """Export workspace with --recursive flag via cp."""
-        # Setup
-        notebook = item_factory(ItemType.NOTEBOOK)
-        f1 = folder_factory()
-        sjd = item_factory(ItemType.SPARK_JOB_DEFINITION, path=f1.full_path)
-
-        # Reset mock
-        mock_print_done.reset_mock()
-        mock_print_warning.reset_mock()
-
-        with patch("questionary.checkbox") as mock_checkbox:
-            mock_checkbox.return_value.ask.return_value = [
-                notebook.name,
-                f1.name,
-            ]
-
-            # Execute command
-            cli_executor.exec_command(
-                f"cp {workspace.full_path} {str(tmp_path)} --force --recursive"
-            )
-
-            # Assert
-            mock_print_done.assert_called()
-
     def test_cp_workspace_to_local__nonexistent_path_failure(
         self,
         item_factory,
