@@ -582,3 +582,4 @@ Here is a real example of onboarding the `Map` item type, which is an **item wit
 | `.changes/unreleased/new-items-*.yaml` | Changelog entry for Map item type |
 | `docs/essentials/resource_types.md` | Added `.Map` row to the Item Types table |
 | `docs/examples/item_examples.md` | Added `.Map` to copy and export supported types lists |
+
