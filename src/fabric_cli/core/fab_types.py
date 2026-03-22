@@ -270,6 +270,7 @@ class ItemType(_BaseItemType):
     KQL_DATABASE = "KQLDatabase"
     KQL_QUERYSET = "KQLQueryset"
     LAKEHOUSE = "Lakehouse"
+    MAP = "Map"
     MIRRORED_WAREHOUSE = "MirroredWarehouse"
     MIRRORED_DATABASE = "MirroredDatabase"
     ML_EXPERIMENT = "MLExperiment"
@@ -509,6 +510,7 @@ format_mapping = {
     ItemType.KQL_DATABASE: "kqlDatabases",
     ItemType.KQL_QUERYSET: "kqlQuerysets",
     ItemType.LAKEHOUSE: "lakehouses",
+    ItemType.MAP: "maps",
     ItemType.ML_EXPERIMENT: "mlExperiments",
     ItemType.ML_MODEL: "mlModels",
     ItemType.MIRRORED_WAREHOUSE: "mirroredWarehouses",
@@ -556,6 +558,7 @@ uri_mapping = {
     ItemType.KQL_DATABASE: "databases",
     ItemType.KQL_QUERYSET: "queryworkbenches",
     ItemType.LAKEHOUSE: "lakehouses",
+    ItemType.MAP: "maps",
     ItemType.MIRRORED_DATABASE: "mirroreddatabases",
     ItemType.ML_EXPERIMENT: "mlexperiments",
     ItemType.ML_MODEL: "mlmodels",
@@ -597,4 +600,5 @@ definition_format_mapping = {
     ItemType.COSMOS_DB_DATABASE: {"default": ""},
     ItemType.USER_DATA_FUNCTION: {"default": ""},
     ItemType.GRAPH_QUERY_SET: {"default": ""},
+    ItemType.MAP: {"default": ""},
 }
