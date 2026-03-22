@@ -29,7 +29,9 @@ def main():
             return
 
         if args.command == "auth" and args.auth_command == "login":
-            login.init(args)
+            from fabric_cli.commands.auth import fab_auth
+
+            fab_auth.init(args)
 
         if args.command == "auth" and args.auth_command == "logout":
             from fabric_cli.commands.auth import fab_auth
