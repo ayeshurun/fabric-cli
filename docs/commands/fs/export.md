@@ -1,5 +1,20 @@
 # `export` Command
 
+!!! note "Prefer `cp`"
+    The `export` command is superseded by [`cp`](cp.md). Use `cp` for all export workflows.
+
+    ```
+    # Old
+    fab export ws1.Workspace/nb1.Notebook -o /tmp
+
+    # New (equivalent)
+    fab cp ws1.Workspace/nb1.Notebook /tmp
+    ```
+
+    See [`cp` command reference](cp.md) for full documentation.
+
+---
+
 Export an item.
 
 !!! warning "When exporting an item, the item definition is exported without its sensitivity label"

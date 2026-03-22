@@ -18,14 +18,14 @@ from fabric_cli.utils.fab_commands import COMMANDS
 
 def main():
     parser, subparsers = get_global_parser_and_subparsers()
-    
+
     argcomplete.autocomplete(parser, default_completer=None)
 
     args = parser.parse_args()
 
     try:
         fab_state_config.init_defaults()
-        
+
         if args.command == "auth" and args.auth_command == None:
             auth_parser.show_help(args)
             return
@@ -60,14 +60,16 @@ def main():
                         command_parts = command.strip().split()
                         if command_parts:  # Ensure we have valid command parts
                             subparser = subparsers.choices[command_parts[0]]
-                            subparser_args = subparser.parse_args(command_parts[1:])
+                            subparser_args = subparser.parse_args(
+                                command_parts[1:])
                             subparser_args.command = command_parts[0]
                             last_exit_code = _execute_command(
                                 subparser_args, subparsers, parser
                             )
                             commands_execs += 1
                             if index != len(args.command) - 1:
-                                fab_ui.print_grey("------------------------------")
+                                fab_ui.print_grey(
+                                    "------------------------------")
                     if commands_execs > 1:
                         fab_ui.print("\n")
                         fab_ui.print_output_format(
@@ -111,11 +113,11 @@ def _handle_unexpected_error(err, args):
         error_message = str(err.args[0]) if err.args else str(err)
     except:
         error_message = "An unexpected error occurred"
-    
+
     fab_ui.print_output_error(
-        FabricCLIError(error_message, fab_constant.ERROR_UNEXPECTED_ERROR), 
+        FabricCLIError(error_message, fab_constant.ERROR_UNEXPECTED_ERROR),
         output_format_type=args.output_format,
-        )
+    )
     sys.exit(fab_constant.EXIT_CODE_ERROR)
 
 
@@ -137,4 +139,3 @@ def _execute_command(args, subparsers, parser):
 
 if __name__ == "__main__":
     main()
-

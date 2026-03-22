@@ -1,5 +1,20 @@
 # `import` Command
 
+!!! note "Prefer `cp`"
+    The `import` command is superseded by [`cp`](cp.md). Use `cp` for all import workflows.
+
+    ```
+    # Old
+    fab import ws.Workspace/nb.Notebook -i /tmp/nb.Notebook -f
+
+    # New (equivalent)
+    fab cp /tmp/nb.Notebook ws.Workspace/nb.Notebook -f
+    ```
+
+    See [`cp` command reference](cp.md) for full documentation.
+
+---
+
 Import an item (create/modify).
 
 !!! warning "When importing, the item definition is imported without its sensitivity label"

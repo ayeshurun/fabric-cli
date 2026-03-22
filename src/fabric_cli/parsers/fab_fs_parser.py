@@ -349,6 +349,7 @@ def register_export_parser(subparsers: _SubParsersAction) -> None:
     )
 
     export_parser.usage = f"{utils_error_parser.get_usage_prog(export_parser)}"
+    export_parser.epilog = "Tip: 'cp' supports export. Example: cp ws.Workspace/nb.Notebook /tmp. See 'fab cp --help'."
     export_parser.set_defaults(func=fs.export_command)
 
 
@@ -441,6 +442,7 @@ def register_import_parser(subparsers: _SubParsersAction) -> None:
     )
 
     import_parser.usage = f"{utils_error_parser.get_usage_prog(import_parser)}"
+    import_parser.epilog = "Tip: 'cp' supports import. Example: cp ~/nb.Notebook ws.Workspace. See 'fab cp --help'."
     import_parser.set_defaults(func=fs.import_command)
 
 # Command for 'deploy'

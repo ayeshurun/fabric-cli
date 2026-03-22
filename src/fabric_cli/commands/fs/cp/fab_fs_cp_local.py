@@ -184,6 +184,7 @@ def copy_workspace_to_local(
     # Build args compatible with export_bulk_items
     args.output = local_path
 
+    # Map --recursive to args.all for export_bulk_items compatibility
     if not hasattr(args, "all"):
         args.all = getattr(args, "recursive", False)
 
