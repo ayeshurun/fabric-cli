@@ -557,6 +557,7 @@ After completing all applicable steps, run these commands to verify each integra
 | 11a. ALL_ITEM_TYPES | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i all_item` | Always |
 | 11b. basic_item | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i basic` | Basic items only |
 | 11c. mv params | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i mv` | Has mv support |
+| 11d. properties params | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i properties` | Has special properties |
 | 11e. export params | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i export` | Has export support |
 | 11f. set metadata | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i metadata` | Has set support |
 | 12. Changelog | `ls .changes/unreleased/ \| grep -i newitem` | Always |
