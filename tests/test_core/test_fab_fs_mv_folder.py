@@ -60,7 +60,7 @@ def mock_api_response_failure():
     return response
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent__folder_target_success(
@@ -100,7 +100,7 @@ def test_change_folder_parent__folder_target_success(
     assert mock_new_parent_folder.name in message
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_workspace_target_success(
@@ -134,7 +134,7 @@ def test_change_folder_parent_workspace_target_success(
     mock_print_output.assert_called_once()
 
 
-@patch("fabric_cli.utils.fab_ui.print_warning")
+@patch("fabric_cli.utils.fab_output_manager.print_warning")
 def test_change_folder_parent_already_in_target_parent_success(
     mock_print_warning,
     mock_folder,
@@ -150,7 +150,7 @@ def test_change_folder_parent_already_in_target_parent_success(
     assert mock_folder.name in warning_message
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_api_failure(
@@ -174,7 +174,7 @@ def test_change_folder_parent_api_failure(
     mock_print_output.assert_not_called()
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_api_call_structure(
@@ -204,7 +204,7 @@ def test_change_folder_parent_api_call_structure(
     assert isinstance(payload, dict)
 
 
-@patch("fabric_cli.utils.fab_ui.print_warning")
+@patch("fabric_cli.utils.fab_output_manager.print_warning")
 def test_change_folder_parent_same_instance_check(
     mock_print_warning,
     mock_folder,
@@ -216,7 +216,7 @@ def test_change_folder_parent_same_instance_check(
     mock_print_warning.assert_called_once()
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_memory_update_order(
@@ -238,7 +238,7 @@ def test_change_folder_parent_memory_update_order(
     mock_upsert_folder_cache.assert_called_once_with(mock_folder)
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_different_status_codes(
@@ -278,7 +278,7 @@ def test_change_folder_parent_different_status_codes(
             mock_folder._parent = original_parent
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_api_exception_handling(
@@ -301,7 +301,7 @@ def test_change_folder_parent_api_exception_handling(
     mock_print_output.assert_not_called()
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_json_serialization(
@@ -325,7 +325,7 @@ def test_change_folder_parent_json_serialization(
     assert payload["targetFolderId"] == mock_new_parent_folder.id
 
 
-@patch("fabric_cli.utils.fab_ui.print_warning")
+@patch("fabric_cli.utils.fab_output_manager.print_warning")
 def test_change_folder_parent_none_comparison(
     mock_print_warning,
     mock_folder,
@@ -339,7 +339,7 @@ def test_change_folder_parent_none_comparison(
     assert "already in the target parent" in warning_message
 
 
-@patch("fabric_cli.utils.fab_ui.print_output_format")
+@patch("fabric_cli.utils.fab_output_manager.print_output_format")
 @patch("fabric_cli.utils.fab_mem_store.upsert_folder_to_cache")
 @patch("fabric_cli.client.fab_api_folders.move_folder")
 def test_change_folder_parent_namespace_attributes(

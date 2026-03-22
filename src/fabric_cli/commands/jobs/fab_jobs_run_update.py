@@ -8,7 +8,7 @@ from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def exec_command(args: Namespace, context: Item) -> None:

@@ -9,12 +9,13 @@ from argparse import Namespace
 from fabric_cli.client import fab_api_azure as azure_api
 from fabric_cli.client import fab_api_managedprivateendpoint as mpe_api
 from fabric_cli.commands.fs.mkdir import fab_fs_mkdir_item as mkdir_item
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def add_type_specific_payload(item: Item, args, payload):

@@ -13,7 +13,8 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from fabric_cli.client.fab_api_types import ApiResponse
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+from fabric_cli.core import fab_constant, fab_state_config
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import (
     AzureAPIError,
     FabricAPIError,
@@ -23,7 +24,7 @@ from fabric_cli.core.fab_exceptions import (
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_error_parser as utils_errors
 from fabric_cli.utils import fab_files as files_utils
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils.fab_http_polling_utils import get_polling_interval
 
 GUID_PATTERN = r"([a-f0-9\-]{36})"

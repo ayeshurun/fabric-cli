@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 from unittest.mock import patch
+from tests.conftest import render_rich_arg
 
 import fabric_cli.core.fab_constant as constant
 from fabric_cli.errors import ErrorMessages
@@ -124,7 +125,7 @@ class TestConfig:
         # Assert
         # question.print is called twice. once in the setup in config_set and once in config_get
         mock_questionary_print.assert_called()
-        assert any(value in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any(value in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
     def test_config_get_unknown_key_failure(
         self,
@@ -153,7 +154,7 @@ class TestConfig:
         # Assert
         for key in constant.FAB_CONFIG_KEYS_TO_VALID_VALUES:
             assert any(
-                key in call.args[0] for call in mock_questionary_print.mock_calls
+                key in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
 
     # endregion
@@ -178,7 +179,7 @@ class TestConfig:
     ):
         """Test successful transition to interactive mode"""
         with patch("fabric_cli.core.fab_interactive.start_interactive_mode") as mock_start_interactive, \
-            patch("fabric_cli.utils.fab_ui.print_warning") as mock_print_warning:
+            patch("fabric_cli.utils.fab_output_manager.print_warning") as mock_print_warning:
             
             mock_fab_set_state_config(constant.FAB_MODE, constant.FAB_MODE_COMMANDLINE)
             
@@ -198,7 +199,7 @@ class TestConfig:
     ):
         """Test setting interactive mode while already in interactive mode"""
         with patch("fabric_cli.core.fab_interactive.start_interactive_mode") as mock_start_interactive, \
-            patch("fabric_cli.utils.fab_ui.print_warning") as mock_print_warning:
+            patch("fabric_cli.utils.fab_output_manager.print_warning") as mock_print_warning:
             
             mock_fab_set_state_config(constant.FAB_MODE, constant.FAB_MODE_INTERACTIVE)
             
@@ -217,7 +218,7 @@ class TestConfig:
         self, mock_fab_set_state_config, mock_questionary_print, cli_executor: CLIExecutor
     ):
         """Test transition from interactive to command_line mode"""
-        with patch("fabric_cli.utils.fab_ui.print_warning") as mock_print_warning, \
+        with patch("fabric_cli.utils.fab_output_manager.print_warning") as mock_print_warning, \
             patch("os._exit") as mock_exit:
             
             mock_fab_set_state_config(constant.FAB_MODE, constant.FAB_MODE_INTERACTIVE)
@@ -225,16 +226,19 @@ class TestConfig:
             # Execute command
             cli_executor.exec_command(f"config set mode {constant.FAB_MODE_COMMANDLINE}")
 
-            expected_calls = [
-                ("Updating 'mode' value...",),
-                ("Configuration saved for backward compatibility.",),
-                ("Exiting interactive mode. Goodbye!",)
+            expected_messages = [
+                "Updating 'mode' value",
+                "Configuration 'mode' set to 'command_line'",
+                "Configuration saved for backward compatibility.",
+                "Exiting interactive mode. Goodbye!",
             ]
 
             # Assert
             mock_questionary_print.assert_called()
-            actual_calls = [call.args for call in mock_questionary_print.mock_calls]
-            assert actual_calls == expected_calls
+            actual_messages = [render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls]
+            assert len(actual_messages) == len(expected_messages)
+            for actual, expected in zip(actual_messages, expected_messages):
+                assert expected in actual
             mock_exit.assert_called_once_with(0)
 
             # Verify proper exit sequence

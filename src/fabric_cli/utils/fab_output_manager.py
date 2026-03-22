@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Central output facade for the Fabric CLI.
+"""Central output and logging facade for the Fabric CLI.
 
 OutputManager is the single gateway that controls how the CLI writes to
 stdout, stderr, and the debug log file.  It is **mode-aware**
@@ -9,7 +9,7 @@ stdout, stderr, and the debug log file.  It is **mode-aware**
 so every output helper automatically routes content to the correct
 stream with the correct formatting.
 
-Design principles (matching existing behaviour):
+Design principles:
   * **stdout**  – machine-readable data / results only (safe for piping)
   * **stderr**  – human-facing diagnostics (progress, warnings, errors,
                   info, debug messages)
@@ -23,18 +23,25 @@ module-level ``output_manager()`` shortcut).  At startup ``main.py``
 calls ``set_mode()`` / ``set_output_format()`` once; every subsequent
 call inherits those settings automatically.
 
-Backward compatibility
-----------------------
-``fab_ui.py`` public functions are kept as thin wrappers that delegate
-to this manager, so the 300+ existing call sites remain unchanged.
+Module-level convenience functions (``print_done``, ``log_warning``,
+``print_output_format``, etc.) delegate to the singleton so that call
+sites remain concise.
 """
 
 from __future__ import annotations
 
 import builtins
+import http
+import json
+import logging
+import os
+import platform
 import sys
+import time
 import unicodedata
 from argparse import Namespace
+from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Any, Optional, Sequence
 
 from rich import box as rich_box
@@ -288,7 +295,7 @@ class OutputManager:
             )
 
         table = Table(show_header=bool(header), box=None if bool(
-            header) == False else rich_box.ROUNDED, padding=(0, 2), expand=True, highlight=True)
+            header) == False else rich_box.ROUNDED, expand=True, highlight=True)
         for field in fields:
             table.add_column(field, style="muted")
         for entry in _entries:
@@ -296,10 +303,12 @@ class OutputManager:
 
         if footer_items:
             table.add_row()
+            table.add_section()
             for item in footer_items:
-                table.add_row(str(item), *[""] * (len(fields) - 1), style="dim italic")
+                table.add_row(
+                    str(item), *[""] * (len(fields) - 1), style="dim italic")
 
-        self.console.print(table)
+        self._safe_print(table)
 
     def display_help(
         self,
@@ -328,8 +337,8 @@ class OutputManager:
             table.add_column("Description")
             for cmd, description in cmd_dict.items():
                 table.add_row(cmd, description)
-            self.console.print(table)
-            self.console.print()
+            self._safe_print(table)
+            self._safe_print("")
 
         self.plain("Learn More:")
         self.plain(
@@ -363,9 +372,9 @@ class OutputManager:
         for i, entry in enumerate(_entries):
             for key, value in entry.items():
                 pretty_key = _format_key_to_title_case(key)
-                self.console.print(f"[muted]{pretty_key}: {value}[/muted]")
+                self._safe_print(f"[muted]{pretty_key}: {value}[/muted]")
             if i < len(_entries) - 1:
-                self.console.print()
+                self._safe_print("")
 
     # ------------------------------------------------------------------
     # Prompt helpers  (delegate to questionary — interactive only)
@@ -577,3 +586,316 @@ def _questionary_style():
             ("disabled", "fg:#858585 italic"),
         ]
     )
+
+
+# ---------------------------------------------------------------------------
+# File-based debug logger (formerly fab_logger.py)
+# ---------------------------------------------------------------------------
+
+_logger_instance = None
+log_file_path = None
+
+
+def _user_log_dir(app_name):
+    if platform.system() == "Windows":
+        base_dir = os.getenv(
+            "LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local"))
+        log_dir = os.path.join(base_dir, app_name, "Logs")
+        if os.path.realpath(log_dir) != log_dir:
+            log_dir = os.path.realpath(log_dir)
+    elif platform.system() == "Darwin":
+        base_dir = os.path.expanduser("~/Library/Logs")
+        log_dir = os.path.join(base_dir, app_name)
+    else:
+        base_dir = os.getenv(
+            "XDG_STATE_HOME", os.path.expanduser("~/.local/state"))
+        log_dir = os.path.join(base_dir, app_name, "log")
+    return log_dir
+
+
+# Keep the public name for backward compatibility with fab_logger imports
+user_log_dir = _user_log_dir
+
+
+def _get_log_file_path():
+    """Create a log file path in the user's log directory."""
+    log_dir = _user_log_dir("fabric-cli")
+    os.makedirs(log_dir, exist_ok=True)
+    return os.path.join(log_dir, "fabcli_debug.log")
+
+
+def _setup_logger(file_name: str):
+    instance = logging.getLogger("FabricCLI")
+    instance.setLevel(logging.DEBUG)
+    file_handler = RotatingFileHandler(
+        file_name,
+        maxBytes=5 * 1024 * 1024,
+        backupCount=7,
+    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    instance.addHandler(file_handler)
+    return instance
+
+
+def get_logger():
+    """Singleton logger instance with a single file handler."""
+    global _logger_instance, log_file_path
+    log_file_path = _get_log_file_path()
+    if _logger_instance is None:
+        _logger_instance = _setup_logger(log_file_path)
+    return _logger_instance
+
+
+def get_log_file_path():
+    """Return the current log file path."""
+    global log_file_path
+    if log_file_path is None:
+        get_logger()
+    return log_file_path
+
+
+def _parse_json_into_single_line(json_text):
+    try:
+        parsed_json = json.loads(json_text)
+        compact_json = json.dumps(parsed_json, separators=(",", ":"))
+        return compact_json
+    except json.JSONDecodeError:
+        return "Failed to parse JSON response"
+
+
+# ---------------------------------------------------------------------------
+# fab_logger-compatible module-level functions
+# ---------------------------------------------------------------------------
+
+def log_warning(message, command=None):
+    """Print a warning message via OutputManager."""
+    output_manager().warning(message, command)
+
+
+def log_debug(message):
+    """Print a debug message via OutputManager."""
+    output_manager().debug(message)
+
+
+def log_info(message):
+    """Print an info message via OutputManager."""
+    output_manager().info(f"[info] {message}")
+
+
+def log_progress(message, progress=None):
+    """Print a progress message via OutputManager (debug only)."""
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+        output_manager().progress(f"[debug] {message}", progress)
+
+
+def log_debug_http_request(
+    method, url, headers, timeout_sec, attempt=1, json=None, data=None, files=None
+):
+    """Log an HTTP request to the debug file if FAB_DEBUG is enabled."""
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+        return
+
+    logger = get_logger()
+    request_time = (
+        datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S.%f %Z%z")[:-3]
+    )
+
+    logger.debug(f"> * Request at {request_time}")
+    logger.debug(f"> Attempt: {attempt}")
+    logger.debug(f"> Request URL: {url}")
+    logger.debug(f"> Request method: {method.upper()}")
+
+    logger.debug("> Request headers:")
+    for key, value in headers.items():
+        if key.lower() == "authorization":
+            value = "*****"
+        elif key.lower() == "user-agent":
+            continue
+        logger.debug(f"    '{key}': '{value}'")
+
+    logger.debug("> Request body:")
+    if json:
+        logger.debug("    " + str(json))
+    elif data:
+        logger.debug("    " + str(data))
+    elif files:
+        logger.debug("    Files:")
+        for file_key, file_value in files.items():
+            logger.debug(f"        '{file_key}': '{file_value}'")
+    else:
+        logger.debug("    None")
+
+    logger.debug(f"> Timeout: {timeout_sec} seconds")
+    logger.debug("")
+
+
+def log_debug_http_response(status_code, headers, response_text, start_time):
+    """Log an HTTP response to the debug file if FAB_DEBUG is enabled."""
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+        return
+
+    logger = get_logger()
+    end_time = time.time()
+
+    status_text = (
+        http.HTTPStatus(status_code).phrase
+        if status_code in http.HTTPStatus._value2member_map_
+        else "Unknown Status"
+    )
+
+    response_time = (
+        datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S.%f %Z%z")[:-3]
+    )
+
+    logger.debug(f"< * Response received at {response_time}")
+    logger.debug(f"< Status: {status_code} {status_text}")
+
+    logger.debug("< Response headers:")
+    for key, value in headers.items():
+        logger.debug(f"    '{key}': '{value}'")
+
+    logger.debug("< Response body:")
+    if response_text is None or response_text == "":
+        logger.debug("    None")
+    else:
+        content_type = headers.get("Content-Type", "")
+        if "application/json" in content_type:
+            logger.debug("    " + _parse_json_into_single_line(response_text))
+        else:
+            logger.debug("    " + response_text)
+
+    response_time_sec = end_time - start_time
+    logger.debug(f"< Request duration: {response_time_sec:.3f} seconds")
+    logger.debug("")
+
+
+def log_debug_http_request_exception(e):
+    """Log an HTTP request exception to the debug file if FAB_DEBUG is enabled."""
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) != "true":
+        return
+
+    logger = get_logger()
+    logger.debug("< * Exception occurred")
+    logger.debug(f"< Exception: {e}")
+    logger.debug("")
+
+
+def print_log_file_path():
+    """Print log file path if debug is enabled."""
+    if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
+        path = get_log_file_path()
+        log_warning(f"'debug_enabled' is on ({path})\n")
+
+
+# ---------------------------------------------------------------------------
+# fab_ui-compatible module-level convenience functions
+# ---------------------------------------------------------------------------
+
+def get_common_style():
+    return _questionary_style()
+
+
+def prompt_ask(text: str = "Question") -> Any:
+    return output_manager().prompt_ask(text)
+
+
+def prompt_password(text: str = "password") -> Any:
+    return output_manager().prompt_password(text)
+
+
+def prompt_confirm(text: str = "Are you sure?") -> Any:
+    return output_manager().prompt_confirm(text)
+
+
+def prompt_select_items(question: str, choices: Sequence) -> Any:
+    return output_manager().prompt_select_items(question, choices)
+
+
+def prompt_select_item(question: str, choices: Sequence) -> Any:
+    return output_manager().prompt_select_item(question, choices)
+
+
+def print(text: str) -> None:
+    output_manager().plain(text)
+
+
+def print_fabric(text: str) -> None:
+    output_manager().fabric(text)
+
+
+def print_grey(text: str, to_stderr: bool = True) -> None:
+    output_manager().muted(text, to_stderr=to_stderr)
+
+
+def print_progress(text, progress: Optional[str] = None) -> None:
+    output_manager().progress(text, progress)
+
+
+def print_version(args=None):
+    output_manager().print_version(args)
+
+
+def print_output_format(
+    args: Namespace,
+    message: Optional[str] = None,
+    data: Optional[Any] = None,
+    hidden_data: Optional[Any] = None,
+    show_headers: bool = False,
+    show_key_value_list: bool = False,
+) -> None:
+    output_manager().print_output_format(
+        args,
+        message=message,
+        data=data,
+        hidden_data=hidden_data,
+        show_headers=show_headers,
+        show_key_value_list=show_key_value_list,
+    )
+
+
+def print_done(text: str, to_stderr: bool = False) -> None:
+    output_manager().status(text, to_stderr=to_stderr)
+
+
+def print_warning(text: str, command: Optional[str] = None) -> None:
+    if command:
+        output_manager().warning(text, command)
+    else:
+        output_manager().warning(text)
+
+
+def print_output_error(
+    error: FabricCLIError,
+    command: Optional[str] = None,
+    output_format_type: Optional[str] = None,
+) -> None:
+    output_manager().print_output_error(error, command, output_format_type)
+
+
+def print_info(text, command: Optional[str] = None) -> None:
+    output_manager().info(text, command)
+
+
+def display_help(
+    commands: dict[str, dict[str, str]], custom_header: Optional[str] = None
+) -> None:
+    output_manager().display_help(commands, custom_header)
+
+
+def print_entries_unix_style(
+    entries: Any, fields: Any, header: Optional[bool] = False
+) -> None:
+    output_manager().print_entries_unix_style(entries, fields, header)
+
+
+# Backward-compat aliases
+_format_key_to_convert_to_title_case = _format_key_to_title_case
+
+
+def _print_entries_key_value_list_style(entries: Any) -> None:
+    output_manager().print_key_value_list(entries)
+
+
+def _print_error_format_text(message: str, command: Optional[str] = None) -> None:
+    output_manager()._print_error_text(message, command)

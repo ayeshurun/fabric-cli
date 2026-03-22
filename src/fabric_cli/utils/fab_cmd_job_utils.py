@@ -10,13 +10,14 @@ from typing import Any, Optional
 from requests.structures import CaseInsensitiveDict
 from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.client.fab_api_types import ApiResponse
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import FabricJobType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils.fab_http_polling_utils import get_polling_interval
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def add_item_props_to_args(args: Namespace, context: Item) -> None:

@@ -9,7 +9,7 @@ from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client import fab_api_mirroring as mirroring_api
 from fabric_cli.utils import fab_jmespath as utils_jmespath
 from fabric_cli.utils import fab_storage as utils_storage
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def is_metadata_property_query(query: str) -> bool:

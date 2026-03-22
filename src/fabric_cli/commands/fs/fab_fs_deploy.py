@@ -4,7 +4,7 @@
 from argparse import Namespace
 
 from fabric_cli.commands.fs.deploy.fab_fs_deploy_config_file import deploy_with_config_file
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def exec_command(args: Namespace) -> None:

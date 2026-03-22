@@ -4,8 +4,9 @@
 import argparse
 from typing import Optional
 
-from fabric_cli.core import fab_constant, fab_logger
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def invalid_choice(self, message: Optional[str] = None) -> None:

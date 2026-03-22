@@ -8,7 +8,7 @@ from fabric_cli.client import fab_api_managedidentity as managed_identity_api
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def exec(managed_identity: VirtualItem, args: Namespace) -> None:

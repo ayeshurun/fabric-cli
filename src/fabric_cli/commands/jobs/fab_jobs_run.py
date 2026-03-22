@@ -9,7 +9,7 @@ from fabric_cli.core import fab_constant as con
 from fabric_cli.core import fab_state_config as config
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_job_utils as utils_job
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def exec_command(args: Namespace, item: Item) -> None:

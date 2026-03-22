@@ -12,7 +12,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 INVALID_QUERIES = ["publicKey", "version", "virtualNetworkAzureResource"]
 SUPPORTED_GATEWAY_TYPES = ["OnPremises", "VirtualNetwork"]

@@ -7,7 +7,7 @@ from requests.structures import CaseInsensitiveDict
 from fabric_cli.utils.fab_http_polling_utils import get_polling_interval, DEFAULT_POLLING_INTERVAL
 
 
-@patch('fabric_cli.core.fab_logger.log_debug')
+@patch('fabric_cli.utils.fab_output_manager.log_debug')
 def test_valid_retry_after_header(mock_log_debug):
     headers = CaseInsensitiveDict({"Retry-After": "120"})
     interval = get_polling_interval(headers)
@@ -47,7 +47,7 @@ def test_custom_polling_interval_takes_precedence():
     assert interval == 15
 
 
-@patch('fabric_cli.core.fab_logger.log_debug')
+@patch('fabric_cli.utils.fab_output_manager.log_debug')
 def test_logging_custom_interval(mock_log_debug):
     headers = CaseInsensitiveDict({})
     get_polling_interval(headers, custom_polling_interval=25)

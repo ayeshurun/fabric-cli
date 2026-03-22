@@ -3,6 +3,7 @@
 
 import argparse
 import json
+from tests.conftest import render_rich_arg
 
 from fabric_cli.commands.api import fab_api
 from fabric_cli.core import fab_constant as constant
@@ -209,7 +210,7 @@ def _get_workspace_id(workspace, mock_questionary_print) -> str:
     workspace_display_name = workspace.removesuffix(".Workspace")
 
     for call in mock_questionary_print.mock_calls:
-        if workspace_display_name in call.args[0]:
+        if workspace_display_name in render_rich_arg(call.args[0]):
             workspaces_list = json.loads(call.args[0])["text"]["value"]
             index = _find_first_index_containing(
                 workspaces_list, workspace_display_name
@@ -230,7 +231,7 @@ def _get_item_id(workspace_id, item, mock_questionary_print) -> str:
     item_display_name = item.display_name
 
     for call in mock_questionary_print.mock_calls:
-        if item_display_name in call.args[0]:
+        if item_display_name in render_rich_arg(call.args[0]):
             items_list = json.loads(call.args[0])["text"]["value"]
             index = _find_first_index_containing(items_list, item_display_name)
             item_id = items_list[index]["id"]

@@ -8,7 +8,7 @@ from typing import Optional
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_handle_context as handle_context
-from fabric_cli.core import fab_logger
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
@@ -16,7 +16,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import Folder, Item, Workspace
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as util
 
 

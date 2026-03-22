@@ -14,7 +14,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Folder, Item, Workspace
 from fabric_cli.utils import fab_cmd_fs_utils as utils_fs
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def copy_folders(

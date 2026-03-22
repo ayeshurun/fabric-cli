@@ -14,7 +14,8 @@ from fabric_cli.client import fab_api_folders as folders_api
 from fabric_cli.client import fab_api_gateway as gateway_api
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client import fab_api_workspace as workspace_api
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core import fab_state_config as state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import VirtualItemType, VirtualWorkspaceItemType

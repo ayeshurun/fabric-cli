@@ -3,6 +3,7 @@
 
 import argparse
 from unittest.mock import patch
+from tests.conftest import render_rich_arg
 
 import pytest
 
@@ -105,7 +106,7 @@ class TestUnassign:
         # Assert
         get(domain.full_path, query="domainWorkspaces")
         assert any(
-            workspace.display_name not in call.args[0]
+            workspace.display_name not in render_rich_arg(call.args[0])
             for call in mock_questionary_print.mock_calls
         )
 
@@ -132,7 +133,7 @@ class TestUnassign:
         # Assert
         get(workspace_with_capacity.full_path, query=".")
         assert any(
-            test_data.capacity.id not in call.args[0]
+            test_data.capacity.id not in render_rich_arg(call.args[0])
             for call in mock_questionary_print.mock_calls
         )
 
@@ -162,7 +163,7 @@ class TestUnassign:
         mock_confirm.assert_called_once()
         get(workspace_with_capacity.full_path, query=".")
         assert any(
-            test_data.capacity.id not in call.args[0]
+            test_data.capacity.id not in render_rich_arg(call.args[0])
             for call in mock_questionary_print.mock_calls
         )
 
@@ -200,7 +201,7 @@ class TestUnassign:
         # Assert - check capacity is still assigned
         get(workspace_with_capacity.full_path, query=".")
         assert any(
-            test_data.capacity.id in call.args[0]
+            test_data.capacity.id in render_rich_arg(call.args[0])
             for call in mock_questionary_print.mock_calls
         )
 

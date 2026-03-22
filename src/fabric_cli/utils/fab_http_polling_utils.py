@@ -3,7 +3,7 @@
 
 from typing import Optional
 from requests.structures import CaseInsensitiveDict
-from fabric_cli.core import fab_logger
+from fabric_cli.utils import fab_output_manager as fab_logger
 
 DEFAULT_POLLING_INTERVAL = 10
 

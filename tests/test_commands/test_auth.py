@@ -20,7 +20,7 @@ class TestAuth:
     def test_init_with_interactive_auth(self, mock_fab_auth, mock_fab_context):
         # Arrange
         with patch(
-            "fabric_cli.utils.fab_ui.prompt_select_item",
+            "fabric_cli.utils.fab_output_manager.prompt_select_item",
             return_value="Interactive with a web browser",
         ):
             args = prepare_auth_args()
@@ -43,7 +43,7 @@ class TestAuth:
     ):
         # Arrange
         with patch(
-            "fabric_cli.utils.fab_ui.prompt_select_item",
+            "fabric_cli.utils.fab_output_manager.prompt_select_item",
             return_value="Interactive with a web browser",
         ):
             args = prepare_auth_args({"tenant": "mock_tenant"})
@@ -78,11 +78,11 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with secret",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
-            patch("fabric_cli.utils.fab_ui.prompt_password", return_value=""),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_password", return_value=""),
         ):
             args = prepare_auth_args()
 
@@ -122,12 +122,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with secret",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password", side_effect=cancelled_prompt
+                "fabric_cli.utils.fab_output_manager.prompt_password", side_effect=cancelled_prompt
             ),
         ):
             args = prepare_auth_args()
@@ -156,12 +156,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with secret",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password", return_value="mock_password"
+                "fabric_cli.utils.fab_output_manager.prompt_password", return_value="mock_password"
             ),
         ):
             args = prepare_auth_args()
@@ -201,12 +201,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with federated credential",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_federated_token",
             ),
         ):
@@ -247,12 +247,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with federated credential",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="",
             ),
         ):
@@ -293,12 +293,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with federated credential",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 side_effect=cancelled_prompt,
             ),
         ):
@@ -330,12 +330,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -382,10 +382,10 @@ class TestAuth:
         # Arrange
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=cancelled_prompt),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=cancelled_prompt),
         ):
             args = prepare_auth_args()
 
@@ -413,12 +413,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -459,12 +459,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -496,12 +496,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -544,12 +544,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -583,12 +583,12 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Service principal authentication with certificate",
             ),
-            patch("fabric_cli.utils.fab_ui.prompt_ask", side_effect=mock_prompt_ask),
+            patch("fabric_cli.utils.fab_output_manager.prompt_ask", side_effect=mock_prompt_ask),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_password",
+                "fabric_cli.utils.fab_output_manager.prompt_password",
                 return_value="mocked_cert_password",
             ),
         ):
@@ -625,11 +625,11 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Managed identity authentication",
             ),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_ask",
+                "fabric_cli.utils.fab_output_manager.prompt_ask",
                 side_effect=mock_prompt_ask,
             ),
         ):
@@ -670,11 +670,11 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Managed identity authentication",
             ),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_ask",
+                "fabric_cli.utils.fab_output_manager.prompt_ask",
                 side_effect=mock_prompt_ask,
             ),
         ):
@@ -731,11 +731,11 @@ class TestAuth:
 
         with (
             patch(
-                "fabric_cli.utils.fab_ui.prompt_select_item",
+                "fabric_cli.utils.fab_output_manager.prompt_select_item",
                 return_value="Managed identity authentication",
             ),
             patch(
-                "fabric_cli.utils.fab_ui.prompt_ask",
+                "fabric_cli.utils.fab_output_manager.prompt_ask",
                 side_effect=mock_prompt_ask,
             ),
         ):
@@ -934,7 +934,7 @@ class TestAuth:
 
         # Arrange
         with patch(
-            "fabric_cli.utils.fab_ui.prompt_select_item",
+            "fabric_cli.utils.fab_output_manager.prompt_select_item",
             side_effect=cancelled_prompt,
         ):
             args = prepare_auth_args()

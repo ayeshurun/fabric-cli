@@ -6,6 +6,7 @@ import json
 import os
 from unittest.mock import patch
 import tempfile
+from tests.conftest import render_rich_arg
 
 import pytest
 
@@ -169,10 +170,10 @@ class TestLabels:
 
         for label in test_data.labels:
             assert any(
-                label.id in call.args[0] for call in mock_questionary_print.mock_calls
+                label.id in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             assert any(
-                label.name in call.args[0] for call in mock_questionary_print.mock_calls
+                label.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
 
     def test_labels_list_local_invalid_path_failure(self):

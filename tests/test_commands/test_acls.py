@@ -5,6 +5,7 @@ import json
 import os
 import platform
 import uuid
+from tests.conftest import render_rich_arg
 
 import pytest
 
@@ -29,11 +30,11 @@ class TestACLs:
 
         # Assert
         assert all(
-            any(key in call.args[0] for call in call_args)
+            any(key in render_rich_arg(call.args[0]) for call in call_args)
             for key in ["id", "principal", "role"]
         )
 
-        assert all("Admin" not in call.args[0] for call in call_args)
+        assert all("Admin" not in render_rich_arg(call.args[0]) for call in call_args)
 
     def test_acls_get_workspace_with_query_failure(
         self, workspace, assert_fabric_cli_error, cli_executor: CLIExecutor
@@ -84,7 +85,7 @@ class TestACLs:
         # Assert
         mock_questionary_print.assert_called()
         assert any(
-            str(file_path) in call.args[0] for call in mock_questionary_print.mock_calls
+            str(file_path) in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
         assert "id" in file_content
         assert "principal" in file_content
@@ -105,9 +106,9 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "principal" in call.args[0] for call in mock_questionary_print.mock_calls
+            "principal" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
     # Region vistual workspace
@@ -128,11 +129,11 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "principal" in call.args[0] for call in mock_questionary_print.mock_calls
+            "principal" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
-        assert any("role" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("role" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
         # Reset mock
         mock_questionary_print.reset_mock()
@@ -143,8 +144,8 @@ class TestACLs:
         )
 
         # Assert
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
-        assert any("type" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
+        assert any("type" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
     def test_acls_get_gateway_success(
         self,
@@ -163,11 +164,11 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "principal" in call.args[0] for call in mock_questionary_print.mock_calls
+            "principal" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
-        assert any("role" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("role" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
         # Reset mock
         mock_questionary_print.reset_mock()
@@ -176,8 +177,8 @@ class TestACLs:
         cli_executor.exec_command(f"acl get {gateway.full_path} --query [*].principal")
 
         # Assert
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
-        assert any("type" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
+        assert any("type" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
     def test_acls_get_vws_not_supported_type_failure(
         self,
@@ -241,21 +242,21 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("acl" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("acl" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "Admin" in call.args[0] for call in mock_questionary_print.mock_calls
+            "Admin" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
-        assert any("type" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("type" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            role in call.args[0].lower() for call in mock_questionary_print.mock_calls
+            role in render_rich_arg(call.args[0]).lower() for call in mock_questionary_print.mock_calls
         )
 
         # -l is not passed, therefore `objectId` and `name` should not be in the output
         assert not any(
-            "objectId" in call.args[0] for call in mock_questionary_print.mock_calls
+            "objectId" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
         assert not any(
-            "name" in call.args[0] for call in mock_questionary_print.mock_calls
+            "name" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
         # Clean up
@@ -272,14 +273,14 @@ class TestACLs:
         # Test 1: Array projection for single field
         cli_executor.exec_command(f"acl ls {workspace.full_path} -q [*].identity")
         mock_questionary_print.assert_called()
-        assert any(test_data.admin.upn in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any(test_data.admin.upn in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
         mock_questionary_print.reset_mock()
 
         # Test 2: Multiple fields using array syntax
         cli_executor.exec_command(f"acl ls {workspace.full_path} -q [].[identity,type]")
         mock_questionary_print.assert_called()
-        call_args = mock_questionary_print.mock_calls[0].args[0]
+        call_args = render_rich_arg(mock_questionary_print.mock_calls[0].args[0])
         assert test_data.admin.upn in call_args and "User" in call_args
 
         mock_questionary_print.reset_mock()
@@ -289,7 +290,7 @@ class TestACLs:
             f"acl ls {workspace.full_path} -q '[].{{principalInfo: identity, accessLevel: acl}}'"
         )
         mock_questionary_print.assert_called()
-        call_args = mock_questionary_print.mock_calls[0].args[0]
+        call_args = render_rich_arg(mock_questionary_print.mock_calls[0].args[0])
         assert "principalInfo" in call_args and "accessLevel" in call_args
 
         # Cleanup test ACL entry
@@ -306,19 +307,19 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("acl" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("acl" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "Admin" in call.args[0] for call in mock_questionary_print.mock_calls
+            "Admin" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
-        assert any("type" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("type" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "identity" in call.args[0] for call in mock_questionary_print.mock_calls
+            "identity" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
         assert any(
-            "objectId" in call.args[0] for call in mock_questionary_print.mock_calls
+            "objectId" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
-        assert any("name" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("name" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
 
     def test_acls_ls_connection_success(
         self,
@@ -386,28 +387,28 @@ class TestACLs:
 
         # Assert
         mock_questionary_print.assert_called()
-        assert any("acl" in call.args[0] for call in mock_questionary_print.mock_calls)
-        assert any("Read" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("acl" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
+        assert any("Read" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "Write" in call.args[0] for call in mock_questionary_print.mock_calls
+            "Write" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
         assert any(
-            "ReShare" in call.args[0] for call in mock_questionary_print.mock_calls
+            "ReShare" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
         assert any(
-            "Execute" in call.args[0] for call in mock_questionary_print.mock_calls
+            "Execute" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
-        assert any("type" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("type" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         assert any(
-            "identity" in call.args[0] for call in mock_questionary_print.mock_calls
+            "identity" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
         assert not any(
-            "objectId" in call.args[0] for call in mock_questionary_print.mock_calls
+            "objectId" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
         assert not any(
-            "name" in call.args[0] for call in mock_questionary_print.mock_calls
+            "name" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
     # TODO: API Limitation: Once there's a way to enable UniversalSecurityFeature for the test workspace, update the test.
@@ -1157,16 +1158,16 @@ def acls_ls_vws_assestion(mock_questionary_print, long=False):
     # Assert
     mock_questionary_print.assert_called()
     assert all(
-        any(arg in call.args[0] for call in mock_questionary_print.mock_calls)
+        any(arg in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
         for arg in vws_args
     )
 
     # if -l is passed, `id` should be in the output
     if long:
-        assert any("id" in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any("id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls)
     else:
         assert not any(
-            "id" in call.args[0] for call in mock_questionary_print.mock_calls
+            "id" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
 

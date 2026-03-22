@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 from unittest.mock import patch
+from tests.conftest import render_rich_arg
 
 import fabric_cli.commands.fs.fab_fs_cp as fab_cp
 import fabric_cli.commands.fs.fab_fs_ls as fab_ls
@@ -65,38 +66,37 @@ class TestCP:
             mock_print_done.assert_called()
             mock_print_warning.assert_called_once()
             assert any(
-                call.args[0]
-                == f"2 items copied successfully from {ws1.full_path} to {ws2.full_path}\n"
+                render_rich_arg(call.args[0]) == f"2 items copied successfully from {ws1.full_path} to {ws2.full_path}\n"
                 for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             # Assert that the subfolder was not copied
             assert not any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Subfolder should not be copied when --recursive is not used"
             assert not any(
-                sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sjd.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Spark Job Definition should not be copied when --recursive is not used"
 
     def test_cp_workspace_to_workspace_recursive_success(
@@ -149,59 +149,58 @@ class TestCP:
             mock_print_done.assert_called()
             mock_print_warning.assert_called_once()
             assert any(
-                call.args[0]
-                == f"2 items and 1 folders copied successfully from {ws1.full_path} to {ws2.full_path}\n"
+                render_rich_arg(call.args[0]) == f"2 items and 1 folders copied successfully from {ws1.full_path} to {ws2.full_path}\n"
                 for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f1.full_path)
             assert any(
-                sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sjd.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             assert any(
-                f2.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f2.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f2.full_path)
             assert any(
-                notebook2.name in call.args[0]
+                notebook2.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                f3.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f3.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f3.full_path)
             assert any(
-                data_pipeline2.name in call.args[0]
+                data_pipeline2.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -259,36 +258,35 @@ class TestCP:
             mock_print_done.assert_called()
             mock_print_warning.assert_called_once()
             assert any(
-                call.args[0]
-                == f"2 items copied successfully from {ws1.full_path} to {f2.full_path}\n"
+                render_rich_arg(call.args[0]) == f"2 items copied successfully from {ws1.full_path} to {f2.full_path}\n"
                 for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                f2.display_name in call.args[0]
+                f2.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             rm(copied_notebook.full_path)
@@ -325,14 +323,14 @@ class TestCP:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -443,7 +441,7 @@ class TestCP:
                 mock_questionary_print.reset_mock()
                 ls(lakehouse2_onelake_full_path)
                 assert any(
-                    file_name in call.args[0]
+                    file_name in render_rich_arg(call.args[0])
                     for call in mock_questionary_print.mock_calls
                 )
 
@@ -460,7 +458,7 @@ class TestCP:
                 mock_questionary_print.reset_mock()
                 ls(lakehouse2_onelake_full_path)
                 assert any(
-                    renamed_file_name in call.args[0]
+                    renamed_file_name in render_rich_arg(call.args[0])
                     for call in mock_questionary_print.mock_calls
                 )
 
@@ -531,7 +529,7 @@ class TestCP:
                 ls(lakehouse_onelake_full_path)
                 # Extract the file name from the path
                 assert any(
-                    file_name in call.args[0]
+                    file_name in render_rich_arg(call.args[0])
                     for call in mock_questionary_print.mock_calls
                 )
 
@@ -548,7 +546,7 @@ class TestCP:
                 mock_questionary_print.reset_mock()
                 ls(lakehouse_onelake_full_path)
                 assert any(
-                    renamed_file_name in call.args[0]
+                    renamed_file_name in render_rich_arg(call.args[0])
                     for call in mock_questionary_print.mock_calls
                 )
 
@@ -754,14 +752,14 @@ class TestCP:
             # Inside the workspace there is the source folder
             ls(ws2.full_path)
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_print_done.assert_called()
             mock_questionary_print.reset_mock()
             # Inside the copied folder there is the item
             ls(f2.full_path)
             assert any(
-                notebook2.name in call.args[0]
+                notebook2.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             rm(notebook2.full_path)
@@ -807,26 +805,26 @@ class TestCP:
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                f2.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f2.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f2.full_path)
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(cli_path_join(f2.full_path, f1.name))
             assert any(
-                notebook.name in call.args[0]
+                notebook.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                sf1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sf1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Subfolder should be copied to the destination folder"
             mock_questionary_print.reset_mock()
             ls(cli_path_join(f2.full_path, f1.name, sf1.name))
             assert any(
-                sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sjd.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Spark Job Definition should be copied to the newly created subfolder"
 
     def test_cp_folder_to_existing_folder_success(
@@ -874,12 +872,12 @@ class TestCP:
             mock_questionary_print.reset_mock()
             ls(f2.full_path)
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(copied_f1.full_path)
             assert any(
-                notebook.name in call.args[0]
+                notebook.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             ), "Notebook should be copied to the newly created folder"
 
@@ -921,13 +919,13 @@ class TestCP:
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                "NewFolder.Folder" in call.args[0]
+                "NewFolder.Folder" in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             ), "New folder should be created in the destination workspace"
             mock_questionary_print.reset_mock()
             ls(cli_path_join(ws2.full_path, "NewFolder.Folder"))
             assert any(
-                notebook.name in call.args[0]
+                notebook.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             ), "Notebook should be copied to the newly created folder"
 
@@ -968,13 +966,13 @@ class TestCP:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert any(
-                new_folder_name in call.args[0]
+                new_folder_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             ), "New folder should be created in the same workspace with '_copy' suffix"
             mock_questionary_print.reset_mock()
             ls(cli_path_join(ws1.full_path, new_folder_name))
             assert any(
-                new_notebook_name in call.args[0]
+                new_notebook_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             ), "Notebook should be copied to the newly created folder with '_copy' suffix"
 

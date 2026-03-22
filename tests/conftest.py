@@ -1,34 +1,58 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from io import StringIO
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 import fabric_cli.core.fab_state_config as state_config
+from fabric_cli.utils.fab_output_manager import OutputManager
+
+
+def render_rich_arg(arg):
+    """Convert a Rich renderable (e.g. Table) to plain text for test assertions.
+
+    If *arg* is already a string it is returned as-is.  Otherwise it is
+    rendered through a headless Rich Console so that the result is a plain
+    string that can be searched with ``in``, split, etc.
+    """
+    if isinstance(arg, str):
+        return arg
+    try:
+        from rich.console import Console as _Console
+
+        from fabric_cli.utils.fab_output_manager import FAB_THEME
+
+        buf = StringIO()
+        _Console(file=buf, width=300, no_color=True, theme=FAB_THEME).print(arg)
+        return buf.getvalue()
+    except Exception:
+        return str(arg)
 
 
 @pytest.fixture
 def mock_questionary_print():
-    """Mock the stdout rich Console.print used for CLI output.
+    """Mock OutputManager._safe_print — the single gateway for data output.
 
-    This fixture patches the ``print`` method of the shared stdout
-    ``Console`` instance defined in ``fabric_cli.utils.fab_output_manager`` so
-    that tests can verify what was printed without depending on
-    terminal output.  Only the stdout console is patched; stderr
-    output (warnings, errors) is not intercepted, matching the prior
-    ``questionary.print`` behavior.
+    In the original codebase ``questionary.print`` was used for ALL data
+    output (text, tables, grey/muted messages) regardless of target
+    stream, while ``prompt_toolkit.print_formatted_text`` handled
+    status/done and warning messages separately.
+
+    In the refactored architecture ``_safe_print`` serves the same role:
+    every data/display call routes through it, while status, warning and
+    error calls go directly to the console.  Patching ``_safe_print``
+    therefore captures exactly the same set of calls the old mock did.
     """
-    import fabric_cli.utils.fab_output_manager as output_mgr
-
-    with patch.object(output_mgr.console, "print") as mock:
+    with patch.object(OutputManager, '_safe_print') as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_print_warning():
-    """Mock fab_ui.print_warning function."""
-    with patch("fabric_cli.utils.fab_ui.print_warning") as mock:
+    """Mock OutputManager.warning (covers both print_warning and log_warning callers)."""
+    with patch("fabric_cli.utils.fab_output_manager.OutputManager.warning") as mock:
         yield mock
 
 

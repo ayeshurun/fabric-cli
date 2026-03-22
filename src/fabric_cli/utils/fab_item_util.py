@@ -29,7 +29,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, format_mapping
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, OneLakeItem
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def obtain_id_names_for_onelake(

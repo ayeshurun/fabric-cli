@@ -8,7 +8,7 @@ from typing import Any
 from fabric_cli.core import fab_commands as cmd
 from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_handle_context as handle_context
-from fabric_cli.core import fab_logger
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_decorators import set_command_context
 from fabric_cli.core.fab_types import (
     FabricElementType,
@@ -22,7 +22,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, _BaseItem
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.core.hiearchy.fab_workspace import Workspace
 from fabric_cli.utils import fab_error_parser as utils_error_parser
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as utils
 
 

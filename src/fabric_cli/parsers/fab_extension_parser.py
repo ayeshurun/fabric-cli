@@ -3,7 +3,8 @@
 
 from argparse import Namespace, _SubParsersAction
 
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 
 
 def register_parser(subparsers: _SubParsersAction) -> None:

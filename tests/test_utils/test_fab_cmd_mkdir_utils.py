@@ -137,7 +137,7 @@ def test_workspace_identity_with_unsupported_params_ignored_success():
     }
     
     # Act
-    with patch('fabric_cli.utils.fab_ui.print_warning') as mock_warning:
+    with patch('fabric_cli.utils.fab_output_manager.print_warning') as mock_warning:
         result = get_connection_config_from_params(payload, con_type, con_type_def, params)
         
         mock_warning.assert_called_once()

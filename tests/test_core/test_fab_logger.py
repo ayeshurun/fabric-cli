@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 from requests import RequestException
 
-from fabric_cli.core import fab_logger as logger
+from fabric_cli.utils import fab_output_manager as logger
 from fabric_cli.core import fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 
@@ -241,11 +241,11 @@ def test_print_log_file_path_debug_disabled_success(
 
 @pytest.fixture
 def mock_log_warning():
-    with patch("fabric_cli.core.fab_logger.log_warning") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.log_warning") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_get_log_file_path():
-    with patch("fabric_cli.core.fab_logger.get_log_file_path") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.get_log_file_path") as mock:
         yield mock

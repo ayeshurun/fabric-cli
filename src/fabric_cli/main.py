@@ -6,13 +6,14 @@ import sys
 import argcomplete
 
 from fabric_cli.commands.auth import fab_auth as login
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+from fabric_cli.core import fab_constant, fab_state_config
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_interactive import start_interactive_mode
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
 from fabric_cli.parsers import fab_auth_parser as auth_parser
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
 from fabric_cli.utils.fab_output_manager import output_manager
 

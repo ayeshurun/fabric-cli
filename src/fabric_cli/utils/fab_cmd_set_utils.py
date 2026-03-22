@@ -5,7 +5,8 @@ import base64
 import json
 from typing import Optional
 
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors.common import CommonErrors
 from fabric_cli.utils import fab_jmespath as utils_jmespath

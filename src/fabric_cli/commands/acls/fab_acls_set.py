@@ -8,12 +8,13 @@ from typing import Literal
 from fabric_cli.client import fab_api_connection as api_connection
 from fabric_cli.client import fab_api_gateway as api_gateway
 from fabric_cli.client import fab_api_workspace as api_workspaces
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import VirtualWorkspaceItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Workspace
 from fabric_cli.core.hiearchy.fab_virtual_workspace_item import VirtualWorkspaceItem
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 # Valid roles for different contexts
 WORKSPACE_ROLES = ["Admin", "Member", "Contributor", "Viewer"]

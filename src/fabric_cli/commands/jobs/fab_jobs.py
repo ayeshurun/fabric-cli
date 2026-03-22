@@ -15,7 +15,7 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.utils import fab_cmd_job_utils as utils_job
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 @handle_exceptions()

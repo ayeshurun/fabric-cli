@@ -486,7 +486,7 @@ class TestLS:
         cli_executor.exec_command("ls --output_format text")
 
         # Verify text output despite json config
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises((json.JSONDecodeError, TypeError)):
             json.loads(mock_questionary_print.mock_calls[0].args[0])
 
         # Assert
@@ -1314,15 +1314,17 @@ def _assert_strings_in_mock_calls(
     Raises:
         AssertionError: If the assertion fails.
     """
+    from tests.conftest import render_rich_arg
+
     if require_all_in_same_args:
         # Check if all strings exist together in the same call.args[0]
         match_found = any(
-            all(string in call.args[0] for string in strings) for call in mock_calls
+            all(string in render_rich_arg(call.args[0]) for string in strings) for call in mock_calls
         )
     else:
         # Check if each string exists independently across the mock calls
         match_found = all(
-            any(string in call.args[0] for call in mock_calls) for string in strings
+            any(string in render_rich_arg(call.args[0]) for call in mock_calls) for string in strings
         )
 
     if should_exist:

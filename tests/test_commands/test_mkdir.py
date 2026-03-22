@@ -7,6 +7,7 @@ import platform
 import re
 import time
 from unittest.mock import patch
+from tests.conftest import render_rich_arg
 
 import pytest
 
@@ -221,7 +222,7 @@ class TestMkdir:
         # print call_count is 1 because we batch the result of the first call for the parent eventhouse and the second call for the kqldatabase
         assert mock_print_done.call_count == 1
         assert any(
-            kqldatabase_display_name in call.args[0]
+            kqldatabase_display_name in render_rich_arg(call.args[0])
             for call in mock_print_done.mock_calls
         )
 
@@ -1965,7 +1966,7 @@ class TestMkdir:
         )
 
         # Verify exact stdout message in text format
-        assert f"* '{workspace_display_name}.Workspace' created" in captured.out.strip()
+        assert f"'{workspace_display_name}.Workspace' created" in captured.out.strip()
 
         # Cleanup
         rm(workspace_full_path)
@@ -2029,7 +2030,7 @@ class TestMkdir:
 
         # Verify notebook appears in folder listing
         cli_executor.exec_command(f"ls {folder_full_path}")
-        printed_output = mock_questionary_print.call_args[0][0]
+        printed_output = render_rich_arg(mock_questionary_print.call_args[0][0])
         assert notebook_name in printed_output
 
         # Cleanup
@@ -2117,7 +2118,7 @@ class TestMkdir:
 
         # Verify headers and values in mock_questionary_print.mock_calls
         # Look for the table output with headers
-        output_calls = [str(call)
+        output_calls = [render_rich_arg(call.args[0]) if call.args else str(call)
                         for call in mock_questionary_print.mock_calls]
         table_output = "\n".join(output_calls)
 
@@ -2167,7 +2168,7 @@ class TestMkdir:
         )
 
         # Verify headers and values in mock_questionary_print.mock_calls for batched output
-        output_calls = [str(call)
+        output_calls = [render_rich_arg(call.args[0]) if call.args else str(call)
                         for call in mock_questionary_print.mock_calls]
         table_output = "\n".join(output_calls)
 

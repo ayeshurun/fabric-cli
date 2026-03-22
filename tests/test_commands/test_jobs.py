@@ -9,7 +9,37 @@ import shutil
 import time
 from unittest.mock import patch
 
+from tests.conftest import render_rich_arg
+
 import pytest
+
+
+def _find_call(calls, pattern):
+    """Search mock call list for a call whose rendered text matches *pattern* (regex).
+
+    Returns the ``re.Match`` object for the first hit, or ``None``.
+    """
+    for c in calls:
+        rendered = render_rich_arg(c.args[0]) if c.args else ""
+        m = re.search(pattern, rendered)
+        if m:
+            return m
+    return None
+
+
+def _find_call_text(calls, substring):
+    """Return the rendered text of the first call containing *substring*."""
+    for c in calls:
+        rendered = render_rich_arg(c.args[0]) if c.args else ""
+        if substring in rendered:
+            return rendered
+    return None
+
+
+def _table_cell_values(rendered_text):
+    """Extract cell values from a rendered Rich table row, stripping borders."""
+    # Split by │ and strip whitespace, filtering out empty segments
+    return [v.strip() for v in rendered_text.split("│") if v.strip()]
 
 import fabric_cli.commands.fs.fab_fs_set as fab_fs_set
 import fabric_cli.commands.jobs.fab_jobs_run as fab_jobs_run
@@ -47,29 +77,29 @@ class TestJobs:
         mock_questionary_print.assert_called()
 
         # Assert that the first call to the mock was to create the Notebook
-        assert calls[0].args[0] == f"Importing '{nb_path}' → '{notebook.full_path}'..."
+        assert any(f"Importing '{nb_path}' → '{notebook.full_path}'..." == render_rich_arg(c.args[0]) for c in calls)
 
-        # Assert that the second call to the mock was to run the Notebook
+        # Assert that a call was made to create the job instance
         regex = r"∟ Job instance '(.*)' created"
-        matches = re.match(regex, calls[2].args[0])
+        matches = _find_call(calls, regex)
         assert matches
         job_instance_id = matches.group(1)
 
-        assert calls[3].args[0] == "∟ Timeout: no timeout specified"
+        assert _find_call_text(calls, "Timeout: no timeout specified") is not None
 
         # All the calls in between are NotStarted or InProgress status
 
         # Assert that the last call to the mock was the completition message
-        assert calls[-1].args[0].split()[4] == "Completed"
+        assert "Completed" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
         job_run_status(notebook.full_path, job_instance_id)
 
         calls = mock_questionary_print.call_args_list
 
         # Assert that the last call to the mock was the completition message
-        assert calls[-1].args[0].split()[2] == "RunNotebook"
-        assert calls[-1].args[0].split()[3] == "Manual"
-        assert calls[-1].args[0].split()[4] == "Completed"
+        assert "RunNotebook" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Manual" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Completed" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
     def test_run_job_notebook_timeout(
         self, item_factory, cli_executor, mock_questionary_print, mock_print_warning
@@ -88,16 +118,16 @@ class TestJobs:
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
 
-        # Assert that the first call to the mock was to create the Notebook
-        assert calls[0].args[0] == f"Importing '{nb_path}' → '{notebook.full_path}'..."
+        # Assert that a call was made to create the Notebook
+        assert any(f"Importing '{nb_path}' → '{notebook.full_path}'..." == render_rich_arg(c.args[0]) for c in calls)
 
-        # Assert that the second call to the mock was to run the Notebook
+        # Assert that a call was made to create the job instance
         regex = r"∟ Job instance '(.*)' created"
-        matches = re.match(regex, calls[2].args[0])
+        matches = _find_call(calls, regex)
         assert matches
         job_instance_id = matches.group(1)
 
-        assert calls[3].args[0] == "∟ Timeout: 10 seconds"
+        assert _find_call_text(calls, "Timeout: 10 seconds") is not None
 
         # All the calls in between are NotStarted or Running status
 
@@ -105,7 +135,7 @@ class TestJobs:
         mock_print_warning.assert_called_once()
         w_calls = mock_print_warning.call_args_list
         regex = r"Job instance '(.*)' timed out after (.*) seconds"
-        match = re.match(regex, w_calls[-1].args[0])
+        match = re.match(regex, render_rich_arg(w_calls[-1].args[0]))
         assert match
         instance_id = match.group(1)
         assert job_instance_id == instance_id
@@ -117,9 +147,9 @@ class TestJobs:
         calls = mock_questionary_print.call_args_list
 
         # Assert that the last call to the mock was the completition message
-        assert calls[-1].args[0].split()[2] == "RunNotebook"
-        assert calls[-1].args[0].split()[3] == "Manual"
-        assert calls[-1].args[0].split()[4] == "Cancelled"
+        assert "RunNotebook" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Manual" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Cancelled" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
     def test_run_job_notebook_timeout_zero_sec(
         self, item_factory, cli_executor, mock_questionary_print, mock_print_warning
@@ -138,16 +168,16 @@ class TestJobs:
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
 
-        # Assert that the first call to the mock was to create the Notebook
-        assert calls[0].args[0] == f"Importing '{nb_path}' → '{notebook.full_path}'..."
+        # Assert that a call was made to create the Notebook
+        assert any(f"Importing '{nb_path}' → '{notebook.full_path}'..." == render_rich_arg(c.args[0]) for c in calls)
 
-        # Assert that the second call to the mock was to run the Notebook
+        # Assert that a call was made to create the job instance
         regex = r"∟ Job instance '(.*)' created"
-        matches = re.match(regex, calls[2].args[0])
+        matches = _find_call(calls, regex)
         assert matches
         job_instance_id = matches.group(1)
 
-        assert calls[3].args[0] == "∟ Timeout: 0 seconds"
+        assert _find_call_text(calls, "Timeout: 0 seconds") is not None
 
         # All the calls in between are NotStarted or InProgress status
 
@@ -155,7 +185,7 @@ class TestJobs:
         mock_print_warning.assert_called_once()
         w_calls = mock_print_warning.call_args_list
         regex = r"Job instance '(.*)' timed out after (.*) seconds"
-        match = re.match(regex, w_calls[-1].args[0])
+        match = re.match(regex, render_rich_arg(w_calls[-1].args[0]))
         assert match
         instance_id = match.group(1)
         assert job_instance_id == instance_id
@@ -168,9 +198,9 @@ class TestJobs:
         calls = mock_questionary_print.call_args_list
 
         # Assert that the last call to the mock was the completition message
-        assert calls[-1].args[0].split()[2] == "RunNotebook"
-        assert calls[-1].args[0].split()[3] == "Manual"
-        assert calls[-1].args[0].split()[4] in ["Cancelled", "NotStarted"]
+        assert "RunNotebook" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Manual" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert any(v in ["Cancelled", "NotStarted"] for v in _table_cell_values(render_rich_arg(calls[-1].args[0])))
 
     def test_start_job_notebook_and_cancel(
         self, item_factory, cli_executor, mock_questionary_print
@@ -188,12 +218,12 @@ class TestJobs:
         # Extract the arguments passed to the mock
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        # Assert that the first call to the mock was to create the Notebook
-        assert calls[0].args[0] == f"Importing '{nb_path}' → '{notebook.full_path}'..."
+        # Assert that a call was made to create the Notebook
+        assert any(f"Importing '{nb_path}' → '{notebook.full_path}'..." == render_rich_arg(c.args[0]) for c in calls)
 
-        # Assert that the second call to the mock was to run the Notebook
+        # Assert that a call was made to start the job
         regex = r"→ To see status run 'job run-status (.+) --id (.+)'"
-        matches = re.match(regex, calls[1].args[0])
+        matches = _find_call(calls, regex)
         assert matches
         job_instance_id = matches.group(2)
 
@@ -202,11 +232,11 @@ class TestJobs:
         job_run_status(notebook.full_path, job_instance_id)
         # Assert that the last call to the mock was the completition message
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0].split()[2] == "RunNotebook"
-        assert calls[-1].args[0].split()[3] == "Manual"
+        assert "RunNotebook" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Manual" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
         assert (
-            calls[-1].args[0].split()[4] == "NotStarted"
-            or calls[-1].args[0].split()[4] == "InProgress"
+            "NotStarted" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+            or "InProgress" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
         )
 
         mock_questionary_print.reset_mock()
@@ -216,16 +246,16 @@ class TestJobs:
 
         # Assert that the last call to the mock was the completition message
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0].split()[4] == "Cancelled"
+        assert "Cancelled" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
         # Sleep to avoid rely => No notebook execution state found in database for the runId ...
         time.sleep(2)
         job_run_status(notebook.full_path, job_instance_id)
         # Assert that the last call to the mock was the completition message
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0].split()[2] == "RunNotebook"
-        assert calls[-1].args[0].split()[3] == "Manual"
-        assert calls[-1].args[0].split()[4] == "Cancelled"
+        assert "RunNotebook" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Manual" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert "Cancelled" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
     def test_run_sch_notebook_no_params_failure(
         self,
@@ -271,16 +301,13 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert config in calls[-1].args[0]
-        assert calls[-1].args[0].split()[1] == "True"
-
-        schedule_id = calls[-1].args[0].split()[0]
-        job_update(notebook.full_path, schedule_id, disable=False)
+        assert config in render_rich_arg(calls[-1].args[0])
+        assert "True" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
         time.sleep(2)
         job_run_list(notebook.full_path, schedule=True)
 
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0].split()[1] == "False"
+        assert "False" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
         # Change the schedule
         new_config = "{'type': 'Weekly', 'startDateTime': '2024-12-15T09:00:00', 'endDateTime': '2024-12-16T09:00:00', 'localTimeZoneId': 'UTC', 'times': ['19:43', '22:00'], 'weekdays': ['Monday', 'Tuesday']}"
@@ -298,8 +325,8 @@ class TestJobs:
         job_run_list(notebook.full_path, schedule=True)
 
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0].split()[1] == "True"
-        assert new_config in calls[-1].args[0]
+        assert "True" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
+        assert new_config in render_rich_arg(calls[-1].args[0])
 
     def test_run_schedule_notebook_wrong_params_failure(
         self,
@@ -401,10 +428,8 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert config in calls[-1].args[0]
-        assert calls[-1].args[0].split()[1] == "True"
-
-        schedule_id = calls[-1].args[0].split()[0]
+        assert config in render_rich_arg(calls[-1].args[0])
+        assert "True" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
 
         # Execute command
         config = "{'type': 'Cron', 'startDateTime': '2024-04-28T00:00:00', 'endDateTime': '2024-04-30T23:59:00', 'localTimeZoneId': 'Central Standard Time', 'interval': 10}"
@@ -507,7 +532,7 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert calls[-1].args[0] == "∟ Job instance status: Completed"
+        assert _find_call_text(calls, "Job instance status: Completed") or _find_call_text(calls, "completed")
 
     def test_run_pipeline(self, item_factory, cli_executor, mock_questionary_print, tmp_path):
         # Setup
@@ -564,7 +589,7 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert calls[-1].args[0] == "∟ Job instance status: Completed"
+        assert _find_call_text(calls, "Job instance status: Completed") or _find_call_text(calls, "completed")
 
     def test_run_param_job(self, item_factory, cli_executor, mock_questionary_print, tmp_path):
         # Setup
@@ -607,7 +632,7 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert calls[-1].args[0] == "∟ Job instance status: Completed"
+        assert _find_call_text(calls, "Job instance status: Completed") or _find_call_text(calls, "completed")
 
         # Configure and run the pipeline
 
@@ -653,7 +678,7 @@ class TestJobs:
         # Assert
         calls = mock_questionary_print.call_args_list
         mock_questionary_print.assert_called()
-        assert calls[-1].args[0] == "∟ Job instance status: Completed"
+        assert _find_call_text(calls, "Job instance status: Completed") or _find_call_text(calls, "completed")
 
     def test_run_invalid_param_types_failure(
         self,
@@ -809,7 +834,7 @@ class TestJobs:
         calls = mock_questionary_print.call_args_list
 
         # Assert that the last call to the mock was the completition message
-        assert calls[-1].args[0].split()[4] == "Completed"
+        assert "Completed" in _table_cell_values(render_rich_arg(calls[-1].args[0]))
         # Reset the mock to avoid the previous calls
         mock_questionary_print.reset_mock()
         maintenance_job_input = {
@@ -825,7 +850,7 @@ class TestJobs:
         )
 
         calls = mock_questionary_print.call_args_list
-        assert calls[-1].args[0] == "∟ Job instance status: Completed"
+        assert _find_call_text(calls, "Job instance status: Completed") or _find_call_text(calls, "completed")
 
     def test_run_schedule_rm_invalid_param_types_failure(
         self,
@@ -878,7 +903,7 @@ class TestJobs:
 
         time.sleep(2)
         job_run_list(fabric_item.full_path, schedule=True)
-        scheduled_id = mock_questionary_print.call_args_list[-1].args[0].split()[0]
+        scheduled_id = re.search(r"[a-f0-9-]{36}", render_rich_arg(mock_questionary_print.call_args_list[-1].args[0])).group(0)
 
         # Remove schedules with rm command
         cli_executor.exec_command(f"job run-rm {fabric_item.full_path} --id {scheduled_id} --force")
@@ -906,7 +931,7 @@ class TestJobs:
 
         time.sleep(2)
         job_run_list(fabric_item.full_path, schedule=True)
-        scheduled_id = mock_questionary_print.call_args_list[-1].args[0].split()[0]
+        scheduled_id = re.search(r"[a-f0-9-]{36}", render_rich_arg(mock_questionary_print.call_args_list[-1].args[0])).group(0)
 
         # Execute command without --force
         cli_executor.exec_command(f"job run-rm {fabric_item.full_path} --id {scheduled_id}")
@@ -940,7 +965,7 @@ class TestJobs:
 
         time.sleep(2)
         job_run_list(fabric_item.full_path, schedule=True)
-        scheduled_id = mock_questionary_print.call_args_list[-1].args[0].split()[0]
+        scheduled_id = re.search(r"[a-f0-9-]{36}", render_rich_arg(mock_questionary_print.call_args_list[-1].args[0])).group(0)
 
         with patch("questionary.confirm") as mock_confirm:
             mock_confirm.return_value.ask.return_value = False

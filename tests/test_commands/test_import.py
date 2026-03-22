@@ -1021,7 +1021,7 @@ def _import_create_new_item_success(
     new_item_path = item_path.replace(
         item.display_name, item.display_name + "_new_" + str(new_name_index)
     )
-    with patch("fabric_cli.utils.fab_ui.prompt_confirm", return_value=True):
+    with patch("fabric_cli.utils.fab_output_manager.prompt_confirm", return_value=True):
         cli_executor.exec_command(
             f"import {new_item_path} --input {str(tmp_path)}/{item.name} --force"
         )
@@ -1071,7 +1071,7 @@ def _import_create_new_item_with_format_success(
     new_item_path = item_path.replace(
         item.display_name, item.display_name + "_new_" + str(new_name_index)
     )
-    with patch("fabric_cli.utils.fab_ui.prompt_confirm", return_value=True):
+    with patch("fabric_cli.utils.fab_output_manager.prompt_confirm", return_value=True):
         cli_executor.exec_command(
             f"import {new_item_path} --input {str(tmp_path)}/{item.name} --force --format {format}"
         )

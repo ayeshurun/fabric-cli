@@ -12,7 +12,7 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.hiearchy.fab_onelake_element import OneLakeItem
 from fabric_cli.utils import fab_cmd_table_utils as utils_table
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 @handle_exceptions()

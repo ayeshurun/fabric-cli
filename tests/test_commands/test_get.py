@@ -4,6 +4,7 @@
 import argparse
 import json
 import time
+from tests.conftest import render_rich_arg
 
 import pytest
 
@@ -167,7 +168,7 @@ class TestGet:
         # Assert
         mock_questionary_print.assert_called()
         assert any(
-            "paths" in call.args[0] for call in mock_questionary_print.mock_calls
+            "paths" in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
         )
 
     def test_get_onelake_shortcut_success(
@@ -220,7 +221,7 @@ class TestGet:
         # Assert
         mock_questionary_print.assert_called()
         assert any(
-            test_data.capacity.name in call.args[0]
+            test_data.capacity.name in render_rich_arg(call.args[0])
             for call in mock_questionary_print.mock_calls
         )
 

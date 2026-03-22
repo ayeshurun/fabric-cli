@@ -68,7 +68,7 @@ def test_cli_version_fetch_pypi_success(mock_get):
     )
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
 def test_cli_version_fetch_pypi_network_error_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
     """Should return None when PyPI request fails (network error)."""
@@ -82,7 +82,7 @@ def test_cli_version_fetch_pypi_network_error_failure(mock_get, mock_log_debug, 
     assert "Failed to fetch version from PyPI" in str(mock_log_debug.call_args[0][0])
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
 def test_cli_version_fetch_pypi_http_error_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
     """Should return None when PyPI returns non-200 status code."""
@@ -99,7 +99,7 @@ def test_cli_version_fetch_pypi_http_error_failure(mock_get, mock_log_debug, moc
     assert "Failed to fetch version from PyPI" in str(mock_log_debug.call_args[0][0])
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
 def test_cli_version_fetch_pypi_invalid_json_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
     """Should return None when PyPI returns invalid JSON."""
@@ -117,7 +117,7 @@ def test_cli_version_fetch_pypi_invalid_json_failure(mock_get, mock_log_debug, m
     assert "Failed to fetch version from PyPI" in str(mock_log_debug.call_args[0][0])
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
 def test_cli_version_fetch_pypi_missing_keys_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
     """Should return None when PyPI response is missing expected keys."""
@@ -208,7 +208,7 @@ def test_cli_version_check_new_version_available_success(
     assert "pip install --upgrade" in captured.err
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check._fetch_latest_version_from_pypi")
 def test_cli_version_check_same_version_success(
     mock_fetch, mock_log_debug, mock_fab_set_state_config, mock_questionary_print
@@ -224,7 +224,7 @@ def test_cli_version_check_same_version_success(
     mock_log_debug.assert_called_with(f"Already on latest version: {__version__}")
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check._fetch_latest_version_from_pypi")
 def test_cli_version_check_fetch_failure(
     mock_fetch, mock_log_debug, mock_fab_set_state_config, mock_questionary_print
@@ -240,7 +240,7 @@ def test_cli_version_check_fetch_failure(
     mock_log_debug.assert_called_with("Could not fetch latest version from PyPI")
 
 
-@patch("fabric_cli.core.fab_logger.log_debug")
+@patch("fabric_cli.utils.fab_output_manager.log_debug")
 @patch("fabric_cli.utils.fab_version_check._fetch_latest_version_from_pypi")
 def test_cli_version_check_older_version_success(
     mock_fetch, mock_log_debug, mock_fab_set_state_config, mock_questionary_print

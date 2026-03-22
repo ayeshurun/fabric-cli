@@ -9,12 +9,13 @@ from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import Style
 
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_context import Context
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.utils import fab_commands
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
 from fabric_cli.utils.fab_output_manager import output_manager
 

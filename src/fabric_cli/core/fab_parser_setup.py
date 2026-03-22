@@ -7,7 +7,8 @@ import sys
 
 import argcomplete
 
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.parsers import fab_acls_parser as acls_parser
 from fabric_cli.parsers import fab_api_parser as api_parser
 from fabric_cli.parsers import fab_auth_parser as auth_parser
@@ -20,7 +21,7 @@ from fabric_cli.parsers import fab_jobs_parser as jobs_parser
 from fabric_cli.parsers import fab_labels_parser as labels_parser
 from fabric_cli.parsers import fab_tables_parser as tables_parser
 from fabric_cli.utils import fab_error_parser as utils_error_parser
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
 
 

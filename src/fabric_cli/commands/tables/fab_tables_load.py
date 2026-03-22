@@ -11,7 +11,7 @@ from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_table_utils as utils_table
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def exec_command(args: Namespace, context: OneLakeItem) -> None:

@@ -9,13 +9,14 @@ import sys
 
 import psutil
 
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+from fabric_cli.core import fab_constant, fab_state_config
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_element import FabricElement
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 @singleton

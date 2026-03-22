@@ -6,14 +6,15 @@ from argparse import Namespace
 
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client.fab_api_types import ApiResponse
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, definition_format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def import_single_item(item: Item, args: Namespace) -> None:

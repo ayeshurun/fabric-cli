@@ -13,8 +13,9 @@ from typing import Optional
 import requests
 
 from fabric_cli import __version__
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
-from fabric_cli.utils import fab_ui
+from fabric_cli.core import fab_constant, fab_state_config
+from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def _fetch_latest_version_from_pypi() -> Optional[str]:

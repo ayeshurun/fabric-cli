@@ -9,7 +9,7 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, OneLakeItem
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as utils
 from fabric_cli.utils import fab_item_util as item_utils
 

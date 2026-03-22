@@ -9,7 +9,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemOnelakeWritableFoldersMap, ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as utils
 
 

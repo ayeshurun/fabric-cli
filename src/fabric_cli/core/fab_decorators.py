@@ -3,14 +3,14 @@
 
 from functools import wraps
 
-import fabric_cli.core.fab_logger as fab_logger
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_constant import (
     ERROR_UNAUTHORIZED,
     EXIT_CODE_AUTHORIZATION_REQUIRED,
     EXIT_CODE_ERROR,
 )
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def singleton(class_):

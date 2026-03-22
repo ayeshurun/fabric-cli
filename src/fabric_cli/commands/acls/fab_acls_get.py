@@ -10,7 +10,8 @@ from fabric_cli.client import fab_api_gateway as api_gateway
 from fabric_cli.client import fab_api_item as api_items
 from fabric_cli.client import fab_api_onelake as api_onelake
 from fabric_cli.client import fab_api_workspace as api_workspaces
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_exceptions import FabricAPIError, FabricCLIError
 from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import (
@@ -23,7 +24,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_jmespath as utils_jmespath
 from fabric_cli.utils import fab_storage as utils_storage
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils import fab_util as utils
 
 

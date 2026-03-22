@@ -7,7 +7,7 @@ from fabric_cli.commands.config import fab_config as config
 from fabric_cli.core import fab_constant
 from fabric_cli.core.completers import fab_config_completers
 from fabric_cli.utils import fab_error_parser as utils_error_parser
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils.fab_util import get_os_specific_command
 
 commands = {

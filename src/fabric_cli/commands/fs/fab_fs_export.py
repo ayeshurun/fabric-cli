@@ -5,7 +5,8 @@ from argparse import Namespace
 
 from fabric_cli.commands.fs.export import fab_fs_export_item as export_item
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, Workspace
-from fabric_cli.utils import fab_item_util, fab_ui, fab_util
+from fabric_cli.utils import fab_item_util, fab_util
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def exec_command(args: Namespace, context: FabricElement) -> None:

@@ -889,7 +889,7 @@ def mock_fab_ui_print_error():
 
 @pytest.fixture
 def mock_fab_logger_log_warning():
-    with patch("fabric_cli.core.fab_logger.log_warning") as mock:
+    with patch("fabric_cli.utils.fab_output_manager.log_warning") as mock:
         yield mock
 
 

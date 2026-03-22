@@ -12,7 +12,7 @@ from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.core.hiearchy.fab_workspace import Workspace
 from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as utils
 
 

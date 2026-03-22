@@ -13,7 +13,7 @@ from fabric_cli.core import fab_constant as constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_ui as ui
+from fabric_cli.utils import fab_output_manager as ui
 
 
 class OutputType(Enum):

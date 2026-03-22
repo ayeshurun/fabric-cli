@@ -4,6 +4,7 @@
 import argparse
 from unittest.mock import patch
 import pytest
+from tests.conftest import render_rich_arg
 
 import fabric_cli.commands.fs.fab_fs_ln as fab_ln
 import fabric_cli.commands.fs.fab_fs_ls as fab_ls
@@ -77,34 +78,34 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                notebook.display_name not in call.args[0]
+                notebook.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert all(
-                data_pipeline.display_name not in call.args[0]
+                data_pipeline.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             # Assert that the subfolder was not copied
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Subfolder should not be copied when --recursive is not used"
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             # Assert that the subfolder was not copied
             assert not any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Subfolder should not be copied when --recursive is not used"
             assert not any(
-                sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sjd.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             ), "Spark Job Definition should not be copied when --recursive is not used"
 
     def test_mv_workspace_to_workspace_recursive_success(
@@ -166,35 +167,35 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                notebook.display_name not in call.args[0]
+                notebook.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert all(
-                data_pipeline.display_name not in call.args[0]
+                data_pipeline.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert all(
-                f1.display_name not in call.args[0]
+                f1.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f1.full_path)
             assert any(
-                sjd.name in call.args[0] for call in mock_questionary_print.mock_calls
+                sjd.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
 
     @mv_item_to_item_success_params
@@ -236,14 +237,14 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                item.display_name not in call.args[0]
+                item.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                item.display_name in call.args[0]
+                item.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -335,21 +336,21 @@ class TestMV:
             # Assert
             mock_print_done.assert_called()
             assert any(
-                "moved successfully" in call.args[0]
+                "moved successfully" in render_rich_arg(call.args[0])
                 for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                notebook1.display_name not in call.args[0]
+                notebook1.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook1.display_name in call.args[0]
+                notebook1.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -391,20 +392,20 @@ class TestMV:
             # Assert
             mock_print_done.assert_called()
             assert any(
-                call.args[0] == "Move completed\n" for call in mock_print_done.mock_calls
+                render_rich_arg(call.args[0]) == "Move completed\n" for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                notebook1.display_name not in call.args[0]
+                notebook1.display_name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                notebook1.display_name in call.args[0]
+                notebook1.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -552,17 +553,17 @@ class TestMV:
             # Assert
             mock_print_done.assert_called()
             assert any(
-                call.args[0] == "Move completed\n" for call in mock_print_done.mock_calls
+                render_rich_arg(call.args[0]) == "Move completed\n" for call in mock_print_done.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                item.name not in call.args[0]
+                item.name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                renamed_item_name in call.args[0]
+                renamed_item_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -643,23 +644,23 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(ws1.full_path)
             assert all(
-                f1.name not in call.args[0]
+                f1.name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
             mock_questionary_print.reset_mock()
             ls(ws2.full_path)
             assert any(
-                f1.name in call.args[0] for call in mock_questionary_print.mock_calls
+                f1.name in render_rich_arg(call.args[0]) for call in mock_questionary_print.mock_calls
             )
             mock_questionary_print.reset_mock()
             ls(f1.full_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -728,13 +729,13 @@ class TestMV:
             ls(ws.full_path)
             # Should see destination folder but not source folder at workspace root
             assert any(
-                dest_folder.name in call.args[0]
+                dest_folder.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             # Source folder should not be at workspace root anymore
             source_folder_at_root = any(
-                source_folder.name in call.args[0]
-                and dest_folder.name not in call.args[0]
+                source_folder.name in render_rich_arg(call.args[0])
+                and dest_folder.name not in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert (
@@ -745,7 +746,7 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(dest_folder.full_path)
             assert any(
-                source_folder.name in call.args[0]
+                source_folder.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -753,15 +754,15 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(moved_source_folder_path)
             assert any(
-                notebook.display_name in call.args[0]
+                notebook.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                data_pipeline.display_name in call.args[0]
+                data_pipeline.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
             assert any(
-                nested_folder.name in call.args[0]
+                nested_folder.name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 
@@ -769,7 +770,7 @@ class TestMV:
             mock_questionary_print.reset_mock()
             ls(nested_folder.full_path)
             assert any(
-                nested_item.display_name in call.args[0]
+                nested_item.display_name in render_rich_arg(call.args[0])
                 for call in mock_questionary_print.mock_calls
             )
 

@@ -5,11 +5,12 @@ import json
 from argparse import Namespace
 
 from fabric_cli.client import fab_api_domain as domain_api
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def exec(domain: VirtualWorkspaceItem, args: Namespace) -> None:

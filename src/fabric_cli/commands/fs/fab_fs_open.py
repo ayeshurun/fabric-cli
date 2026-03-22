@@ -5,13 +5,14 @@ import webbrowser
 from argparse import Namespace
 from typing import Optional
 
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+from fabric_cli.core import fab_constant, fab_state_config
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_auth import FabAuth
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import uri_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, Workspace
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_ui
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 COMMAND = "open"
 

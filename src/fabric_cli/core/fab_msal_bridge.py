@@ -8,7 +8,7 @@ from azure.core.credentials import AccessToken, TokenCredential
 from azure.core.exceptions import ClientAuthenticationError
 
 from fabric_cli.core import fab_constant as con
-from fabric_cli.core import fab_logger
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.fab_auth import FabAuth
 
 # Bridge-specific: strict .default scope validation

@@ -15,7 +15,8 @@ from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, Workspace
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_export_utils as utils_export
-from fabric_cli.utils import fab_item_util, fab_mem_store, fab_storage, fab_ui
+from fabric_cli.utils import fab_item_util, fab_mem_store, fab_storage
+from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def export_bulk_items(workspace: Workspace, args: Namespace) -> None:

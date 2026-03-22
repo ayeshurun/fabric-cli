@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.cp import fab_fs_cp_item as cp_item
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_cmd_fs_utils as fs_utils
-from fabric_cli.utils import fab_ui as utils_ui
+from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as util
 from fabric_cli.utils import fab_item_util as item_utils
 

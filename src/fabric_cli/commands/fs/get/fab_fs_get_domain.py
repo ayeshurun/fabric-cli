@@ -6,7 +6,8 @@ from argparse import Namespace
 from typing import Optional
 
 from fabric_cli.client import fab_api_domain as domain_api
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant
+from fabric_cli.utils import fab_output_manager as fab_logger
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_get_utils as utils_get
 
