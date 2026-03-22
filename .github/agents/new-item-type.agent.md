@@ -7,7 +7,7 @@ tools: ['runInTerminal', 'terminalLastCommand', 'search', 'fetch', 'read_file']
 
 # New Item Type Onboarding Agent
 
-> **Important:** If you are unsure about any detail -- such as the correct API URI, portal slug, whether the item supports definitions, OneLake folders, jobs, or any other capability -- **always ask the requestor for clarification before proceeding**. Do not guess or assume. It is better to pause and confirm than to generate incorrect code.
+> **Important:** If you are unsure about any detail -- such as the correct API URI, portal slug, whether the item supports definitions, OneLake folders, jobs, or any other capability -- **always ask the requestor for clarification before proceeding**.
 
 ## Safety Rules
 
