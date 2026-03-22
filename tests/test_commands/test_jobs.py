@@ -178,7 +178,7 @@ class TestJobs:
             timeout=1,
             polling_interval=None,
             configuration=None,
-            cancel_on_timeout="false",
+            no_cancel_on_timeout=True,
         )
 
         with (
@@ -207,7 +207,7 @@ class TestJobs:
             timeout=1,
             polling_interval=None,
             configuration=None,
-            cancel_on_timeout="true",
+            no_cancel_on_timeout=False,
         )
 
         with (
@@ -240,7 +240,7 @@ class TestJobs:
             timeout=1,
             polling_interval=None,
             configuration=None,
-            cancel_on_timeout=None,
+            no_cancel_on_timeout=False,
         )
 
         with (
@@ -256,13 +256,16 @@ class TestJobs:
             ),
             patch.object(state_config, "get_config", return_value="false"),
             patch.object(fab_jobs_run.jobs_api, "cancel_item_job_instance") as mock_cancel,
-            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_warning") as mock_print_warning,
             patch.object(fab_jobs_run.fab_ui, "print_grey"),
             patch.object(fab_jobs_run.fab_ui, "print_output_format"),
         ):
             fab_jobs_run.exec_command(args, item=None)
 
         mock_cancel.assert_not_called()
+        mock_print_warning.assert_any_call(
+            "Config key 'job_cancel_ontimeout' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
 
     def test_run_job_timeout_invalid_legacy_config_defaults_to_cancel(self):
         args = argparse.Namespace(
@@ -270,7 +273,7 @@ class TestJobs:
             timeout=1,
             polling_interval=None,
             configuration=None,
-            cancel_on_timeout=None,
+            no_cancel_on_timeout=False,
         )
 
         with (
@@ -290,13 +293,16 @@ class TestJobs:
                 "cancel_item_job_instance",
                 return_value=argparse.Namespace(status_code=202),
             ) as mock_cancel,
-            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_warning") as mock_print_warning,
             patch.object(fab_jobs_run.fab_ui, "print_grey"),
             patch.object(fab_jobs_run.fab_ui, "print_output_format"),
         ):
             fab_jobs_run.exec_command(args, item=None)
 
         mock_cancel.assert_called_once()
+        mock_print_warning.assert_any_call(
+            "Config key 'job_cancel_ontimeout' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
 
     def test_run_job_timeout_missing_legacy_config_defaults_to_cancel(self):
         args = argparse.Namespace(
@@ -304,7 +310,7 @@ class TestJobs:
             timeout=1,
             polling_interval=None,
             configuration=None,
-            cancel_on_timeout=None,
+            no_cancel_on_timeout=False,
         )
 
         with (

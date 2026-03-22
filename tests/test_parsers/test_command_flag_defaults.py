@@ -31,15 +31,17 @@ def test_ls_sort_flag_defaults_to_name():
     assert args.sort_by == "name"
 
 
-def test_job_run_cancel_on_timeout_flag_accepts_true_false():
+def test_job_run_no_cancel_on_timeout_flag_defaults_to_false():
+    parser = _build_parser()
+
+    args = parser.parse_args(["job", "run", "ws1.Workspace/p1.DataPipeline"])
+    assert args.no_cancel_on_timeout is False
+
+
+def test_job_run_no_cancel_on_timeout_flag_sets_true_when_passed():
     parser = _build_parser()
 
     args = parser.parse_args(
-        ["job", "run", "ws1.Workspace/p1.DataPipeline", "--cancel_on_timeout", "true"]
+        ["job", "run", "ws1.Workspace/p1.DataPipeline", "--no_cancel_on_timeout"]
     )
-    assert args.cancel_on_timeout == "true"
-
-    args = parser.parse_args(
-        ["job", "run", "ws1.Workspace/p1.DataPipeline", "--cancel_on_timeout", "false"]
-    )
-    assert args.cancel_on_timeout == "false"
+    assert args.no_cancel_on_timeout is True

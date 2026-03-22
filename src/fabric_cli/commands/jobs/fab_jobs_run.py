@@ -42,11 +42,11 @@ def exec_command(args: Namespace, item: Item) -> None:
                 cancel_on_timeout = _should_cancel_on_timeout(args)
                 if not cancel_on_timeout:
                     fab_ui.print_grey(
-                        "Job still running. Use '--cancel_on_timeout true' to cancel when timeout is reached"
+                        "Job still running. Remove '--no_cancel_on_timeout' to cancel when timeout is reached"
                     )
                 else:
                     fab_ui.print_grey(
-                        f"Cancelling job instance '{job_instance_id}' (timeout). Use '--cancel_on_timeout false' to keep running on timeout"
+                        f"Canceling job instance '{job_instance_id}' (timeout). Use '--no_cancel_on_timeout' to keep running on timeout"
                     )
                     args.instance_id = job_instance_id
                     response = jobs_api.cancel_item_job_instance(args)
@@ -66,12 +66,19 @@ def exec_command(args: Namespace, item: Item) -> None:
 
 
 def _should_cancel_on_timeout(args: Namespace) -> bool:
-    cancel_on_timeout = getattr(args, "cancel_on_timeout", None)
-    if cancel_on_timeout is not None:
-        return cancel_on_timeout == "true"
-
     # Backward compatibility for existing config files
     legacy_value = config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT_DEPRECATED)
-    if legacy_value in {"false", "true"}:
-        return legacy_value == "true"
+    if legacy_value is not None:
+        fab_ui.print_warning(
+            f"Config key '{con.FAB_JOB_CANCEL_ONTIMEOUT_DEPRECATED}' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
+    legacy_cancel_on_timeout = (
+        legacy_value == "true" if legacy_value in {"false", "true"} else None
+    )
+
+    if getattr(args, "no_cancel_on_timeout", False):
+        return False
+
+    if legacy_cancel_on_timeout is not None:
+        return legacy_cancel_on_timeout
     return True

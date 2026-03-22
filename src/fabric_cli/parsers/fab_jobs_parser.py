@@ -71,7 +71,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         "# run a pipeline sync with a 60 second timeout",
         "$ job run pip1.DataPipeline --timeout 60\n",
         "# run and keep the job running if timeout is reached",
-        "$ job run pip1.DataPipeline --timeout 60 --cancel_on_timeout false\n",
+        "$ job run pip1.DataPipeline --timeout 60 --no_cancel_on_timeout\n",
         "# run a notebook with custom 30-second polling interval",
         "$ job run nb1.Notebook --input <json_path> --polling_interval 30\n",
         "# run a notebook async",
@@ -113,10 +113,9 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         type=validate_positive_int,
     )
     run_parser.add_argument(
-        "--cancel_on_timeout",
-        metavar="",
-        choices=["false", "true"],
-        help="Whether to cancel the job when timeout is reached. Optional (default: true).",
+        "--no_cancel_on_timeout",
+        action="store_true",
+        help="Do not cancel the job when timeout is reached. Optional.",
     )
 
     run_parser.usage = f"{utils_error_parser.get_usage_prog(run_parser)}"
