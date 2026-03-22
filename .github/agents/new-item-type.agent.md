@@ -7,16 +7,17 @@ tools: ['runInTerminal', 'terminalLastCommand', 'search', 'fetch', 'read_file']
 
 # New Item Type Onboarding Agent
 
-You are an expert at onboarding new Microsoft Fabric item types into the Fabric CLI (`fab`). You guide contributors through every integration point, generate the correct code, and validate completeness.
+> **Important:** If you are unsure about any detail -- such as the correct API URI, portal slug, whether the item supports definitions, OneLake folders, jobs, or any other capability -- **always ask the requestor for clarification before proceeding**. Do not guess or assume. It is better to pause and confirm than to generate incorrect code.
 
-> **Important:** If you are unsure about any detail — such as the correct API URI, portal slug, whether the item supports definitions, OneLake folders, jobs, or any other capability — **always ask the requestor for clarification before proceeding**. Do not guess or assume. It is better to pause and confirm than to generate incorrect code.
+## Safety Rules
 
-## When to Use This Agent
+- **Never hardcode secrets, tokens, or credentials** in payloads or tests
+- **Use deterministic test data** -- no real tenant IDs, workspace IDs, or user emails
+- **Validate all user-provided parameters** before constructing API payloads
+- **Raise `FabricCLIError`** with appropriate error codes for invalid input
+- **Follow existing patterns** -- consistency is more important than cleverness
 
-Use this agent when you need to:
-- Add support for a brand-new Fabric item type (e.g., `Map`, `DataActivator`, `Reflex`)
-- Understand what files need to change to register a new item type
-- Generate the boilerplate code for a new item type end-to-end
+---
 
 ## Prerequisites
 
@@ -24,18 +25,18 @@ Before starting, gather the following information about the new item type:
 
 | Information | Example | Required |
 |-------------|---------|----------|
-| **Display name** (PascalCase) | `Map` | ✅ |
-| **API plural URI** | `maps` | ✅ |
-| **Portal URI slug** | `maps` | ✅ |
-| **Has definition/payload** | Yes / No | ✅ |
+| **Display name** (PascalCase) | `Map` | Yes |
+| **API plural URI** | `maps` | Yes |
+| **Portal URI slug** | `maps` | Yes |
+| **Has definition/payload** | Yes / No | Yes |
 | **Definition formats** | `ipynb`, `TMDL`, etc. | If has definition |
 | **OneLake folders** | `Tables`, `Files` | If applicable |
-| **Supports jobs** | Yes / No | ✅ |
+| **Supports jobs** | Yes / No | Yes |
 | **Job type name** | `RunNotebook`, `Pipeline` | If supports jobs |
 | **Creation parameters** | `enableSchemas`, `connectionId` | If applicable |
 | **Required creation params** | Subset of above | If applicable |
 | **Optional creation params** | Subset of above | If applicable |
-| **Import format handling** | Standard / Custom | ✅ |
+| **Import format handling** | Standard / Custom | Yes |
 
 ### API Support Matrix
 
@@ -53,11 +54,79 @@ If the contributor doesn't know all values, help them find the information from 
 
 ---
 
+## Common Patterns by Item Complexity
+
+Use this table to determine which steps apply to the new item type before reading the steps themselves.
+
+### Simple Item (no definition, no params)
+
+Only needs Steps 1-3, 9 (add to the standard multi-case match), and 11 (ALL_ITEM_TYPES + basic_item_parametrize).
+
+**Examples:** `Dashboard`, `Datamart`
+
+### Item with Definition Support (most common)
+
+Needs Steps 1-4, 9, 10 (export + import + cp + mv), 11 (ALL_ITEM_TYPES + basic_item_parametrize + mv params + export params + set metadata params), 12, and 13.
+
+**Examples:** `Map`, `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
+
+### Item with Creation Parameters
+
+Needs Steps 1-3, 7-9, 11 (ALL_ITEM_TYPES but NOT basic_item_parametrize), 12, and 13.
+
+**Examples:** `Lakehouse` (enableSchemas), `Warehouse` (enableCaseInsensitive), `KQLDatabase` (dbType, eventhouseId)
+
+### Item with OneLake Folders
+
+Needs Steps 1-3, 5, 9, 11, 12, and 13.
+
+**Examples:** `Lakehouse` (Files, Tables), `Warehouse` (Files, Tables), `KQLDatabase` (Tables, Shortcut)
+
+### Item with Job Support
+
+Needs Steps 1-3, 6, 9, 11, 12, and 13.
+
+**Examples:** `Notebook` (RunNotebook), `DataPipeline` (Pipeline), `SparkJobDefinition` (sparkjob)
+
+### Full-Featured Item (all capabilities)
+
+Needs all steps 1-13.
+
+**Example:** `Notebook` -- has definition formats, job support, and custom creation payload.
+
+---
+
+## Existing Item Types to Study
+
+| Item Type | Enum | Complexity | Good Reference For |
+|-----------|------|------------|-------------------|
+| `Dashboard` | `DASHBOARD` | Simple | Minimal integration |
+| `Map` | `MAP` | Standard with definitions | Definition support (export/import/mv/cp), no creation params, no jobs/folders |
+| `Lakehouse` | `LAKEHOUSE` | Medium | Creation params, OneLake folders, jobs |
+| `Notebook` | `NOTEBOOK` | Full | Definitions, jobs, custom payload |
+| `SemanticModel` | `SEMANTIC_MODEL` | Medium | Definition formats (TMDL/TMSL), payload templates |
+| `Report` | `REPORT` | Medium | Dependency creation (auto-creates SemanticModel) |
+| `MirroredDatabase` | `MIRRORED_DATABASE` | Complex | Multiple payload variants, connection params |
+| `MountedDataFactory` | `MOUNTED_DATA_FACTORY` | Medium | Required params, custom payload |
+
+---
+
+## Phases
+
+Follow these four phases in order. Do not start writing code until you have completed the Gather and Classify phases.
+
+1. **Gather** -- Collect all prerequisite information from the requestor (see Prerequisites table above). If anything is missing or unclear, ask before continuing.
+2. **Classify** -- Use the Common Patterns table above to determine the item's complexity level and which steps apply.
+3. **Execute** -- Walk through only the applicable steps from the Integration Checklist below.
+4. **Validate** -- Run the verification commands from the Verification Table to confirm completeness.
+
+---
+
 ## Integration Checklist
 
 Every new item type requires changes across these files. Walk the contributor through each step in order:
 
-### Step 1 — Register the Item Type Enum
+### Step 1 -- Register the Item Type Enum
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
@@ -74,7 +143,7 @@ NEW_ITEM = "NewItem"
 - The enum value uses `PascalCase` matching the Fabric API's `type` field exactly
 - Place it alphabetically among the other `# API` entries
 
-### Step 2 — Add API Format Mapping
+### Step 2 -- Add API Format Mapping
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
@@ -90,7 +159,7 @@ ItemType.NEW_ITEM: "newItems",
 - Check the [Fabric REST API reference](https://learn.microsoft.com/en-us/rest/api/fabric/) for the correct value
 - Maintain alphabetical order by `ItemType` member name
 
-### Step 3 — Add Portal URI Mapping
+### Step 3 -- Add Portal URI Mapping
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
@@ -106,7 +175,7 @@ ItemType.NEW_ITEM: "newitems",
 - Check the Fabric portal URL by opening an item of this type in the browser
 - Maintain alphabetical order by `ItemType` member name
 
-### Step 4 — Add Definition Format Mapping (if applicable)
+### Step 4 -- Add Definition Format Mapping (if applicable)
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
@@ -118,18 +187,18 @@ ItemType.NEW_ITEM: {"default": ""},
 ```
 
 **Rules:**
-- `"default"` key is required — it defines the query parameter appended when no explicit format is requested
+- `"default"` key is required -- it defines the query parameter appended when no explicit format is requested
 - Additional keys map user-specified format names to query strings (e.g., `"TMDL": "?format=TMDL"`)
 - If the item has no definition support, skip this step
 - Maintain alphabetical order by `ItemType` member name
 
-### Step 5 — Add OneLake Folders (if applicable)
+### Step 5 -- Add OneLake Folders (if applicable)
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
 If the item type exposes OneLake folders (e.g., `Tables`, `Files`), add:
 
-> **⚠️ Ask the requestor:** "Does this item type expose OneLake folders (e.g., Tables, Files)? If so, which folders does it expose, and are any of them writable?" Do not guess — OneLake folder configuration varies per item type and incorrect values will cause runtime errors.
+> **Ask the requestor:** "Does this item type expose OneLake folders (e.g., Tables, Files)? If so, which folders does it expose, and are any of them writable?" Do not guess -- OneLake folder configuration varies per item type and incorrect values will cause runtime errors.
 
 1. A new `Enum` class for the folders:
 ```python
@@ -145,13 +214,13 @@ ItemType.NEW_ITEM: [folder.value for folder in NewItemFolders],
 
 3. If any folders are writable via OneLake, add to `ItemOnelakeWritableFoldersMap`.
 
-### Step 6 — Add Job Type Mapping (if applicable)
+### Step 6 -- Add Job Type Mapping (if applicable)
 
 **File:** `src/fabric_cli/core/fab_types.py`
 
 If the item type supports on-demand job execution (e.g., running a notebook, triggering a pipeline), add:
 
-> **⚠️ Ask the requestor:** "Does this item type support on-demand job execution? If so, what is the exact job type name used by the Fabric REST API (e.g., `RunNotebook`, `Pipeline`)?" The job type string must match the API exactly — do not infer it.
+> **Ask the requestor:** "Does this item type support on-demand job execution? If so, what is the exact job type name used by the Fabric REST API (e.g., `RunNotebook`, `Pipeline`)?" The job type string must match the API exactly -- do not infer it.
 
 1. A new member to the `FabricJobType` enum if the job type doesn't already exist:
 ```python
@@ -167,7 +236,7 @@ ItemType.NEW_ITEM: FabricJobType.NEW_JOB,
 **Rules:**
 - The job type value must match the Fabric REST API's job type string exactly
 
-### Step 7 — Add Creation Parameters (if applicable)
+### Step 7 -- Add Creation Parameters (if applicable)
 
 **File:** `src/fabric_cli/utils/fab_cmd_mkdir_utils.py`
 
@@ -179,7 +248,7 @@ case ItemType.NEW_ITEM:
     optional_params = ["paramB"]       # params that MAY be provided
 ```
 
-### Step 8 — Add Creation Payload Logic (if applicable)
+### Step 8 -- Add Creation Payload Logic (if applicable)
 
 **File:** `src/fabric_cli/utils/fab_cmd_mkdir_utils.py`
 
@@ -211,19 +280,19 @@ If using Option B, create the payload template directory:
 - `src/fabric_cli/commands/fs/payloads/Blank.NewItem/`
 - Place template files inside (JSON, PBIR, etc.)
 
-### Step 9 — Add Import Payload Handling
+### Step 9 -- Add Import Payload Handling
 
 **File:** `src/fabric_cli/core/hiearchy/fab_item.py`
 
 In the `get_payload()` method, add the new item type. Choose the appropriate pattern:
 
-**Standard pattern** (most items) — add to the existing multi-case match:
+**Standard pattern** (most items) -- add to the existing multi-case match:
 ```python
 case (
     ItemType.REPORT
     | ItemType.KQL_DASHBOARD
     | ...
-    | ItemType.NEW_ITEM    # ← Add here
+    | ItemType.NEW_ITEM    # <-- Add here
 ):
     return {
         "type": str(self.item_type),
@@ -234,7 +303,7 @@ case (
     }
 ```
 
-**Custom pattern** (items with format-specific handling) — add a dedicated case:
+**Custom pattern** (items with format-specific handling) -- add a dedicated case:
 ```python
 case ItemType.NEW_ITEM:
     return {
@@ -249,14 +318,14 @@ case ItemType.NEW_ITEM:
     }
 ```
 
-### Step 10 — Update Command Support Configuration
+### Step 10 -- Update Command Support Configuration
 
 **File:** `src/fabric_cli/core/fab_config/command_support.yaml`
 
 This file controls which CLI commands are enabled for each item type. Add the new item type's snake_case name to the appropriate command sections based on the API Support Matrix from the Prerequisites.
 
 **Always add to these sections** (basic item support):
-- No changes needed for `ls`, `cd`, `exists`, `get`, `set`, `rm`, `open`, `mkdir` — these work for all item types via the generic items API.
+- No changes needed for `ls`, `cd`, `exists`, `get`, `set`, `rm`, `open`, `mkdir` -- these work for all item types via the generic items API.
 
 **Add to `export` if the item supports `getItemDefinition` API:**
 ```yaml
@@ -266,7 +335,7 @@ commands:
       export:
         supported_items:
           # ... existing items ...
-          - new_item    # ← Add here, maintain alphabetical order
+          - new_item    # <-- Add here, maintain alphabetical order
 ```
 
 **Add to `import` if the item supports `createItem` with definition:**
@@ -274,7 +343,7 @@ commands:
       import:
         supported_items:
           # ... existing items ...
-          - new_item    # ← Add here
+          - new_item    # <-- Add here
 ```
 
 **Add to `mv` if the item supports all three definition APIs:**
@@ -282,7 +351,7 @@ commands:
       mv:
         supported_items:
           # ... existing items ...
-          - new_item    # ← Add here
+          - new_item    # <-- Add here
 ```
 
 **Add to `cp` if the item supports all three definition APIs:**
@@ -290,7 +359,7 @@ commands:
       cp:
         supported_items:
           # ... existing items ...
-          - new_item    # ← Add here
+          - new_item    # <-- Add here
 ```
 
 **Rules:**
@@ -300,7 +369,7 @@ commands:
 - The `export` list often includes extra items like `eventhouse` and `kql_database` that support export but not import/mv/cp
 - Check existing items in each section for reference patterns
 
-### Step 11 — Add to Test Parametrization Lists
+### Step 11 -- Add to Test Parametrization Lists
 
 **File:** `tests/test_commands/conftest.py`
 
@@ -316,20 +385,20 @@ ALL_ITEM_TYPES = [
     ItemType.ENVIRONMENT, ItemType.EVENTHOUSE, ItemType.EVENTSTREAM,
     # ... existing items ...
     ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.GRAPH_QUERY_SET,
-    ItemType.NEW_ITEM,    # ← Add here at the end
+    ItemType.NEW_ITEM,    # <-- Add here at the end
 ]
 ```
 
 #### 11b. Add to `basic_item_parametrize`
 
-This list drives tests for "basic" items — items that have **no special creation parameters, no OneLake folders, and no special properties**. Add the new item type here **only if** it is a basic item (i.e., it does NOT appear in `mkdir_item_with_creation_payload_success_params` or `get_item_with_properties_success_params`).
+This list drives tests for "basic" items -- items that have **no special creation parameters, no OneLake folders, and no special properties**. Add the new item type here **only if** it is a basic item (i.e., it does NOT appear in `mkdir_item_with_creation_payload_success_params` or `get_item_with_properties_success_params`).
 
 ```python
 basic_item_parametrize = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.ENVIRONMENT, ItemType.EVENTSTREAM,
     # ... existing items ...
     ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.GRAPH_QUERY_SET,
-    ItemType.NEW_ITEM,    # ← Add here at the end
+    ItemType.NEW_ITEM,    # <-- Add here at the end
 ])
 ```
 
@@ -341,7 +410,7 @@ If the item type was added to `mv` in `command_support.yaml`, also add it here:
 mv_item_to_item_success_params = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     # ... existing items ...
-    ItemType.NEW_ITEM,    # ← Add here
+    ItemType.NEW_ITEM,    # <-- Add here
 ])
 ```
 
@@ -366,25 +435,25 @@ If the item type was added to `export` in `command_support.yaml`, add it to all 
 # Export with file extension check
 export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expected_file_extension", [
     # ... existing items ...
-    (ItemType.NEW_ITEM, ".json"),    # ← Add here with expected extension
+    (ItemType.NEW_ITEM, ".json"),    # <-- Add here with expected extension
 ])
 
 # Export item types
 export_item_types_parameters = pytest.mark.parametrize("item_type", [
     # ... existing items ...
-    ItemType.NEW_ITEM,    # ← Add here
+    ItemType.NEW_ITEM,    # <-- Add here
 ])
 
 # Export default format (expected file count)
 export_item_default_format_parameters = pytest.mark.parametrize("item_type,expected_file_count", [
     # ... existing items ...
-    (ItemType.NEW_ITEM, 2),    # ← Add here with expected count
+    (ItemType.NEW_ITEM, 2),    # <-- Add here with expected count
 ])
 
 # Export invalid format
 export_item_invalid_format_parameters = pytest.mark.parametrize("item_type,invalid_format", [
     # ... existing items ...
-    (ItemType.NEW_ITEM, ".txt"),    # ← Add here
+    (ItemType.NEW_ITEM, ".txt"),    # <-- Add here
 ])
 ```
 
@@ -395,11 +464,11 @@ If the item type supports `fab set` for metadata (displayName, description), add
 ```python
 set_item_metadata_for_all_types_success_item_params = pytest.mark.parametrize("item_type", [
     # ... existing items ...
-    ItemType.NEW_ITEM,    # ← Add here
+    ItemType.NEW_ITEM,    # <-- Add here
 ])
 ```
 
-### Step 12 — Add Changelog Entry
+### Step 12 -- Add Changelog Entry
 
 Create a changelog entry file in `.changes/unreleased/` using the changie format:
 
@@ -415,7 +484,7 @@ custom:
 ```
 
 **Rules:**
-- The `kind` must be `new-items` (maps to the `🆕 New Items Support` section in the changelog)
+- The `kind` must be `new-items` (maps to the `New Items Support` section in the changelog)
 - The `body` should be a concise description of what was added
 - The `time` should be the current UTC timestamp in RFC 3339 format
 - The `Author` should be the contributor's GitHub username
@@ -426,7 +495,7 @@ Alternatively, if `changie` is installed, run:
 changie new --kind new-items --body "Add support for NewItem item type" --custom Author=your-github-username
 ```
 
-### Step 13 — Update Documentation Pages
+### Step 13 -- Update Documentation Pages
 
 #### 13a. Update Resource Types Page
 
@@ -448,8 +517,8 @@ Add the new item type to the **Item Types** table, maintaining alphabetical orde
 
 Add the new item type to the **supported item type lists** in the following sections (only if the item supports the corresponding command):
 
-1. **Copy Item** — Add `.NewItem` to the "Supported Item Types for Copy" list (if `cp` is supported)
-2. **Export Item** — Add `.NewItem` to the "Exportable Item Types" list (if `export` is supported)
+1. **Copy Item** -- Add `.NewItem` to the "Supported Item Types for Copy" list (if `cp` is supported)
+2. **Export Item** -- Add `.NewItem` to the "Exportable Item Types" list (if `export` is supported)
 
 For example, add to the copy section:
 ```markdown
@@ -469,69 +538,31 @@ And to the export section:
 
 ---
 
-## Validation Checklist
+## Verification Table
 
-After completing all steps, verify:
+After completing all applicable steps, run these commands to verify each integration point. Replace `NEW_ITEM` with the actual enum member name and `NewItem` with the PascalCase type name.
 
-- [ ] `ItemType.NEW_ITEM` exists in the enum (Step 1)
-- [ ] `format_mapping` has the correct API URI (Step 2)
-- [ ] `uri_mapping` has the correct portal URI (Step 3)
-- [ ] `definition_format_mapping` is set if item has definitions (Step 4)
-- [ ] `ItemFoldersMap` is set if item has OneLake folders (Step 5)
-- [ ] `ITJobMap` is set if item supports jobs (Step 6)
-- [ ] `get_params_per_item_type()` handles the new type if it has creation params (Step 7)
-- [ ] `add_type_specific_payload()` handles the new type if it needs a creation payload (Step 8)
-- [ ] `get_payload()` in `fab_item.py` handles the new type for import (Step 9)
-- [ ] `command_support.yaml` lists the item for `export`/`import`/`mv`/`cp` as applicable (Step 10)
-- [ ] `ALL_ITEM_TYPES` in `tests/test_commands/conftest.py` includes the new type (Step 11a)
-- [ ] `basic_item_parametrize` includes the new type if it's a basic item (Step 11b)
-- [ ] `mv_item_to_item_success_params` and `mv_item_within_workspace_rename_success_params` include the new type if mv is supported (Step 11c)
-- [ ] Export test lists (`export_item_with_extension_parameters`, `export_item_types_parameters`, `export_item_default_format_parameters`, `export_item_invalid_format_parameters`) include the new type if export is supported (Step 11e)
-- [ ] `set_item_metadata_for_all_types_success_item_params` includes the new type if set metadata is supported (Step 11f)
-- [ ] Changelog entry created in `.changes/unreleased/` (Step 12)
-- [ ] `docs/essentials/resource_types.md` updated with the new extension (Step 13a)
-- [ ] `docs/examples/item_examples.md` updated with supported operations (Step 13b)
-- [ ] Tests pass: `python -m pytest tests/ -q`
-
----
-
-## Common Patterns by Item Complexity
-
-### Simple Item (no definition, no params)
-
-Only needs Steps 1–3, 9 (add to the standard multi-case match), and 11 (ALL_ITEM_TYPES + basic_item_parametrize).
-
-**Examples:** `Dashboard`, `Datamart`
-
-### Item with Definition Support (most common)
-
-Needs Steps 1–4, 9, 10 (export + import + cp + mv), 11 (ALL_ITEM_TYPES + basic_item_parametrize + mv params + export params + set metadata params), 12, and 13.
-
-**Examples:** `Map`, `CopyJob`, `Dataflow`, `GraphQLApi`, `UserDataFunction`
-
-### Item with Creation Parameters
-
-Needs Steps 1–3, 7–9, 11 (ALL_ITEM_TYPES but NOT basic_item_parametrize), 12, and 13.
-
-**Examples:** `Lakehouse` (enableSchemas), `Warehouse` (enableCaseInsensitive), `KQLDatabase` (dbType, eventhouseId)
-
-### Item with OneLake Folders
-
-Needs Steps 1–3, 5, 9, 11, 12, and 13.
-
-**Examples:** `Lakehouse` (Files, Tables), `Warehouse` (Files, Tables), `KQLDatabase` (Tables, Shortcut)
-
-### Item with Job Support
-
-Needs Steps 1–3, 6, 9, 11, 12, and 13.
-
-**Examples:** `Notebook` (RunNotebook), `DataPipeline` (Pipeline), `SparkJobDefinition` (sparkjob)
-
-### Full-Featured Item (all capabilities)
-
-Needs all steps 1–13.
-
-**Example:** `Notebook` — has definition formats, job support, and custom creation payload.
+| Step | Verify with | When |
+|------|-------------|------|
+| 1. Enum | `grep -n 'NEW_ITEM.*=.*"NewItem"' src/fabric_cli/core/fab_types.py` | Always |
+| 2. format_mapping | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/fab_types.py \| grep -i format_mapping` | Always |
+| 3. uri_mapping | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/fab_types.py \| grep -i uri_mapping` | Always |
+| 4. definition_format | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/fab_types.py \| grep -i definition` | Has definitions |
+| 5. OneLake folders | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/fab_types.py \| grep -i folder` | Has OneLake folders |
+| 6. Job mapping | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/fab_types.py \| grep -i job` | Has jobs |
+| 7. Creation params | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/utils/fab_cmd_mkdir_utils.py \| grep -i param` | Has creation params |
+| 8. Creation payload | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/utils/fab_cmd_mkdir_utils.py \| grep -i payload` | Has creation payload |
+| 9. Import payload | `grep -n 'ItemType.NEW_ITEM' src/fabric_cli/core/hiearchy/fab_item.py` | Always |
+| 10. Command support | `grep -n 'new_item' src/fabric_cli/core/fab_config/command_support.yaml` | Has definitions |
+| 11a. ALL_ITEM_TYPES | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i all_item` | Always |
+| 11b. basic_item | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i basic` | Basic items only |
+| 11c. mv params | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i mv` | Has mv support |
+| 11e. export params | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i export` | Has export support |
+| 11f. set metadata | `grep -n 'NEW_ITEM' tests/test_commands/conftest.py \| grep -i metadata` | Has set support |
+| 12. Changelog | `ls .changes/unreleased/ \| grep -i newitem` | Always |
+| 13a. Resource types | `grep -n 'NewItem' docs/essentials/resource_types.md` | Always |
+| 13b. Item examples | `grep -n 'NewItem' docs/examples/item_examples.md` | Has cp or export |
+| Tests pass | `python -m pytest tests/ -q` | Always |
 
 ---
 
@@ -550,48 +581,3 @@ Here is a real example of onboarding the `Map` item type, which is an **item wit
 | `.changes/unreleased/new-items-*.yaml` | Changelog entry for Map item type |
 | `docs/essentials/resource_types.md` | Added `.Map` row to the Item Types table |
 | `docs/examples/item_examples.md` | Added `.Map` to copy and export supported types lists |
-
----
-
-## Reference: Existing Item Types to Study
-
-| Item Type | Enum | Complexity | Good Reference For |
-|-----------|------|------------|-------------------|
-| `Dashboard` | `DASHBOARD` | Simple | Minimal integration |
-| `Map` | `MAP` | Standard with definitions | Definition support (export/import/mv/cp), no creation params, no jobs/folders |
-| `Lakehouse` | `LAKEHOUSE` | Medium | Creation params, OneLake folders, jobs |
-| `Notebook` | `NOTEBOOK` | Full | Definitions, jobs, custom payload |
-| `SemanticModel` | `SEMANTIC_MODEL` | Medium | Definition formats (TMDL/TMSL), payload templates |
-| `Report` | `REPORT` | Medium | Dependency creation (auto-creates SemanticModel) |
-| `MirroredDatabase` | `MIRRORED_DATABASE` | Complex | Multiple payload variants, connection params |
-| `MountedDataFactory` | `MOUNTED_DATA_FACTORY` | Medium | Required params, custom payload |
-
----
-
-## Key Files Quick Reference
-
-| File | Purpose |
-|------|---------|
-| `src/fabric_cli/core/fab_types.py` | Item type enum, all type mappings |
-| `src/fabric_cli/core/fab_config/command_support.yaml` | Command-to-item-type support matrix |
-| `src/fabric_cli/utils/fab_cmd_mkdir_utils.py` | Creation params and payload logic |
-| `src/fabric_cli/commands/fs/mkdir/fab_fs_mkdir_item.py` | Item creation command |
-| `src/fabric_cli/core/hiearchy/fab_item.py` | Import payload construction |
-| `src/fabric_cli/commands/fs/payloads/` | Blank item template files |
-| `src/fabric_cli/commands/fs/export/fab_fs_export_item.py` | Export logic |
-| `tests/test_commands/conftest.py` | Parametrized test lists (ALL_ITEM_TYPES, basic_item_parametrize, mv params, export params, set metadata params) |
-| `tests/test_commands/` | Command tests |
-| `.changes/unreleased/` | Changelog entries (changie format) |
-| `.changie.yaml` | Changie configuration (kinds: new-items, added, fixed, etc.) |
-| `docs/essentials/resource_types.md` | Resource types documentation |
-| `docs/examples/item_examples.md` | Item examples with supported types lists |
-
----
-
-## Safety Rules
-
-- **Never hardcode secrets, tokens, or credentials** in payloads or tests
-- **Use deterministic test data** — no real tenant IDs, workspace IDs, or user emails
-- **Validate all user-provided parameters** before constructing API payloads
-- **Raise `FabricCLIError`** with appropriate error codes for invalid input
-- **Follow existing patterns** — consistency is more important than cleverness
