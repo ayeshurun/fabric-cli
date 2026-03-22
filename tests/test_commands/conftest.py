@@ -89,7 +89,7 @@ mv_item_to_item_success_params = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION
 ])
 
 mv_item_to_item_unsupported_failure_params = pytest.mark.parametrize("unsupported_item_type", [
@@ -108,7 +108,7 @@ mv_item_within_workspace_rename_success_params = pytest.mark.parametrize("item_t
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION
 ])
 
 get_item_with_properties_success_params = pytest.mark.parametrize("item_type,expected_properties", [
@@ -210,7 +210,7 @@ export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expec
     (ItemType.MIRRORED_DATABASE, ".json"),
     (ItemType.COSMOS_DB_DATABASE, ".json"),
     (ItemType.USER_DATA_FUNCTION, ".json"),
-    (ItemType.GRAPH_QUERY_SET, ".json")
+    (ItemType.GRAPH_QUERY_SET, ".json"),
 ])
 
 export_item_types_parameters = pytest.mark.parametrize("item_type", [
@@ -223,7 +223,7 @@ export_item_types_parameters = pytest.mark.parametrize("item_type", [
     ItemType.KQL_DATABASE,
     ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION,
-    ItemType.GRAPH_QUERY_SET
+    ItemType.GRAPH_QUERY_SET,
 ])
 
 export_item_format_parameters = pytest.mark.parametrize(
@@ -1011,7 +1011,7 @@ def _create_config_file(
     config_name="config.yml"
 ):
     """Helper function for creating deploy configuration files with specified parameters.
-    
+
     Args:
         tmp_path: Temporary path for file creation
         workspace_name: Name of the workspace
@@ -1020,7 +1020,7 @@ def _create_config_file(
         target_env: Target environment name (if None, workspace_name is used directly)
         parameter_file: Path to parameter file (optional)
         config_name: Name of the config file to create
-        
+
     Returns:
         Path to the created configuration file
     """
@@ -1062,7 +1062,7 @@ def deploy_setup_factory(tmp_path, cli_executor, item_factory, workspace):
         path_override=None,
     ):
         """Create a complete deploy scenario with items, repository, and config file.
-        
+
         Args:
             item_type: Type of item to create (backwards compatibility, deprecated)
             target_env: Target environment name

@@ -140,7 +140,8 @@ class VirtualWorkspaceType(Enum):
 class _BaseItemType(Enum):
     @classmethod
     def from_string(cls, item_type_str):
-        raise NotImplementedError("This method must be implemented in the subclass")
+        raise NotImplementedError(
+            "This method must be implemented in the subclass")
 
 
 ##################################
@@ -199,7 +200,8 @@ class VirtualItemContainerType(Enum):
             if item.value.lower() == vws_type_str.lower():
                 return item
         raise FabricCLIError(
-            ErrorMessages.Common.invalid_virtual_item_container_type(vws_type_str),
+            ErrorMessages.Common.invalid_virtual_item_container_type(
+                vws_type_str),
             fab_constant.ERROR_INVALID_ITEM_TYPE,
         )
 
