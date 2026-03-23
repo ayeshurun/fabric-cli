@@ -7,7 +7,7 @@ from typing import Any
 
 from fabric_cli.core import fab_commands as cmd
 from fabric_cli.core import fab_handle_context as handle_context
-from fabric_cli.core import fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_decorators import set_command_context
 from fabric_cli.core.fab_types import (
     FabricElementType,
@@ -20,7 +20,6 @@ from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, _BaseItem
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.core.hiearchy.fab_workspace import Workspace
-from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils import fab_util as utils
 
 
@@ -38,7 +37,7 @@ def show_commands_supported(args: Namespace) -> None:
         if element_or_path.lower() in (item.lower() for item in available_elements):
             _print_supported_commands_by_element(element_or_path)
         else:
-            fab_logger.log_warning(
+            output_manager.log_warning(
                 f'unknown Fabric element or valid path for "{args.command_path}"\n'
             )
             usage_format = f"{args.command_path} <fabric_dot_element> or <valid_path>"
@@ -47,7 +46,7 @@ def show_commands_supported(args: Namespace) -> None:
             custom_message = (
                 f"Usage:  {usage_format}\n\n" f"Available elements:\n  {element_list}\n"
             )
-            utils_ui.print(custom_message)
+            output_manager.print(custom_message)
             sys.exit(2)
 
 
@@ -124,7 +123,7 @@ def _print_available_commands(element_or_path: str, available_commands: list) ->
         f"Commands for '{element_or_path}'. Type '<command> -h' for help.\n\n"
         f"Available commands:\n  {command_list}\n"
     )
-    utils_ui.print(custom_message)
+    output_manager.print(custom_message)
 
 
 def _get_available_commands(context: FabricElement, commands: Any) -> list:

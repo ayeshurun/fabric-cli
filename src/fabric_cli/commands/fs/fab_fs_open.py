@@ -6,13 +6,12 @@ from argparse import Namespace
 from typing import Optional
 
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_auth import FabAuth
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import uri_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, Workspace
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as fab_ui
 
 COMMAND = "open"
 
@@ -47,11 +46,11 @@ def _open_item(args: Namespace, item: Item) -> None:
 
 # Utils
 def _open_in_browser(args: Namespace, url: str, name: str) -> None:
-    fab_ui.print_grey(f"Opening '{name}' in the web browser...")
-    fab_ui.print_output_format(args, message=f"{url}")
+    output_manager.print_grey(f"Opening '{name}' in the web browser...")
+    output_manager.print_output_format(args, message=f"{url}")
 
     if FabAuth()._get_auth_property(fab_constant.IDENTITY_TYPE) != "user":
-        fab_ui.print_output_error(
+        output_manager.print_output_error(
             FabricCLIError(
                 ErrorMessages.Auth.only_supported_with_user_authentication(),
                 fab_constant.ERROR_AUTHENTICATION_FAILED,

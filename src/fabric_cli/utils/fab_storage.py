@@ -14,7 +14,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, OneLakeItem
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def write_to_storage(
@@ -50,7 +50,7 @@ def _write_to_local(
             with open(file_path, "wb") as f:
                 f.write(data)
             if not export:
-                fab_ui.print_output_format(args, message="Export completed")
+                output_manager.print_output_format(args, message="Export completed")
         else:
             # Process as JSON or text
             processed_data, is_json = _validate_json(data)
@@ -60,7 +60,7 @@ def _write_to_local(
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(processed_data, f, indent=4, ensure_ascii=False)
                 if not export:
-                    fab_ui.print_output_format(args, message="Export completed")
+                    output_manager.print_output_format(args, message="Export completed")
             else:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(
@@ -69,7 +69,7 @@ def _write_to_local(
                         else str(processed_data)
                     )
                 if not export:
-                    fab_ui.print_output_format(args, message="Export completed")
+                    output_manager.print_output_format(args, message="Export completed")
     except Exception as e:
         raise IOError(f"Failed to write to local file: {e}")
 
@@ -94,7 +94,7 @@ def _write_to_lakehouse(
                 onelake_api.append_file(args, data, 0)
             onelake_api.flush_file(args, len(data))
             if not export:
-                fab_ui.print_output_format(args, message="Export completed")
+                output_manager.print_output_format(args, message="Export completed")
     except Exception as e:
         raise e
 
@@ -115,7 +115,7 @@ def _write_to_sjd(
             onelake_api.append_file(args, data, 0, content_type)
             onelake_api.flush_file(args, len(data), content_type)
             if not export:
-                fab_ui.print_output_format(args, message="Export completed")
+                output_manager.print_output_format(args, message="Export completed")
     except Exception as e:
         raise FabricCLIError(
             ErrorMessages.Common.file_not_accessible(file_path),
@@ -232,7 +232,7 @@ def do_output(data: Any, file_name: str, args: Namespace) -> None:
     if is_json:
         file_path = file_path + ".json"
 
-    fab_ui.print_grey(f"Exporting result to '{file_path}'...", True)
+    output_manager.print_grey(f"Exporting result to '{file_path}'...", True)
     write_to_storage(args, export_path, data)
 
 

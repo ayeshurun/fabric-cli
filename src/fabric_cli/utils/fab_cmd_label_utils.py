@@ -5,15 +5,14 @@ import json
 from argparse import Namespace
 
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def read_labels_definition(args: Namespace) -> bool:
     args.input = fab_state_config.get_config(fab_constant.FAB_LOCAL_DEFINITION_LABELS)
     if not args.input:
-        fab_logger.log_warning("Label definitions for CLI not set")
-        utils_ui.print_grey("→ Run 'config set local_definition_labels <json_path>'")
+        output_manager.log_warning("Label definitions for CLI not set")
+        output_manager.print_grey("→ Run 'config set local_definition_labels <json_path>'")
         return False
     return True
 

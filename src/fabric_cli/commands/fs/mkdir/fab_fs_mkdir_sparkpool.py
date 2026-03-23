@@ -11,7 +11,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -80,7 +80,7 @@ def exec(spark_pool: VirtualItem, args: Namespace) -> None:
     json_payload = json.dumps(payload)
     args.ws_id = spark_pool.workspace.id
 
-    utils_ui.print_grey(f"Creating a new Spark Pool...")
+    output_manager.print_grey(f"Creating a new Spark Pool...")
     response = sparkpool_api.create_spark_pool(args, payload=json_payload)
     if response.status_code in (200, 201):
         data = json.loads(response.text)
@@ -88,4 +88,4 @@ def exec(spark_pool: VirtualItem, args: Namespace) -> None:
 
         # Add to mem_store
         utils_mem_store.upsert_spark_pool_to_cache(spark_pool)
-        utils_ui.print_output_format(args, message=f"'{spark_pool.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{spark_pool.name}' created", data=data, show_headers=True)

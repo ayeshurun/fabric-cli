@@ -10,7 +10,7 @@ from fabric_cli.client import fab_api_client as fabric_api
 from fabric_cli.core import fab_constant as constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def delete_resource(
@@ -20,15 +20,15 @@ def delete_resource(
     operation: Optional[str] = "delete",
 ) -> bool:
     if not bypass_confirmation:
-        if utils_ui.prompt_confirm():
+        if output_manager.prompt_confirm():
             return _do_delete_resource(args, operation=operation)
         else:
             if verbose:
-                utils_ui.print_warning(f"Resource {operation} cancelled")
+                output_manager.print_warning(f"Resource {operation} cancelled")
             return False
     else:
         if verbose:
-            utils_ui.print_warning(f"Executing force {operation}...")
+            output_manager.print_warning(f"Executing force {operation}...")
         return _do_delete_resource(args, verbose=verbose, operation=operation)
 
 
@@ -36,15 +36,15 @@ def start_resource(
     args: Namespace, bypass_confirmation: bool | None, verbose: bool = True
 ) -> bool:
     if not bypass_confirmation:
-        if utils_ui.prompt_confirm():
+        if output_manager.prompt_confirm():
             return _do_start_resource(args, verbose)
         else:
             if verbose:
-                utils_ui.print_warning("Resource start cancelled")
+                output_manager.print_warning("Resource start cancelled")
             return False
     else:
         if verbose:
-            utils_ui.print_warning("Executing force start...")
+            output_manager.print_warning("Executing force start...")
         return _do_start_resource(args, verbose)
 
 
@@ -52,15 +52,15 @@ def stop_resource(
     args: Namespace, bypass_confirmation: bool | None, verbose: bool = True
 ) -> bool:
     if not bypass_confirmation:
-        if utils_ui.prompt_confirm():
+        if output_manager.prompt_confirm():
             return _do_stop_resource(args, verbose)
         else:
             if verbose:
-                utils_ui.print_warning("Resource stop cancelled")
+                output_manager.print_warning("Resource stop cancelled")
             return False
     else:
         if verbose:
-            utils_ui.print_warning("Executing force stop...")
+            output_manager.print_warning("Executing force stop...")
         return _do_stop_resource(args, verbose)
 
 
@@ -71,15 +71,15 @@ def assign_resource(
     verbose: bool = True,
 ) -> bool:
     if not bypass_confirmation:
-        if utils_ui.prompt_confirm():
+        if output_manager.prompt_confirm():
             return _do_assign_resource(args, payload, verbose)
         else:
             if verbose:
-                utils_ui.print_warning("Resource assignment cancelled")
+                output_manager.print_warning("Resource assignment cancelled")
             return False
     else:
         if verbose:
-            utils_ui.print_warning("Executing force assignment...")
+            output_manager.print_warning("Executing force assignment...")
         return _do_assign_resource(args, payload, verbose)
 
 
@@ -90,15 +90,15 @@ def unassign_resource(
     verbose: bool = True,
 ) -> bool:
     if not bypass_confirmation:
-        if utils_ui.prompt_confirm():
+        if output_manager.prompt_confirm():
             return _do_unassign_resource(args, payload, verbose)
         else:
             if verbose:
-                utils_ui.print_warning("Resource unassignment cancelled")
+                output_manager.print_warning("Resource unassignment cancelled")
             return False
     else:
         if verbose:
-            utils_ui.print_warning("Executing force unassignment...")
+            output_manager.print_warning("Executing force unassignment...")
         return _do_unassign_resource(args, payload, verbose)
 
 
@@ -136,7 +136,7 @@ def _do_delete_resource(
 ) -> bool:
     if verbose:
         if operation is not None:
-            utils_ui.print_grey(f"{_to_gerund_capitalized(operation)} '{args.name}'...")
+            output_manager.print_grey(f"{_to_gerund_capitalized(operation)} '{args.name}'...")
     response = fabric_api.do_request(args)
 
     return _validate_success_and_print_on_verbose(
@@ -146,7 +146,7 @@ def _do_delete_resource(
 
 def _do_start_resource(args: Namespace, verbose: bool = True) -> bool:
     if verbose:
-        utils_ui.print_grey(f"Starting '{args.name}'...")
+        output_manager.print_grey(f"Starting '{args.name}'...")
     response = fabric_api.do_request(args)
 
     return _validate_success_and_print_on_verbose(
@@ -156,7 +156,7 @@ def _do_start_resource(args: Namespace, verbose: bool = True) -> bool:
 
 def _do_stop_resource(args: Namespace, verbose: bool = True) -> bool:
     if verbose:
-        utils_ui.print_grey(f"Stopping '{args.name}'...")
+        output_manager.print_grey(f"Stopping '{args.name}'...")
     response = fabric_api.do_request(args)
 
     return _validate_success_and_print_on_verbose(
@@ -168,7 +168,7 @@ def _do_assign_resource(
     args: Namespace, payload: str, verbose: bool = True
 ) -> bool:
     if verbose:
-        utils_ui.print_grey(f"Assigning '{args.name}'...")
+        output_manager.print_grey(f"Assigning '{args.name}'...")
     response = fabric_api.do_request(args, data=payload)
 
     return _validate_success_and_print_on_verbose(
@@ -180,7 +180,7 @@ def _do_unassign_resource(
     args: Namespace, payload: Optional[str] = None, verbose: bool = True
 ) -> bool:
     if verbose:
-        utils_ui.print_grey(f"Unassigning '{args.name}'...")
+        output_manager.print_grey(f"Unassigning '{args.name}'...")
     response = fabric_api.do_request(args, data=payload)
 
     return _validate_success_and_print_on_verbose(
@@ -200,11 +200,11 @@ def _validate_success_and_print_on_verbose(
 ) -> bool:
     if status_code in [200, 201]:
         if verbose:
-            utils_ui.print_output_format(args, message=f"'{args.name}' {action}")
+            output_manager.print_output_format(args, message=f"'{args.name}' {action}")
         return True
     if status_code == 202:
         if verbose:
-            utils_ui.print_output_format(
+            output_manager.print_output_format(
                 args, message=f"'{args.name}' is being {action}"
             )
         return True

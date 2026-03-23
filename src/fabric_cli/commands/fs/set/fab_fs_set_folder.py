@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.get import fab_fs_get_folder as get_folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Folder
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(folder: Folder, args: Namespace) -> None:
@@ -18,7 +18,7 @@ def exec(folder: Folder, args: Namespace) -> None:
     utils_set.validate_query_not_in_blocklist(query)
 
     utils_set.print_set_warning()
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         args.deep_traversal = True
         args.output = None
@@ -29,11 +29,11 @@ def exec(folder: Folder, args: Namespace) -> None:
         args.name = folder.short_name
         args.id = folder.id
 
-        utils_ui.print_grey(f"Setting new property for '{folder.name}'...")
+        output_manager.print_grey(f"Setting new property for '{folder.name}'...")
         response = folder_api.update_folder(args, json.dumps(updated_def))
 
         if response.status_code == 200:
             utils_set.update_cache(
                 updated_def, folder, utils_mem_store.upsert_folder_to_cache
             )
-            utils_ui.print_output_format(args, message="Folder updated")
+            output_manager.print_output_format(args, message="Folder updated")

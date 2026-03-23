@@ -10,7 +10,7 @@ from fabric_cli.client import fab_api_capacity as capacity_api
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -25,7 +25,7 @@ def exec_command(args: Namespace) -> None:
         )
 
     if _can_key_contain_value(key, value):
-        utils_ui.print_grey(f"Updating '{key}' value...")
+        output_manager.print_grey(f"Updating '{key}' value...")
         if key == fab_constant.FAB_DEFAULT_CAPACITY:
             _set_capacity(args, value)
         else:
@@ -65,7 +65,7 @@ def _set_config(args: Namespace, key: str, value: Any, verbose: bool = True) -> 
     previous_mode = fab_state_config.get_config(key)
     fab_state_config.set_config(key, value)
     if verbose:
-        utils_ui.print_output_format(
+        output_manager.print_output_format(
             args, message=f"Configuration '{key}' set to '{value}'"
         )
 
@@ -99,20 +99,20 @@ def _handle_fab_config_mode(previous_mode: str, current_mode: str) -> None:
         
         if current_mode == fab_constant.FAB_MODE_INTERACTIVE:
             # Show deprecation warning
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 "Mode configuration is deprecated. Running 'fab' now automatically enters interactive mode."
             )
-            utils_ui.print("Starting interactive mode...")
+            output_manager.print("Starting interactive mode...")
             from fabric_cli.core.fab_interactive import start_interactive_mode
             start_interactive_mode()
                 
         elif current_mode == fab_constant.FAB_MODE_COMMANDLINE:
             # Show deprecation warning with better messaging
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 "Mode configuration is deprecated. Running 'fab' now automatically enters interactive mode."
             )
-            utils_ui.print("Configuration saved for backward compatibility.")
+            output_manager.print("Configuration saved for backward compatibility.")
             
             if previous_mode == fab_constant.FAB_MODE_INTERACTIVE:
-                utils_ui.print("Exiting interactive mode. Goodbye!")
+                output_manager.print("Exiting interactive mode. Goodbye!")
                 os._exit(0)

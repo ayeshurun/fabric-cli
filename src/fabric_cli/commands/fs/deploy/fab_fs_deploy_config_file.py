@@ -7,10 +7,9 @@ from argparse import Namespace
 from fabric_cicd import append_feature_flag, configure_external_file_logging, deploy_with_config, disable_file_logging  # type: ignore
 
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_msal_bridge import create_fabric_token_credential
-from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils.fab_util import get_dict_from_params
 
 
@@ -19,7 +18,7 @@ def deploy_with_config_file(args: Namespace) -> None:
 
     try:
         if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
-            cli_logger = fab_logger.get_logger()
+            cli_logger = output_manager.get_logger()
             # configure file logging for CICD library to use the same file handler as the CLI
             configure_external_file_logging(cli_logger)
         else:
@@ -47,7 +46,7 @@ def deploy_with_config_file(args: Namespace) -> None:
         )
 
         if result:
-            fab_ui.print_output_format(
+            output_manager.print_output_format(
                 args, message=result.message)
 
     except Exception as e:

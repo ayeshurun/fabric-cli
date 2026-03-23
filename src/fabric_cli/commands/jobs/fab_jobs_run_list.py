@@ -7,7 +7,7 @@ from argparse import Namespace
 from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_ls_utils as utils_ls
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, context: Item) -> None:
@@ -34,4 +34,4 @@ def exec_command(args: Namespace, context: Item) -> None:
             )
         else:
             message = "No schedules found" if args.schedule else "No runs found"
-            fab_ui.print_output_format(args, message=message)
+            output_manager.print_output_format(args, message=message)

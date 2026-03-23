@@ -3,14 +3,13 @@
 
 from functools import wraps
 
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_constant import (
     ERROR_UNAUTHORIZED,
     EXIT_CODE_AUTHORIZATION_REQUIRED,
     EXIT_CODE_ERROR,
 )
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def singleton(class_):
@@ -37,7 +36,7 @@ def handle_exceptions():
             try:
                 return func(*args, **kwargs)
             except FabricCLIError as e:
-                fab_ui.print_output_error(
+                output_manager.print_output_error(
                     e,
                     args[0].command_path,
                     output_format_type=args[0].output_format,

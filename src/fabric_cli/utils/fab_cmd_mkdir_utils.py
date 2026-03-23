@@ -10,12 +10,11 @@ from fabric_cli.client import fab_api_azure as azure_api
 from fabric_cli.client import fab_api_managedprivateendpoint as mpe_api
 from fabric_cli.commands.fs.mkdir import fab_fs_mkdir_item as mkdir_item
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def add_type_specific_payload(item: Item, args, payload):
@@ -70,7 +69,7 @@ def add_type_specific_payload(item: Item, args, payload):
                 }
             # Default
             else:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "EventHouse not provided in params. Creating one first"
                 )
 
@@ -98,7 +97,7 @@ def add_type_specific_payload(item: Item, args, payload):
                 _type = params.get("mirrortype")
                 match _type.lower():
                     case "azuresql":
-                        fab_logger.log_warning(
+                        output_manager.log_warning(
                             "Requires system-assigned managed identity on"
                         )
                         payload_folder = "MirroredDatabase.AzureSQLDatabase"
@@ -127,7 +126,7 @@ def add_type_specific_payload(item: Item, args, payload):
             if params.get("semanticmodelid"):
                 _semantic_model_id = params.get("semanticmodelid")
             else:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "Semantic Model not provided in params. Creating one first"
                 )
 
@@ -336,7 +335,7 @@ def show_params_desc(params, type, required_params=None, optional_params=None):
             if optional_param_list:
                 message_parts.append(f"\n\nOptional params:\n  {optional_param_list}")
 
-        utils_ui.print("".join(message_parts) + "\n")
+        output_manager.print("".join(message_parts) + "\n")
 
         return True
     elif params.get("run"):
@@ -389,7 +388,7 @@ def _get_params_per_cred_type(cred_type, is_on_premises_gateway):
         case "SharedAccessSignature":
             return ["token"]
         case _:
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 f"Unsupported credential type {cred_type}. Skipping validation"
             )
             return []
@@ -415,7 +414,7 @@ def _validate_credential_params(cred_type, provided_cred_params, is_on_premises_
         if key not in [k.lower() for k in param_keys]
     ]
     if len(ignored_params) > 0:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"Ignoring unsupported parameters for credential type {cred_type}: {ignored_params}"
         )
     if is_on_premises_gateway:
@@ -452,7 +451,7 @@ def _validate_and_get_on_premises_gateway_credential_values(cred_values):
         if key not in [k.lower() for k in param_values_keys]
     ]
     if len(ignored_params) > 0:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"Ignoring unsupported parameters for on-premises gateway: {ignored_params}"
     )
 
@@ -514,7 +513,7 @@ def get_connection_config_from_params(payload, con_type, con_type_def, params):
                 None,
             )
             if creation_method is not None:
-                utils_ui.print_info(
+                output_manager.print_info(
                     f"Inferred creation method '{creation_method['name']}' from provided parameters"
                 )
         else:
@@ -576,7 +575,7 @@ def get_connection_config_from_params(payload, con_type, con_type_def, params):
         for param in provided_params:
             if param not in [p["name"].lower() for p in creation_method["parameters"]]:
                 c_method = creation_method["name"]
-                utils_ui.print_warning(
+                output_manager.print_warning(
                     f"Parameter {param} is not used by the creation method {c_method} and will be ignored"
                 )
 

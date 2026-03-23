@@ -8,7 +8,7 @@ from typing import Any
 
 from fabric_cli.client import fab_api_client as fabric_api
 from fabric_cli.utils import fab_jmespath as utils_jmespath
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -42,4 +42,4 @@ def exec_command(args: Namespace) -> None:
         if payload_jmespath:
             payload = payload_jmespath
 
-    fab_ui.print_output_format(args, data=payload)
+    output_manager.print_output_format(args, data=payload)

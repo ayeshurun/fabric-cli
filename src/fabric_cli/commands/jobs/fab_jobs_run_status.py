@@ -6,7 +6,7 @@ from argparse import Namespace
 
 from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, context: Item) -> None:
@@ -19,4 +19,4 @@ def exec_command(args: Namespace, context: Item) -> None:
 
     if response.status_code == 200:
         content = json.loads(response.text)
-        fab_ui.print_output_format(args, data=content, show_headers=True)
+        output_manager.print_output_format(args, data=content, show_headers=True)

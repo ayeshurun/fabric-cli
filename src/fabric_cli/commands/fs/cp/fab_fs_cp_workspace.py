@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.cp import fab_fs_cp_item as cp_item
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_cmd_fs_utils as fs_utils
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as util
 from fabric_cli.utils import fab_item_util as item_utils
 
@@ -24,8 +24,8 @@ def copy_workspace_elements(
         fs_utils.select_workspace_items(from_context)
     )
 
-    utils_ui.print_grey("\n".join(selected_elements))
-    utils_ui.print_grey("------------------------------")
+    output_manager.print_grey("\n".join(selected_elements))
+    output_manager.print_grey("------------------------------")
 
     execute_copy_operation(
         from_context,
@@ -47,7 +47,7 @@ def execute_copy_operation(
     is_move_command = delete_after_copy if delete_after_copy is not None else False
     confirm_message = item_utils.get_confirm_copy_move_message(is_move_command)
 
-    if args.force or utils_ui.prompt_confirm(confirm_message):
+    if args.force or output_manager.prompt_confirm(confirm_message):
         ui_texts = []
         if filtered_items:
             # Sort output by config
@@ -70,7 +70,7 @@ def execute_copy_operation(
             " and ".join(ui_texts) if len(ui_texts) > 0 else "No items nor folders"
         )
 
-        utils_ui.print_output_format(
+        output_manager.print_output_format(
             args,
             message=f"{ui_text} {'moved' if delete_after_copy else 'copied'} successfully from {from_context.path} to {to_context.path}",
         )

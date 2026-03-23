@@ -10,7 +10,7 @@ from typing import Optional
 from fabric_cli.client import fab_api_onelake as onelake_api
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import (
@@ -38,7 +38,6 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
 )
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_mem_store as mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as utils
 
 
@@ -87,7 +86,7 @@ def get_command_context(
             local_context, VirtualItem
         ):
             if local_context.item_type == VirtualItemType.EXTERNAL_DATA_SHARE:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "Ensure tenant setting is enabled for External data sharing"
                 )
 
@@ -99,7 +98,7 @@ def get_command_context(
             fab_constant.ERROR_INVALID_PATH,
             fab_constant.ERROR_NOT_SUPPORTED,
         ]:
-            utils_ui.print_grey(
+            output_manager.print_grey(
                 f"{local_path} not found in Fabric, checking local file system"
             )
             # If the local path exists in the local file system, return the local path

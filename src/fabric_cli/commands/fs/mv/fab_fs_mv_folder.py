@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.cp import fab_fs_cp_folder as cp_folder
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def _change_folder_parent(folder: Folder, new_parent: Workspace | Folder) -> None:
@@ -17,7 +17,7 @@ def _change_folder_parent(folder: Folder, new_parent: Workspace | Folder) -> Non
     Change the parent of a folder to a new parent.
     """
     if folder.parent == new_parent:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"Folder '{folder.name}' is already in the target parent. Skipping."
         )
         return
@@ -35,7 +35,7 @@ def _change_folder_parent(folder: Folder, new_parent: Workspace | Folder) -> Non
         # Update the folder in memory store
         folder._parent = new_parent
         utils_mem_store.upsert_folder_to_cache(folder)
-        utils_ui.print_output_format(
+        output_manager.print_output_format(
             args,
             message=f"Move Completed for Folder '{folder.name}' to '{new_parent.name}'",
         )

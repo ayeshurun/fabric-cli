@@ -9,7 +9,7 @@ from fabric_cli.commands.fs import fab_fs as fs
 from fabric_cli.commands.fs.get import fab_fs_get_capacity as get_capacity
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 INVALID_QUERIES = [
     "location",
@@ -29,7 +29,7 @@ def exec(virtual_ws_item: VirtualWorkspaceItem, args: Namespace) -> None:
     utils_set.validate_query_not_in_blocklist(query, INVALID_QUERIES)
 
     utils_set.print_set_warning()
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         args.deep_traversal = True
         args.output = None
@@ -39,8 +39,8 @@ def exec(virtual_ws_item: VirtualWorkspaceItem, args: Namespace) -> None:
             vwsi_capacity_def, query, args.input
         )
 
-        utils_ui.print_grey(f"Setting new property for '{virtual_ws_item.name}'...")
+        output_manager.print_grey(f"Setting new property for '{virtual_ws_item.name}'...")
         response = capacity_api.update_capacity(args, json.dumps(updated_def))
 
         if response.status_code == 200:
-            utils_ui.print_output_format(args, message="Capacity updated")
+            output_manager.print_output_format(args, message="Capacity updated")

@@ -589,7 +589,7 @@ def _questionary_style():
 
 
 # ---------------------------------------------------------------------------
-# File-based debug logger (formerly fab_logger.py)
+# File-based debug logger (formerly output_manager.py)
 # ---------------------------------------------------------------------------
 
 _logger_instance = None
@@ -899,3 +899,13 @@ def _print_entries_key_value_list_style(entries: Any) -> None:
 
 def _print_error_format_text(message: str, command: Optional[str] = None) -> None:
     output_manager()._print_error_text(message, command)
+
+
+def set_output_format(fmt: Optional[str]) -> None:
+    """Set the output format on the singleton OutputManager."""
+    output_manager().set_output_format(fmt)
+
+
+def set_mode(mode: str) -> None:
+    """Set the CLI mode on the singleton OutputManager."""
+    output_manager().set_mode(mode)

@@ -367,7 +367,7 @@ class TestInteractiveCLI:
     def test_start_interactive_mode_already_running(self):
         """Test that calling start_interactive_mode when already running prints message"""
         with patch("fabric_cli.core.fab_interactive.InteractiveCLI") as mock_interactive_cli, \
-             patch("fabric_cli.core.fab_interactive.utils_ui.print") as mock_print:
+             patch("fabric_cli.core.fab_interactive.output_manager.print") as mock_print:
             from unittest.mock import Mock
             from fabric_cli.core import fab_interactive
             
@@ -453,31 +453,31 @@ def mock_prompt_session():
 
 @pytest.fixture
 def mock_print_ui():
-    """Mock utils_ui.print function."""
-    with patch("fabric_cli.core.fab_interactive.utils_ui.print") as mock:
+    """Mock output_manager.print function."""
+    with patch("fabric_cli.core.fab_interactive.output_manager.print") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_print_log_file_path():
-    """Mock fab_logger.print_log_file_path function."""
+    """Mock output_manager.print_log_file_path function."""
     with patch(
-        "fabric_cli.core.fab_interactive.fab_logger.print_log_file_path"
+        "fabric_cli.core.fab_interactive.output_manager.print_log_file_path"
     ) as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_display_help():
-    """Mock utils_ui.display_help function."""
-    with patch("fabric_cli.core.fab_interactive.utils_ui.display_help") as mock:
+    """Mock output_manager.display_help function."""
+    with patch("fabric_cli.core.fab_interactive.output_manager.display_help") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_print_version():
-    """Mock utils_ui.print_version function."""
-    with patch("fabric_cli.core.fab_interactive.utils_ui.print_version") as mock:
+    """Mock output_manager.print_version function."""
+    with patch("fabric_cli.core.fab_interactive.output_manager.print_version") as mock:
         yield mock
 
 

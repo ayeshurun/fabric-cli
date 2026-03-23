@@ -8,7 +8,7 @@ from azure.core.credentials import AccessToken, TokenCredential
 from azure.core.exceptions import ClientAuthenticationError
 
 from fabric_cli.core import fab_constant as con
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_auth import FabAuth
 
 # Bridge-specific: strict .default scope validation
@@ -63,7 +63,7 @@ class MsalTokenCredential(TokenCredential):
         """
         for scope in scopes:
             if scope not in VALID_DEFATULT_SCOPES:
-                fab_logger.log_debug(f"Invalid scope rejected: {scope}")
+                output_manager.log_debug(f"Invalid scope rejected: {scope}")
                 raise ClientAuthenticationError(
                     f"Security validation failed: requested scope is not supported."
                     f"Invalid scope: {scope}. "
@@ -78,7 +78,7 @@ class MsalTokenCredential(TokenCredential):
             return self._to_azure_access_token(msal_result)
             
         except Exception as e:
-            fab_logger.log_debug(f"Token acquisition failed: {e}")
+            output_manager.log_debug(f"Token acquisition failed: {e}")
             raise ClientAuthenticationError(
                 f"\n{str(e)}"
             ) from e
@@ -125,6 +125,6 @@ def create_fabric_token_credential() -> TokenCredential:
     
     identity_type = fab_auth.get_identity_type()
     
-    fab_logger.log_debug(f"Creating TokenCredential for identity type: {identity_type}")
+    output_manager.log_debug(f"Creating TokenCredential for identity type: {identity_type}")
     return MsalTokenCredential(fab_auth)
 

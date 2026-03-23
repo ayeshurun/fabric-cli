@@ -6,7 +6,7 @@ import json
 from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def load_json_from_path(file_path: str) -> dict:
@@ -16,13 +16,13 @@ def load_json_from_path(file_path: str) -> dict:
             return data
 
     except FileNotFoundError:
-        utils_ui.print(f"The file at {file_path} was not found")
+        output_manager.print(f"The file at {file_path} was not found")
         raise FabricCLIError(
             ErrorMessages.Common.file_not_found(file_path), fab_constant.ERROR_NOT_FOUND
         )
 
     except json.JSONDecodeError:
-        utils_ui.print(f"The file at {file_path} is not a valid JSON file")
+        output_manager.print(f"The file at {file_path} is not a valid JSON file")
         raise FabricCLIError(
             ErrorMessages.Common.file_not_valid_json(file_path),
             fab_constant.ERROR_INVALID_JSON,

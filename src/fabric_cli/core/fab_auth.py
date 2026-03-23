@@ -20,12 +20,11 @@ from msal_extensions import (
 )
 
 from fabric_cli.core import fab_constant as con
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core import fab_state_config as config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def singleton(class_):
@@ -202,7 +201,7 @@ class FabAuth:
         try:
             persistence = build_encrypted_persistence(self.cache_file)
         except Exception as e:
-            fab_logger.log_debug(f"Error using encrypted cache: {e}")
+            output_manager.log_debug(f"Error using encrypted cache: {e}")
 
             if config.get_config(con.FAB_ENCRYPTION_FALLBACK_ENABLED) == "true":
                 persistence = FilePersistence(self.cache_file)
@@ -338,7 +337,7 @@ class FabAuth:
         if tenant_id is not None:
             current_tenant_id = self.get_tenant_id()
             if current_tenant_id is not None and current_tenant_id != tenant_id:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     f"Tenant ID already set to {current_tenant_id}."
                     + f" Logout done and Tenant ID set to {tenant_id}."
                 )
@@ -374,7 +373,7 @@ class FabAuth:
             self._get_auth_property(con.FAB_SPN_CLIENT_ID) is not None
             and self._get_auth_property(con.FAB_SPN_CLIENT_ID) != client_id
         ):
-            fab_logger.log_warning(
+            output_manager.log_warning(
                 f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. Overwriting with {client_id} and clearing the existing auth tokens"
             )
             self.logout()
@@ -401,7 +400,7 @@ class FabAuth:
             self._get_auth_property(con.FAB_SPN_CLIENT_ID) is not None
             and self._get_auth_property(con.FAB_SPN_CLIENT_ID) != client_id
         ):
-            fab_logger.log_warning(
+            output_manager.log_warning(
                 f"Client ID already set to {self._get_auth_property(con.FAB_SPN_CLIENT_ID)}. Overwriting with {client_id} and clearing the existing auth tokens"
             )
             self.logout()
@@ -413,7 +412,7 @@ class FabAuth:
         )
 
     def print_auth_info(self):
-        utils_ui.print_grey(json.dumps(self._get_auth_info(), indent=2))
+        output_manager.print_grey(json.dumps(self._get_auth_info(), indent=2))
 
     def _is_token_defined(self, scope):
         match scope:
@@ -493,7 +492,7 @@ class FabAuth:
                     self.set_tenant(token.get("id_token_claims")["tid"])
 
         if token and token.get("error"):
-            fab_logger.log_debug(
+            output_manager.log_debug(
                 f"Error in get token: {token.get('error_description')}")
             raise FabricCLIError(
                 ErrorMessages.Auth.access_token_error(
@@ -604,7 +603,7 @@ class FabAuth:
                 )
                 return payload
             except Exception as e:
-                fab_logger.log_debug(
+                output_manager.log_debug(
                     f"JWT decode error with cached key: {e}. Fetching new key..."
                 )
         try:
@@ -617,7 +616,7 @@ class FabAuth:
                 options=decode_options,
             )
         except Exception as e:
-            fab_logger.log_debug(f"JWT decode error: {e}")
+            output_manager.log_debug(f"JWT decode error: {e}")
             raise FabricCLIError(
                 ErrorMessages.Auth.jwt_decode_failed(),
                 con.ERROR_AUTHENTICATION_FAILED,

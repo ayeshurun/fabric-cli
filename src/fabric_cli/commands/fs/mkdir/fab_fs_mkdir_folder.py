@@ -10,7 +10,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(folder: Folder, args: Namespace) -> str | None:
@@ -23,7 +23,7 @@ def exec(folder: Folder, args: Namespace) -> str | None:
     parent_folder_id = folder.parent.id if folder.parent != folder.workspace else None
     foldername = folder.short_name
 
-    utils_ui.print_grey(f"Creating a new Folder...")
+    output_manager.print_grey(f"Creating a new Folder...")
 
     payload = {
         "description": "Created by fab",
@@ -37,7 +37,7 @@ def exec(folder: Folder, args: Namespace) -> str | None:
     response = folder_api.create_folder(args, json_payload)
     if response.status_code in (200, 201):
         data = json.loads(response.text)
-        utils_ui.print_output_format(args, message=f"'{folder.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{folder.name}' created", data=data, show_headers=True)
         if data is not None and data.get("id"):
             _folder_id = data["id"]
             folder._id = _folder_id

@@ -15,7 +15,7 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.utils import fab_cmd_job_utils as utils_job
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 @handle_exceptions()
@@ -29,10 +29,10 @@ def run_command(args: Namespace) -> None:
     utils_job.add_item_props_to_args(args, context)
     utils_job.build_config_from_args(args, context)
     if args.jobs_command == "start":
-        fab_ui.print_grey(f"Starting job (async) for '{args.item}'...")
+        output_manager.print_grey(f"Starting job (async) for '{args.item}'...")
         args.wait = False
     if args.jobs_command == "run":
-        fab_ui.print_grey(f"Running job (sync) for '{args.item}'...")
+        output_manager.print_grey(f"Running job (sync) for '{args.item}'...")
         args.wait = True
     jobs_run.exec_command(args, context)
 

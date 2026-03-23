@@ -8,7 +8,7 @@ from fabric_cli.commands.fs.rm import fab_fs_rm_item as rm_item
 from fabric_cli.core.hiearchy.fab_hiearchy import Folder
 from fabric_cli.utils import fab_cmd_fs_utils as utils_fs
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(folder: Folder, args: Namespace, force_delete: bool) -> None:
@@ -38,6 +38,6 @@ def remove_folder_recursively(
     if len(utils_fs.get_ws_elements(folder)) == 0:
         exec(folder, args, force_delete)
     else:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"Folder '{folder.name}' is not empty. It will not be deleted."
         )

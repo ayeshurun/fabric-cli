@@ -202,7 +202,7 @@ def test_get_context_session_id_no_parent_process(monkeypatch):
     monkeypatch.setattr("psutil.Process", mock_process)
     monkeypatch.setattr("fabric_cli.core.fab_context.os.getpid", mock_getpid)
     monkeypatch.setattr(
-        "fabric_cli.core.fab_context.fab_logger.log_debug", mock_log_debug
+        "fabric_cli.core.fab_context.output_manager.log_debug", mock_log_debug
     )
 
     context = Context()
@@ -231,7 +231,7 @@ def test_get_context_session_id_parent_process_exception(monkeypatch):
     monkeypatch.setattr("psutil.Process", mock_process)
     monkeypatch.setattr("fabric_cli.core.fab_context.os.getpid", mock_getpid)
     monkeypatch.setattr(
-        "fabric_cli.core.fab_context.fab_logger.log_debug", mock_log_debug
+        "fabric_cli.core.fab_context.output_manager.log_debug", mock_log_debug
     )
 
     context = Context()
@@ -257,7 +257,7 @@ def test_get_context_session_id_grandparent_process_exception(monkeypatch):
 
     monkeypatch.setattr("psutil.Process", mock_process)
     monkeypatch.setattr(
-        "fabric_cli.core.fab_context.fab_logger.log_debug", mock_log_debug
+        "fabric_cli.core.fab_context.output_manager.log_debug", mock_log_debug
     )
 
     context = Context()
@@ -283,7 +283,7 @@ def test_get_context_session_id_no_grandparent_process(monkeypatch):
 
     monkeypatch.setattr("psutil.Process", mock_process)
     monkeypatch.setattr(
-        "fabric_cli.core.fab_context.fab_logger.log_debug", mock_log_debug
+        "fabric_cli.core.fab_context.output_manager.log_debug", mock_log_debug
     )
 
     context = Context()

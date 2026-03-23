@@ -4,7 +4,7 @@
 from argparse import Namespace, _SubParsersAction
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def register_parser(subparsers: _SubParsersAction) -> None:
@@ -15,4 +15,4 @@ def register_parser(subparsers: _SubParsersAction) -> None:
 
 
 def show_help(args: Namespace) -> None:
-    fab_logger.log_warning(fab_constant.INFO_FEATURE_NOT_SUPPORTED, args.command_path)
+    output_manager.log_warning(fab_constant.INFO_FEATURE_NOT_SUPPORTED, args.command_path)

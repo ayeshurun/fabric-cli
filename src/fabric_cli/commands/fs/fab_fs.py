@@ -42,7 +42,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
     VirtualWorkspaceItem,
     Workspace,
 )
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 COMMAND_GROUP = "fs"
 
@@ -257,7 +257,7 @@ def _print_context() -> None:
     # Local path is the current working directory of the python process using the os module
     data = {"name": name, "type": type_, "id": id_, "local_path": os.getcwd()}
 
-    utils_ui.print_grey(json.dumps(data, indent=4))
+    output_manager.print_grey(json.dumps(data, indent=4))
 
 
 def _check_command_line_support(mode: str, context: FabricElement, force: bool) -> None:

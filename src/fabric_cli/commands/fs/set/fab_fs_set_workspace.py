@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.get import fab_fs_get_workspace as get_workspace
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 INVALID_QUERIES = [
     "capacityId",
@@ -34,13 +34,13 @@ def exec(workspace: Workspace, args: Namespace) -> None:
     workspace_def = get_workspace.exec(workspace, args, verbose=False)
 
     utils_set.print_set_warning()
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         updated_def = utils_set.update_fabric_element(workspace_def, query, args.input)
 
         args.ws_id = workspace.id
 
-        utils_ui.print_grey(f"Setting new property for '{workspace.name}'...")
+        output_manager.print_grey(f"Setting new property for '{workspace.name}'...")
 
         # Update workspace settings
         if query.startswith("sparkSettings"):
@@ -57,4 +57,4 @@ def exec(workspace: Workspace, args: Namespace) -> None:
             utils_set.update_cache(
                 updated_def, workspace, utils_mem_store.upsert_workspace_to_cache
             )
-            utils_ui.print_output_format(args, message="Workspace updated")
+            output_manager.print_output_format(args, message="Workspace updated")

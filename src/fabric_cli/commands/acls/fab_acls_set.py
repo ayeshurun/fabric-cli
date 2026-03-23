@@ -9,12 +9,11 @@ from fabric_cli.client import fab_api_connection as api_connection
 from fabric_cli.client import fab_api_gateway as api_gateway
 from fabric_cli.client import fab_api_workspace as api_workspaces
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import VirtualWorkspaceItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Workspace
 from fabric_cli.core.hiearchy.fab_virtual_workspace_item import VirtualWorkspaceItem
-from fabric_cli.utils import fab_output_manager as utils_ui
 
 # Valid roles for different contexts
 WORKSPACE_ROLES = ["Admin", "Member", "Contributor", "Viewer"]
@@ -48,7 +47,7 @@ def exec_command(args: Namespace, context: FabricElement) -> None:
 
 # Workspaces
 def _set_acls_workspace(workspace: Workspace, args: Namespace) -> None:
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
         args.ws_id = workspace.id
         identity = args.identity
 
@@ -71,7 +70,7 @@ def _set_acls_workspace(workspace: Workspace, args: Namespace) -> None:
 
 
 def _set_acls_connection(connection: VirtualWorkspaceItem, args: Namespace) -> None:
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
         identity = args.identity
         args.con_id = connection.id
 
@@ -94,7 +93,7 @@ def _set_acls_connection(connection: VirtualWorkspaceItem, args: Namespace) -> N
 
 
 def _set_acls_gateway(gateway: VirtualWorkspaceItem, args: Namespace) -> None:
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
         identity = args.identity
         args.gw_id = gateway.id
 
@@ -152,7 +151,7 @@ def _validate_role_by_type(
 
 def _add_acl(name: str, identity: str, args: Namespace, acl_add_callback) -> None:
     success = False
-    utils_ui.print_grey(f"Adding ACL to '{name}'...")
+    output_manager.print_grey(f"Adding ACL to '{name}'...")
 
     for principal_type in PRINCIPAL_TYPES:
         payload = json.dumps(
@@ -165,7 +164,7 @@ def _add_acl(name: str, identity: str, args: Namespace, acl_add_callback) -> Non
         try:
             response = acl_add_callback(args, payload)
             if response.status_code in (200, 201):
-                utils_ui.print_output_format(args, message="ACL set")
+                output_manager.print_output_format(args, message="ACL set")
                 success = True
                 break
         except Exception:
@@ -186,16 +185,16 @@ def _try_update_acl_if_exists(
         list_acls = response.text
         if list_acls:
             if identity in list_acls:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "The provided principal already has a role assigned in the connection"
                 )
-                if args.force or utils_ui.prompt_confirm("Overwrite?"):
+                if args.force or output_manager.prompt_confirm("Overwrite?"):
                     args.id = identity
                     payload = json.dumps({"role": args.role})
                     response = acl_update_callback(args, payload)
 
                     if response.status_code in (200, 201):
-                        utils_ui.print_output_format(args, message="ACL updated")
+                        output_manager.print_output_format(args, message="ACL updated")
 
                 return True
 

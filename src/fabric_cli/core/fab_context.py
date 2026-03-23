@@ -10,13 +10,12 @@ import sys
 import psutil
 
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_element import FabricElement
 from fabric_cli.core.hiearchy.fab_tenant import Tenant
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 @singleton
@@ -69,7 +68,7 @@ class Context:
         self.context = self.context.tenant
 
     def print_context(self) -> None:
-        utils_ui.print_grey(str(self.context))
+        output_manager.print_grey(str(self.context))
 
     # Tenant
 
@@ -155,7 +154,7 @@ class Context:
                 with open(self._context_file, "w") as f:
                     json.dump(context_data, f)
             except Exception:
-                utils_ui.print_warning(
+                output_manager.print_warning(
                     "Warning: Failed to save context file. Context persistence may not work as expected."
                 )
                 pass
@@ -187,7 +186,7 @@ class Context:
                     path = context_data["path"]
                     if path:
                         self._context = fab_handle_context.get_command_context(path)
-                        utils_ui.print_warning(
+                        output_manager.print_warning(
                             f"Command context path: { 'root' if isinstance(self._context, Tenant) else self._context.path }"
                         )
         except Exception:
@@ -259,7 +258,7 @@ class Context:
         grandparent_process = parent_process.parent()
 
         if not grandparent_process:
-            fab_logger.log_debug(
+            output_manager.log_debug(
                 "No grandparent process was found. Falling back to parent process for session ID resolution"
             )
             return parent_process
@@ -268,7 +267,7 @@ class Context:
             great_grandparent_process = grandparent_process.parent()
 
             if not great_grandparent_process:
-                fab_logger.log_debug(
+                output_manager.log_debug(
                     "No great-grandparent process found in virtual environment. Falling back to grandparent process for session ID resolution"
                 )
             else:
@@ -297,7 +296,7 @@ class Context:
             current_process = psutil.Process()
             parent_process = current_process.parent()
             if not parent_process:
-                fab_logger.log_debug(
+                output_manager.log_debug(
                     "No parent process found. Falling back to current process for session ID."
                 )
                 return os.getpid()
@@ -306,12 +305,12 @@ class Context:
             return session_process.pid
         except Exception as e:
             if parent_process:
-                fab_logger.log_debug(
+                output_manager.log_debug(
                     f"Failed to get session process: {e}. Falling back to parent process for session ID resolution."
                 )
                 return parent_process.pid
             else:
-                fab_logger.log_debug(
+                output_manager.log_debug(
                     f"Failed to get parent process: {e}. Falling back to current process for session ID resolution."
                 )
                 return os.getpid()

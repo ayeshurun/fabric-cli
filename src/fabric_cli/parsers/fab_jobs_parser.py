@@ -6,7 +6,7 @@ from argparse import Namespace, _SubParsersAction
 from fabric_cli.core import fab_constant
 from fabric_cli.parsers.fab_parser_validators import validate_positive_int
 from fabric_cli.utils import fab_error_parser as utils_error_parser
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils.fab_lazy_load import lazy_command
 
 _jobs_module_path = "fabric_cli.commands.jobs.fab_jobs"
@@ -345,4 +345,4 @@ def register_parser(subparsers: _SubParsersAction) -> None:
 
 
 def show_help(args: Namespace) -> None:
-    utils_ui.display_help(commands, custom_header=fab_constant.COMMAND_JOBS_DESCRIPTION)
+    output_manager.display_help(commands, custom_header=fab_constant.COMMAND_JOBS_DESCRIPTION)

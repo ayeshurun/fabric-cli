@@ -9,7 +9,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import OneLakeItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import LocalPath, OneLakeItem
 from fabric_cli.utils import fab_cmd_cp_utils as cp_utils
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 from fabric_cli.utils import fab_item_util as item_utils
 
@@ -30,7 +30,7 @@ def copy_onelake_2_onelake(
             )
             args.from_path, args.to_path = from_path_id, to_path_id
 
-            utils_ui.print_grey(f"Copying '{from_path_name}' → '{to_path_name}'...")
+            output_manager.print_grey(f"Copying '{from_path_name}' → '{to_path_name}'...")
             content = cp_utils.get_file_content_onelake(args)
             if content.get_content_length() == 0:
                 raise FabricCLIError(
@@ -67,7 +67,7 @@ def copy_local_2_onelake(
 
     args.to_path = to_context.path_id
 
-    utils_ui.print_grey(f"Copying '{from_context.path}' → '{to_context.path}'...")
+    output_manager.print_grey(f"Copying '{from_context.path}' → '{to_context.path}'...")
 
     # Read the contents of the local file using the file path property
     try:
@@ -99,7 +99,7 @@ def copy_onelake_2_local(
                 )
 
             args.from_path = from_context.path_id
-            utils_ui.print_grey(
+            output_manager.print_grey(
                 f"Copying '{from_context.path}' → '{to_context.path}'..."
             )
             file_content = cp_utils.get_file_content_onelake(args)
@@ -119,7 +119,7 @@ def copy_onelake_2_local(
                     f"Error writing file: {e}", fab_constant.ERROR_INVALID_PATH
                 )
 
-            utils_ui.print_output_format(args, message="Done")
+            output_manager.print_output_format(args, message="Done")
 
         case OneLakeItemType.FOLDER | OneLakeItemType.SHORTCUT | OneLakeItemType.TABLE:
             raise FabricCLIError(

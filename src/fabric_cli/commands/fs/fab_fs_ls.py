@@ -28,7 +28,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
     VirtualWorkspace,
     Workspace,
 )
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args, context: FabricElement):
@@ -61,7 +61,7 @@ def _ls_virtual_workspace(virtual_workspace: VirtualWorkspace, args):
         case VirtualWorkspaceType.GATEWAY:
             ls_gateway.exec(virtual_workspace, args, show_details)
         case _:
-            utils_ui.print_grey("Not Supported")
+            output_manager.print_grey("Not Supported")
 
 
 # Virtual Items
@@ -77,4 +77,4 @@ def _ls_virtual_item_container(virtual_item_container: VirtualItemContainer, arg
         case VirtualItemContainerType.EXTERNAL_DATA_SHARE:
             ls_externaldatashare.exec(virtual_item_container, args, show_details)
         case _:
-            utils_ui.print_grey("Not Supported")
+            output_manager.print_grey("Not Supported")

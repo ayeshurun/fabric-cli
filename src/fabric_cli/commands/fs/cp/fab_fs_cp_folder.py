@@ -14,7 +14,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Folder, Item, Workspace
 from fabric_cli.utils import fab_cmd_fs_utils as utils_fs
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def copy_folders(
@@ -60,7 +60,7 @@ def copy_folder(
     unsupported_items_names = [item.name for item in unsupported_items]
 
     if unsupported_items:
-        if not args.force and not utils_ui.prompt_confirm(
+        if not args.force and not output_manager.prompt_confirm(
             f"Folder '{from_folder.name}' contains items that do not support copying: {unsupported_items_names}. Do you still want to proceed?"
         ):
             return 0
@@ -84,7 +84,7 @@ def copy_folder(
             folders.append(item)
 
     if not supported_items:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"No items in folder '{from_folder.name}' support definition. Skipping copy."
         )
     else:
@@ -104,7 +104,7 @@ def copy_folder(
     if len(unsupported_items) == 0 and delete_after_copy:
         pending_elements = utils_fs.get_ws_elements(from_folder)
         if len(pending_elements) > 0:
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 f"Folder '{from_folder.name}' is not empty. It will not be deleted."
             )
         else:
@@ -115,7 +115,7 @@ def copy_folder(
             )
             folders_api.delete_folder(_args, bypass_confirmation=True)
 
-    utils_ui.print_output_format(
+    output_manager.print_output_format(
         args,
         message=f"Copied {n_items} items and {n_folders} folders from '{from_folder.name}' to '{to_context.name}'",
     )
@@ -181,7 +181,7 @@ def _copy_nested_folders(
             _args.force = True  # Force creation of the folder
             fs_mkdir_folder.exec(new_folder, _args)
         else:
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 f"Folder '{new_folder.name}' already exists. Skipping creation."
             )
         args.from_path = nested_folder.path
@@ -199,7 +199,7 @@ def _copy_nested_folders(
                 pass
 
         if not supported_items:
-            utils_ui.print_warning(
+            output_manager.print_warning(
                 f"No items in folder '{nested_folder.name}' support definition."
             )
         else:
@@ -215,7 +215,7 @@ def _copy_nested_folders(
 def _delete_folder_after_cp(folder: Folder):
     pending_elements = utils_fs.get_ws_elements(folder)
     if len(pending_elements) > 0:
-        utils_ui.print_warning(
+        output_manager.print_warning(
             f"Folder '{folder.name}' is not empty. It will not be deleted."
         )
     else:

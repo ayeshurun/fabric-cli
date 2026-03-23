@@ -13,7 +13,7 @@ from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, Workspace
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def move_items(
@@ -54,7 +54,7 @@ def move_item(
     # Cross-workspace move, copy the item definitionn and delete the source item after.
     if from_context.workspace != to_workspace:
         # Raise a confirm prompt stating that the item will be copied without its data and the original item will be deleted
-        if args.force or utils_ui.prompt_confirm(
+        if args.force or output_manager.prompt_confirm(
             "Moving items across workspaces will not move the data and cause data loss. Do you want to continue?"
         ):
             return cp_item.copy_item(
@@ -102,6 +102,6 @@ def _rename_item(item: Item, name: str, args: Namespace) -> None:
     payload = json.dumps({"name": name})
     response = item_api.update_item(_args, payload)
     if response.status_code == 200:
-        utils_ui.print_output_format(args, message="Move completed")
+        output_manager.print_output_format(args, message="Move completed")
         item._name = name
         utils_mem_store.upsert_item_to_cache(item)

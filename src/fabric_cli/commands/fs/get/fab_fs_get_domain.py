@@ -7,7 +7,7 @@ from typing import Optional
 
 from fabric_cli.client import fab_api_domain as domain_api
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_get_utils as utils_get
 
@@ -15,7 +15,7 @@ from fabric_cli.utils import fab_cmd_get_utils as utils_get
 def exec(
     virtual_ws_item: VirtualWorkspaceItem, args: Namespace, verbose: bool = True
 ) -> dict:
-    fab_logger.log_warning(fab_constant.WARNING_FABRIC_ADMINISTRATOR)
+    output_manager.log_warning(fab_constant.WARNING_FABRIC_ADMINISTRATOR)
     args.name = virtual_ws_item.short_name
     args.id = virtual_ws_item.id
 

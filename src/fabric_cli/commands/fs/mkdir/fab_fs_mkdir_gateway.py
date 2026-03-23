@@ -11,7 +11,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(gateway: VirtualWorkspaceItem, args: Namespace) -> None:
@@ -36,7 +36,7 @@ def exec(gateway: VirtualWorkspaceItem, args: Namespace) -> None:
     ):
         return
 
-    utils_ui.print_grey(f"Creating a new Gateway...")
+    output_manager.print_grey(f"Creating a new Gateway...")
 
     # Lowercase params
     params = args.params
@@ -64,7 +64,7 @@ def exec(gateway: VirtualWorkspaceItem, args: Namespace) -> None:
         vnet = params.get("virtualnetworkname")
         subnet = params.get("subnetname")
         sub_id, rg_name = mkdir_utils.find_vnet_subnet(vnet, subnet)
-        utils_ui.print_grey(
+        output_manager.print_grey(
             f"Found Subnet '{vnet}/{subnet}' in Subscription '{sub_id}' and Resource Group '{rg_name}'"
         )
         params["subscriptionid"] = sub_id
@@ -96,7 +96,7 @@ def exec(gateway: VirtualWorkspaceItem, args: Namespace) -> None:
     response = gateway_api.create_gateway(args, payload=json.dumps(payload))
     if response.status_code in (200, 201):
         data = json.loads(response.text)
-        utils_ui.print_output_format(args, message=f"'{gateway.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{gateway.name}' created", data=data, show_headers=True)
         gateway._id = data["id"]
 
         # Add to mem_store

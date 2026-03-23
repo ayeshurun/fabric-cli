@@ -12,7 +12,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(connection: VirtualWorkspaceItem, args: Namespace) -> None:
@@ -106,7 +106,7 @@ def exec(connection: VirtualWorkspaceItem, args: Namespace) -> None:
             f"Connection type '{con_type}' not found", fab_constant.ERROR_INVALID_INPUT
         )
 
-    utils_ui.print_grey(f"Creating a new Connection...")
+    output_manager.print_grey(f"Creating a new Connection...")
 
     # Base payload
     payload = {
@@ -126,7 +126,7 @@ def exec(connection: VirtualWorkspaceItem, args: Namespace) -> None:
     response = connection_api.create_connection(args, payload=json_payload)
     if response.status_code in (200, 201):
         data = json.loads(response.text)
-        utils_ui.print_output_format(args, message=f"'{connection.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{connection.name}' created", data=data, show_headers=True)
 
         connection._id = data["id"]
 

@@ -6,12 +6,12 @@ from argparse import Namespace
 from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_job_utils as utils_job
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, item: Item) -> None:
 
-    fab_ui.print_grey(
+    output_manager.print_grey(
         f"Cancelling job instance for item {item.path} with id: '{args.id}'..."
     )
     args.instance_id = args.id
@@ -26,9 +26,9 @@ def exec_command(args: Namespace, item: Item) -> None:
                 custom_polling_interval=None
             )
         else:
-            fab_ui.print_output_format(
+            output_manager.print_output_format(
                 args, message=f"Job instance '{args.id}' cancelled (async)"
             )
-            fab_ui.print_grey(
+            output_manager.print_grey(
                 f"→ To see status run 'job run-status {item.path} --id {args.id}'"
             )

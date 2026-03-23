@@ -10,14 +10,12 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.styles import Style
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_context import Context
 from fabric_cli.core.fab_decorators import singleton
 from fabric_cli.utils import fab_commands
-from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
-from fabric_cli.utils.fab_output_manager import output_manager
 
 @singleton
 class InteractiveCLI:
@@ -28,7 +26,7 @@ class InteractiveCLI:
 
         self.parser = parser
         self.parser.set_mode(fab_constant.FAB_MODE_INTERACTIVE)
-        output_manager().set_mode(fab_constant.FAB_MODE_INTERACTIVE)
+        output_manager.set_mode(fab_constant.FAB_MODE_INTERACTIVE)
         self.subparsers = subparsers
         self.history = InMemoryHistory()
         self.session = self.init_session(self.history)
@@ -47,23 +45,23 @@ class InteractiveCLI:
 
     def handle_command(self, command):
         """Process the user command."""
-        fab_logger.print_log_file_path()
+        output_manager.print_log_file_path()
 
         command_parts = shlex.split(command.strip())
 
         if command in fab_constant.INTERACTIVE_QUIT_COMMANDS:
-            utils_ui.print(fab_constant.INTERACTIVE_EXIT_MESSAGE)
+            output_manager.print(fab_constant.INTERACTIVE_EXIT_MESSAGE)
             return True
         elif command in fab_constant.INTERACTIVE_HELP_COMMANDS:
-            utils_ui.display_help(
+            output_manager.display_help(
                 fab_commands.COMMANDS, "Usage: <command> <subcommand> [flags]"
             )
             return False
         elif command in fab_constant.INTERACTIVE_VERSION_COMMANDS:
-            utils_ui.print_version()
+            output_manager.print_version()
             return False
         elif command.strip() == "fab":
-            utils_ui.print(
+            output_manager.print(
                 "In interactive mode, commands don't require the fab prefix. Use --help to view the list of supported commands."
             )
             return False
@@ -91,7 +89,7 @@ class InteractiveCLI:
                     elif hasattr(subparser_args, "func"):
                         subparser_args.func(subparser_args)
                     else:
-                        utils_ui.print(
+                        output_manager.print(
                             f"No function associated with the command: {command.strip()}"
                         )
                 except SystemExit:
@@ -105,14 +103,14 @@ class InteractiveCLI:
     def start_interactive(self):
         """Start the interactive mode using prompt_toolkit for input."""
         if self._is_running:
-            utils_ui.print("Interactive mode is already running.")
+            output_manager.print("Interactive mode is already running.")
             return
 
         self._is_running = True
 
         try:
-            utils_ui.print("\nWelcome to the Fabric CLI ⚡")
-            utils_ui.print("Type 'help' for help. \n")
+            output_manager.print("\nWelcome to the Fabric CLI ⚡")
+            output_manager.print("Type 'help' for help. \n")
 
             while True:
                 try:
@@ -135,19 +133,19 @@ class InteractiveCLI:
 
                 except KeyboardInterrupt:
                     # Handle Ctrl+C gracefully during command input
-                    utils_ui.print("\nUse 'quit' or 'exit' to leave interactive mode.")
+                    output_manager.print("\nUse 'quit' or 'exit' to leave interactive mode.")
                     continue
                 except Exception as e:
                     # Handle unexpected errors during prompt processing
-                    utils_ui.print(f"Error in interactive session: {str(e)}")
+                    output_manager.print(f"Error in interactive session: {str(e)}")
                     break
 
         except (EOFError, KeyboardInterrupt):
-            utils_ui.print(f"\n{fab_constant.INTERACTIVE_EXIT_MESSAGE}")
+            output_manager.print(f"\n{fab_constant.INTERACTIVE_EXIT_MESSAGE}")
         except Exception as e:
             # Handle critical errors that would terminate the session
-            utils_ui.print(f"\nCritical error in interactive mode: {str(e)}")
-            utils_ui.print(fab_constant.INTERACTIVE_EXIT_MESSAGE)
+            output_manager.print(f"\nCritical error in interactive mode: {str(e)}")
+            output_manager.print(fab_constant.INTERACTIVE_EXIT_MESSAGE)
         finally:
             self._is_running = False
 

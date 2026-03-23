@@ -12,11 +12,11 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_ln_utils as utils_ln
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, context: OneLakeItem) -> None:
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
         args.directory = context.path
         args.ws_id = context.workspace.id
         args.id = context.item.id
@@ -101,10 +101,10 @@ def _create_shortcut_from_json(args: Namespace, target_json: dict) -> None:
         "name": args.name,
         "target": {args.type: target_json},
     }
-    utils_ui.print_grey("Creating a new Shortcut...")
+    output_manager.print_grey("Creating a new Shortcut...")
     response = shortcut_api.create_shortcut(args, payload)
 
     if response.status_code in (200, 201):
         data = json.loads(response.text)
         shortcut_name = data.get("name")
-        utils_ui.print_output_format(args, message=f"'{shortcut_name}.Shortcut' created")
+        output_manager.print_output_format(args, message=f"'{shortcut_name}.Shortcut' created")

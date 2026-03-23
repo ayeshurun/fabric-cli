@@ -13,7 +13,7 @@ from fabric_cli.core.fab_types import (
 )
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.errors import ErrorMessages
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 class OneLakeFileContent:
@@ -55,7 +55,7 @@ def upload_file_onelake(
 
         onelake_api.append_file(args, content, 0, content_type, content_length)
         onelake_api.flush_file(args, content_length, content_type)
-        utils_ui.print_output_format(args, message="Done")
+        output_manager.print_output_format(args, message="Done")
 
 
 def get_file_content_onelake(args: Namespace) -> OneLakeFileContent:

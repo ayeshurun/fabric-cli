@@ -12,7 +12,7 @@ from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.core.hiearchy.fab_workspace import Workspace
 from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -44,7 +44,7 @@ def select_workspace_items(from_context):
     sorted_supported_elems = item_utils.sort_ws_elems_by_config(supported_elems)
 
     selected_elems = (
-        utils_ui.prompt_select_items(
+        output_manager.prompt_select_items(
             "Select items:",
             [item.name for item in sorted_supported_elems],
         )

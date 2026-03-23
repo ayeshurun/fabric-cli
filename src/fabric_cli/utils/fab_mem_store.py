@@ -15,7 +15,7 @@ from fabric_cli.client import fab_api_gateway as gateway_api
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client import fab_api_workspace as workspace_api
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core import fab_state_config as state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import VirtualItemType, VirtualWorkspaceItemType
@@ -1019,4 +1019,4 @@ def clear_caches() -> None:
     _get_managed_identities_from_cache.cache.clear()
     _get_managed_private_endpoints_from_cache.cache.clear()
     _get_external_data_shares_for_item_from_cache.cache.clear()
-    fab_logger.log_debug("Caches cleared")
+    output_manager.log_debug("Caches cleared")

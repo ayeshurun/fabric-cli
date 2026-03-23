@@ -8,7 +8,7 @@ import sys
 import argcomplete
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.parsers import fab_acls_parser as acls_parser
 from fabric_cli.parsers import fab_api_parser as api_parser
 from fabric_cli.parsers import fab_auth_parser as auth_parser
@@ -21,7 +21,6 @@ from fabric_cli.parsers import fab_jobs_parser as jobs_parser
 from fabric_cli.parsers import fab_labels_parser as labels_parser
 from fabric_cli.parsers import fab_tables_parser as tables_parser
 from fabric_cli.utils import fab_error_parser as utils_error_parser
-from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
 
 
@@ -137,7 +136,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
             "table": lambda: tables_parser.show_help(None),
             "auth": lambda: auth_parser.show_help(None),
             "config": lambda: config_parser.show_help(None),
-            "fab": lambda: fab_ui.display_help(COMMANDS),
+            "fab": lambda: output_manager.display_help(COMMANDS),
         }
 
         if command_name in help_functions:
@@ -160,7 +159,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
             utils_error_parser.missing_required_arguments(message)
         else:
             # Add more custom error parsers here
-            fab_logger.log_warning(message)
+            output_manager.log_warning(message)
 
         if self.fab_mode == fab_constant.FAB_MODE_COMMANDLINE:
             sys.exit(2)
@@ -226,7 +225,7 @@ def create_parser_and_subparsers():
     version_parser = subparsers.add_parser(
         "version", help=fab_constant.COMMAND_VERSION_DESCRIPTION
     )
-    version_parser.set_defaults(func=fab_ui.print_version)
+    version_parser.set_defaults(func=output_manager.print_version)
 
     return parser, subparsers
 

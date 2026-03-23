@@ -14,7 +14,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(managed_private_endpoint: VirtualItem, args: Namespace) -> None:
@@ -32,7 +32,7 @@ def exec(managed_private_endpoint: VirtualItem, args: Namespace) -> None:
 
     # Check required
     mkdir_utils.check_required_params(params, required_params)
-    utils_ui.print_grey(
+    output_manager.print_grey(
         f"Creating a new Managed Private Endpoint. It may take same time (waiting until provisioned)..."
     )
 
@@ -106,7 +106,7 @@ def exec(managed_private_endpoint: VirtualItem, args: Namespace) -> None:
 
         if params.get("autoapproveenabled", "false").lower() == "true":
 
-            utils_ui.print_grey(f"Approving the Managed Private Endpoint...")
+            output_manager.print_grey(f"Approving the Managed Private Endpoint...")
 
             # Try to approve it
             try:
@@ -135,4 +135,4 @@ def exec(managed_private_endpoint: VirtualItem, args: Namespace) -> None:
                     fab_constant.ERROR_OPERATION_FAILED,
                 )
 
-    utils_ui.print_output_format(args, message=result_message, data=data, show_headers=True)
+    output_manager.print_output_format(args, message=result_message, data=data, show_headers=True)

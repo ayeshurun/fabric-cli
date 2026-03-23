@@ -15,7 +15,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
     VirtualWorkspaceItem,
     Workspace,
 )
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -35,7 +35,7 @@ def exec_command(args: Namespace, context: FabricElement) -> None:
 # Workspaces and Items
 def _check_if_element_exists(element: FabricElement, args: Namespace) -> None:
     text_message = fab_constant.INFO_EXISTS_TRUE if element.id else fab_constant.INFO_EXISTS_FALSE
-    utils_ui.print_output_format(args, message=text_message)
+    output_manager.print_output_format(args, message=text_message)
 
 
 # OneLake - Shortcut, File and Folder
@@ -49,10 +49,10 @@ def _check_if_onelake_file_or_directory_exists(
     args.directory = f"{workspace_id}/?recursive=false&resource=filesystem&directory={item_id}/{local_path}&getShortcutMetadata=true"
     try:
         onelake_api.list_tables_files_recursive(args)
-        utils_ui.print_output_format(args, message=fab_constant.INFO_EXISTS_TRUE)
+        output_manager.print_output_format(args, message=fab_constant.INFO_EXISTS_TRUE)
     except FabricCLIError as e:
         if e.status_code == fab_constant.ERROR_NOT_FOUND:
-            utils_ui.print_output_format(args, message=fab_constant.INFO_EXISTS_FALSE
+            output_manager.print_output_format(args, message=fab_constant.INFO_EXISTS_FALSE
             )
         else:
             raise e

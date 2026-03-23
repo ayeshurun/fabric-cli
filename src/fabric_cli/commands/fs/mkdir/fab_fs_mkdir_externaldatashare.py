@@ -12,7 +12,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 from fabric_cli.utils import fab_item_util as item_utils
 
@@ -36,11 +36,11 @@ def exec(external_data_share: VirtualItem, args: Namespace) -> None:
     # Check required
     mkdir_utils.check_required_params(params, required_params)
 
-    utils_ui.print_warning(
+    output_manager.print_warning(
         "External Data Share will use the Item name and the ExternalDataShare id - provided name is ignored"
     )
 
-    utils_ui.print_grey(f"Creating a new External Data Share...")
+    output_manager.print_grey(f"Creating a new External Data Share...")
     item = handle_context.get_command_context(params.get("item"))
     try:
         assert isinstance(item, Item)
@@ -71,7 +71,7 @@ def exec(external_data_share: VirtualItem, args: Namespace) -> None:
             item.name, external_data_share.id
         )
 
-        utils_ui.print_output_format(args, message=f"'{external_data_share.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{external_data_share.name}' created", data=data, show_headers=True)
 
         # Add to mem_store
         utils_mem_store.upsert_external_data_share_to_cache(external_data_share, item)

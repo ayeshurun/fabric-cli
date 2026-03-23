@@ -13,7 +13,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.errors.common import CommonErrors
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(item: Item, args: Namespace) -> None:
@@ -25,7 +25,7 @@ def exec(item: Item, args: Namespace) -> None:
     utils_set.validate_item_query(query_value, item)
 
     utils_set.print_set_warning()
-    if force or utils_ui.prompt_confirm():
+    if force or output_manager.prompt_confirm():
         args.output = None
         args.deep_traversal = True
         args.ws_id = item.workspace.id
@@ -42,7 +42,7 @@ def exec(item: Item, args: Namespace) -> None:
 
             update_item_definition_payload = json.dumps(updated_def)
 
-            utils_ui.print_grey(f"Setting new property for '{item.name}'...")
+            output_manager.print_grey(f"Setting new property for '{item.name}'...")
             item_api.update_item_definition(args, update_item_definition_payload)
         else:
             item_metadata = json.loads(item_api.get_item(args, item_uri=True).text)
@@ -52,7 +52,7 @@ def exec(item: Item, args: Namespace) -> None:
             )
             item_update_payload = json.dumps(update_payload_dict)
 
-            utils_ui.print_grey(f"Setting new property for '{item.name}'...")
+            output_manager.print_grey(f"Setting new property for '{item.name}'...")
 
             item_api.update_item(args, item_update_payload, item_uri=True)
 
@@ -63,7 +63,7 @@ def exec(item: Item, args: Namespace) -> None:
                 item._name = new_item_name
                 utils_mem_store.upsert_item_to_cache(item)
 
-        utils_ui.print_output_format(args, message="Item updated")
+        output_manager.print_output_format(args, message="Item updated")
 
 
 def _update_item_definition(

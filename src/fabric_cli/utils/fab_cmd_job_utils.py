@@ -11,13 +11,12 @@ from requests.structures import CaseInsensitiveDict
 from fabric_cli.client import fab_api_jobs as jobs_api
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import FabricJobType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils.fab_http_polling_utils import get_polling_interval
-from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def add_item_props_to_args(args: Namespace, context: Item) -> None:
@@ -92,24 +91,24 @@ def wait_for_job_completion(
 
             # Available statuses are: NotStarted, InProgress, Completed, Deduped, Failed, Cancelled
             if status in ["Completed", "Cancelled", "Deduped"]:
-                fab_ui.print_progress(f"Job instance status: {status}")
+                output_manager.print_progress(f"Job instance status: {status}")
                 if status == "Completed":
-                    fab_ui.print_output_format(
+                    output_manager.print_output_format(
                         args, message=f"Job instance '{job_ins_id}' completed"
                     )
                 else:
-                    fab_logger.log_warning(
+                    output_manager.log_warning(
                         f"Job instance {job_ins_id} finished with status: {status}"
                     )
                 return
             elif status == "Failed":
-                fab_ui.print_entries_unix_style([content], content.keys(), header=True)
+                output_manager.print_entries_unix_style([content], content.keys(), header=True)
                 raise FabricCLIError(
                         ErrorMessages.Common.job_instance_failed(job_ins_id),
                         fab_constant.ERROR_JOB_FAILED,
                     )
             elif status in ["NotStarted", "InProgress"]:
-                fab_ui.print_progress(f"Job instance status: {status}")
+                output_manager.print_progress(f"Job instance status: {status}")
                 
                 interval = get_polling_interval(response.headers, custom_polling_interval)
                 
@@ -117,10 +116,10 @@ def wait_for_job_completion(
                 total_wait_time += interval
 
             else:
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     f"Job instance '{job_ins_id}' unknown status: {status}"
                 )
-                fab_ui.print_entries_unix_style([content], content.keys(), header=True)
+                output_manager.print_entries_unix_style([content], content.keys(), header=True)
                 return
         attempts += 1
 

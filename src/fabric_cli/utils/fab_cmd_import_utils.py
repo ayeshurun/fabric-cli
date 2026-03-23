@@ -15,7 +15,7 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def get_payload_for_item_type(
@@ -99,7 +99,7 @@ def publish_environment_item(args: Namespace, payload: dict) -> None:
     # Wait for ongoing publish to complete
     _check_environment_publish_state(args)
 
-    utils_ui.print_info(f"Published")
+    output_manager.print_info(f"Published")
 
 
 def _check_environment_publish_state(
@@ -205,7 +205,7 @@ def _update_compute_settings(args: Namespace, payload: dict) -> None:
         )
 
         if response.status_code == 200:
-            utils_ui.print_info("Updated Spark Settings")
+            output_manager.print_info("Updated Spark Settings")
 
 
 def _add_libraries(args: Namespace, payload: dict) -> None:
@@ -226,7 +226,7 @@ def _add_libraries(args: Namespace, payload: dict) -> None:
                 )
 
                 if response.status_code == 200:
-                    utils_ui.print_info(f"Updated Library '{file_name}'")
+                    output_manager.print_info(f"Updated Library '{file_name}'")
 
 
 def _remove_libraries(args: Namespace, payload: dict) -> None:
@@ -263,7 +263,7 @@ def _remove_libraries(args: Namespace, payload: dict) -> None:
 
 def _remove_library(args: Namespace, file_name: str) -> None:
     item_api.environment_delete_library_staging(args, file_name)
-    utils_ui.print_info(f"Removed {file_name}")
+    output_manager.print_info(f"Removed {file_name}")
 
 
 def _handle_retry(
@@ -283,7 +283,7 @@ def _handle_retry(
         second_str = "second" if delay == 1 else "seconds"
         prepend_message += " " if prepend_message else ""
 
-        utils_ui.print_progress(
+        output_manager.print_progress(
             f"{prepend_message}Checking again in {delay_str} {second_str} (Attempt {attempt}/{max_retries})..."
         )
         time.sleep(delay)

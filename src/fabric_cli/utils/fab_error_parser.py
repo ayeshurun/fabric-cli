@@ -5,8 +5,7 @@ import argparse
 from typing import Optional
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def invalid_choice(self, message: Optional[str] = None) -> None:
@@ -38,33 +37,33 @@ def invalid_choice(self, message: Optional[str] = None) -> None:
             else f"<command> <subcommand> [flags]"
         )
 
-        fab_logger.log_warning(f'unknown command for "{command_name}"\n')
+        output_manager.log_warning(f'unknown command for "{command_name}"\n')
         custom_message = (
             f"Usage:  {usage_format}\n\n" f"Available commands:\n  {command_list}\n"
         )
-        utils_ui.print(custom_message)
+        output_manager.print(custom_message)
 
     except Exception as e:
         if message:
-            fab_logger.log_warning(message)
+            output_manager.log_warning(message)
 
 
 def unrecognized_arguments(message: str) -> None:
     _, unrecognized_args = message.split(":", 1)
-    fab_logger.log_warning(f"unknown shorthand flag: {unrecognized_args}")
+    output_manager.log_warning(f"unknown shorthand flag: {unrecognized_args}")
 
 
 def missing_required_arguments(message: str) -> None:
     _, required_args = message.split(":", 1)
-    fab_logger.log_warning(f"missing arg(s): {required_args}")
+    output_manager.log_warning(f"missing arg(s): {required_args}")
 
 
 def invalid_for_command_line_mode() -> None:
-    fab_logger.log_warning("invalid command usage")
+    output_manager.log_warning("invalid command usage")
     custom_message = (
         f"Usage:  fab -c '<command> <subcommand> [flags]' or enter interactive mode\n"
     )
-    utils_ui.print(custom_message)
+    output_manager.print(custom_message)
 
 
 def get_usage_prog(parser: argparse.ArgumentParser) -> str:

@@ -16,7 +16,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import Item, Workspace
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_export_utils as utils_export
 from fabric_cli.utils import fab_item_util, fab_mem_store, fab_storage
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def export_bulk_items(workspace: Workspace, args: Namespace) -> None:
@@ -51,21 +51,21 @@ def export_bulk_items(workspace: Workspace, args: Namespace) -> None:
     if args.all:
         selected_items = [item.name for item in sorted_supported_items]
     else:
-        selected_items = fab_ui.prompt_select_items(
+        selected_items = output_manager.prompt_select_items(
             "Select items:",
             [item.name for item in sorted_supported_items],
         )
 
     if selected_items:
-        fab_ui.print_grey("\n".join(selected_items))
-        fab_ui.print_grey("------------------------------")
+        output_manager.print_grey("\n".join(selected_items))
+        output_manager.print_grey("------------------------------")
         filtered_items = [
             item
             for item in supported_items
             if isinstance(item, Item) and item.name in selected_items
         ]
 
-        if args.force or fab_ui.prompt_confirm(
+        if args.force or output_manager.prompt_confirm(
             "Item definition is exported without its sensitivity label. Are you sure?"
         ):
             successful_exports = 0
@@ -75,12 +75,12 @@ def export_bulk_items(workspace: Workspace, args: Namespace) -> None:
                 if export_single_item(item, args):
                     successful_exports = successful_exports + 1
 
-            fab_ui.print_output_format(
+            output_manager.print_output_format(
                 args,
                 message=f"{successful_exports} {'items' if successful_exports > 1 else 'item'} exported successfully",
             )
     else:
-        fab_ui.print_output_format(args, message="No items selected")
+        output_manager.print_output_format(args, message="No items selected")
 
 
 # Items
@@ -94,7 +94,7 @@ def export_single_item(
     item_def = {}
     args = deepcopy(args)
 
-    if args.force or fab_ui.prompt_confirm(
+    if args.force or output_manager.prompt_confirm(
         "Item definition is exported without its sensitivity label. Are you sure?"
     ):
         workspace_id = item.workspace.id
@@ -143,7 +143,7 @@ def export_single_item(
 
             if export_path["type"] == "local":
                 os.makedirs(_to_path, exist_ok=True)
-            fab_ui.print_grey(f"Exporting '{args.from_path}' → '{_to_path}'...")
+            output_manager.print_grey(f"Exporting '{args.from_path}' → '{_to_path}'...")
             utils_export.export_json_parts(args, item_def["definition"], export_path)
 
     return item_def

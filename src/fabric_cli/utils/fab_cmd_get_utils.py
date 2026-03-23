@@ -9,7 +9,7 @@ from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client import fab_api_mirroring as mirroring_api
 from fabric_cli.utils import fab_jmespath as utils_jmespath
 from fabric_cli.utils import fab_storage as utils_storage
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def is_metadata_property_query(query: str) -> bool:
@@ -46,7 +46,7 @@ def query_and_export(
     if args.output:
         utils_storage.do_output(data=json_path_response, file_name=file_name, args=args)
     elif json_path_response and verbose:
-        utils_ui.print_output_format(args, data=json_path_response)
+        output_manager.print_output_format(args, data=json_path_response)
 
 
 def get_environment_metadata(item_def: dict, args: Namespace) -> dict:

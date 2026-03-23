@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.mv import fab_fs_mv_item as mv_items
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.utils import fab_cmd_fs_utils as fs_utils
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def move_workspace_elements(
@@ -22,8 +22,8 @@ def move_workspace_elements(
         fs_utils.select_workspace_items(from_context)
     )
 
-    utils_ui.print_grey("\n".join(selected_elements))
-    utils_ui.print_grey("------------------------------")
+    output_manager.print_grey("\n".join(selected_elements))
+    output_manager.print_grey("------------------------------")
 
     to_workspace = (
         to_context.workspace if isinstance(to_context, Folder) else to_context
@@ -62,4 +62,4 @@ def move_workspace_elements(
             delete_after_copy=True,
         )
 
-    utils_ui.print_output_format(args, message=_move_message)
+    output_manager.print_output_format(args, message=_move_message)

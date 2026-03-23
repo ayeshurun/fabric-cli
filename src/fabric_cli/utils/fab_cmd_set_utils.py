@@ -6,7 +6,7 @@ import json
 from typing import Optional
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors.common import CommonErrors
 from fabric_cli.utils import fab_jmespath as utils_jmespath
@@ -195,7 +195,7 @@ def update_cache(
 
 
 def print_set_warning() -> None:
-    fab_logger.log_warning("Modifying properties may lead to unintended consequences")
+    output_manager.log_warning("Modifying properties may lead to unintended consequences")
 
 
 def extract_updated_properties(updated_data: dict, query_path: str) -> dict:

@@ -37,7 +37,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
 )
 from fabric_cli.utils import fab_cmd_get_utils as get_utils
 from fabric_cli.utils import fab_item_util, fab_util
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, context: FabricElement) -> None:
@@ -112,6 +112,6 @@ def _validate_sensitivity_label_warning(args: Namespace, item: Item) -> bool:
         fab_item_util.item_sensitivity_label_warnings(args, "retrieved")
         return True
     else:
-        return fab_ui.prompt_confirm(
+        return output_manager.prompt_confirm(
             "Item definition is retrieved without its sensitivity label. Are you sure?"
         )

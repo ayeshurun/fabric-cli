@@ -29,7 +29,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, format_mapping
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Item, OneLakeItem
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def obtain_id_names_for_onelake(
@@ -115,7 +115,7 @@ def item_types_supporting_external_data_shares() -> list:
 
 def item_sensitivity_label_warnings(args: Namespace, action: str) -> None:
     if args.force:
-        fab_ui.print_warning(
+        output_manager.print_warning(
             f"Item definition is {action} without its sensitivity label and its data"
         )
 

@@ -11,7 +11,7 @@ from fabric_cli.core.fab_types import format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -71,7 +71,7 @@ def exec(item: Item, args: Namespace) -> str | None:
     item_name = item.short_name
     item_type = item.item_type
 
-    utils_ui.print_grey(f"Creating a new {item_type}...")
+    output_manager.print_grey(f"Creating a new {item_type}...")
     args.item_type = str(item_type).lower()
 
     # Remove all unwanted keys from the params
@@ -101,7 +101,7 @@ def exec(item: Item, args: Namespace) -> str | None:
                 names = args.output_batch['names']
                 names_list = f"'{names[0]}' and '{names[1]}'" if len(names) == 2 else "'" + "', '".join(names[:-1]) + f"' and '{names[-1]}'"
                 
-                utils_ui.print_output_format(
+                output_manager.print_output_format(
                     args,
                     message=f"{names_list} created",
                     data=args.output_batch['items'],
@@ -111,7 +111,7 @@ def exec(item: Item, args: Namespace) -> str | None:
                 delattr(args, 'output_batch')
         else:
             # Standard single item output for non-batched scenarios
-            utils_ui.print_output_format(args, message=f"'{item.name}' created", data=data, show_headers=True)
+            output_manager.print_output_format(args, message=f"'{item.name}' created", data=data, show_headers=True)
             
         if data is not None and data.get("id"):
             _item_id = data["id"]

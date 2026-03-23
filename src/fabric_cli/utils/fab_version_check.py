@@ -14,8 +14,7 @@ import requests
 
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
-from fabric_cli.utils import fab_output_manager as fab_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def _fetch_latest_version_from_pypi() -> Optional[str]:
@@ -34,7 +33,7 @@ def _fetch_latest_version_from_pypi() -> Optional[str]:
         return response.json()["info"]["version"]
     except (requests.RequestException, KeyError, ValueError, TypeError) as e:
         # Silently fail - don't interrupt user experience for version checks
-        fab_logger.log_debug(f"Failed to fetch version from PyPI: {e}")
+        output_manager.log_debug(f"Failed to fetch version from PyPI: {e}")
         return None
 
 
@@ -70,10 +69,10 @@ def check_and_notify_update() -> None:
     """
     check_enabled = fab_state_config.get_config(fab_constant.FAB_CHECK_UPDATES)
     if check_enabled == "false":
-        fab_logger.log_debug("Version check disabled by user configuration")
+        output_manager.log_debug("Version check disabled by user configuration")
         return
 
-    fab_logger.log_debug("Checking PyPI for latest version")
+    output_manager.log_debug("Checking PyPI for latest version")
     latest_version = _fetch_latest_version_from_pypi()
 
     if latest_version and _is_pypi_version_newer(latest_version):
@@ -81,8 +80,8 @@ def check_and_notify_update() -> None:
             f"\n[notice] A new release of fab is available: {__version__} → {latest_version}\n"
             "[notice] To update, run: pip install --upgrade ms-fabric-cli\n"
         )
-        fab_ui.print_grey(msg)
+        output_manager.print_grey(msg)
     elif latest_version:
-        fab_logger.log_debug(f"Already on latest version: {__version__}")
+        output_manager.log_debug(f"Already on latest version: {__version__}")
     else:
-        fab_logger.log_debug("Could not fetch latest version from PyPI")
+        output_manager.log_debug("Could not fetch latest version from PyPI")

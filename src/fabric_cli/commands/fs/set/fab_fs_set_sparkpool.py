@@ -9,7 +9,7 @@ from fabric_cli.commands.fs.get import fab_fs_get_sparkpool as get_sparkpool
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec(virtual_item: VirtualItem, args: Namespace) -> None:
@@ -18,7 +18,7 @@ def exec(virtual_item: VirtualItem, args: Namespace) -> None:
     utils_set.validate_query_not_in_blocklist(query)
 
     utils_set.print_set_warning()
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         args.deep_traversal = True
         args.output = None
@@ -37,7 +37,7 @@ def exec(virtual_item: VirtualItem, args: Namespace) -> None:
 
         args.ws_id = virtual_item.workspace.id
         args.id = virtual_item.id
-        utils_ui.print_grey(f"Setting new property for '{virtual_item.name}'...")
+        output_manager.print_grey(f"Setting new property for '{virtual_item.name}'...")
         response = sparkpool_api.update_spark_pool(args, spark_pool_update_def)
 
         if response.status_code == 200:
@@ -48,4 +48,4 @@ def exec(virtual_item: VirtualItem, args: Namespace) -> None:
                 element_name_key="name",
             )
 
-            utils_ui.print_output_format(args, message="Spark Pool updated")
+            output_manager.print_output_format(args, message="Spark Pool updated")

@@ -6,14 +6,12 @@ import sys
 import argcomplete
 
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
 from fabric_cli.parsers import fab_auth_parser as auth_parser
-from fabric_cli.utils import fab_output_manager as fab_ui
 from fabric_cli.utils.fab_commands import COMMANDS
-from fabric_cli.utils.fab_output_manager import output_manager
 
 
 def main():
@@ -27,16 +25,10 @@ def main():
         fab_state_config.init_defaults()
 
         # Initialise the central output facade with the requested format
-        output_manager().set_output_format(
+        output_manager.set_output_format(
             getattr(args, "output_format", None)
         )
 
-        # Enable rich tracebacks for better debug experience
-        if fab_state_config.get_config(fab_constant.FAB_DEBUG_ENABLED) == "true":
-            from rich.traceback import install as install_rich_traceback
-
-            install_rich_traceback(show_locals=True)
-        
         if args.command == "auth" and args.auth_command == None:
             auth_parser.show_help(args)
             return
@@ -70,9 +62,9 @@ def main():
 
         if args.command:
             if args.command not in ["auth"]:
-                fab_logger.print_log_file_path()
+                output_manager.print_log_file_path()
                 parser.set_mode(fab_constant.FAB_MODE_COMMANDLINE)
-                output_manager().set_mode(fab_constant.FAB_MODE_COMMANDLINE)
+                output_manager.set_mode(fab_constant.FAB_MODE_COMMANDLINE)
 
                 if isinstance(args.command, list):
                     commands_execs = 0
@@ -87,10 +79,10 @@ def main():
                             )
                             commands_execs += 1
                             if index != len(args.command) - 1:
-                                fab_ui.print_grey("------------------------------")
+                                output_manager.print_grey("------------------------------")
                     if commands_execs > 1:
-                        fab_ui.print("\n")
-                        fab_ui.print_output_format(
+                        output_manager.print("\n")
+                        output_manager.print_output_format(
                             args, message=f"{len(args.command)} commands executed."
                         )
                 else:
@@ -102,7 +94,7 @@ def main():
                     sys.exit(fab_constant.EXIT_CODE_SUCCESS)
 
         elif args.version:
-            fab_ui.print_version()
+            output_manager.print_version()
         else:
             # AUTO-REPL: When no command is provided, automatically enter interactive mode
             from fabric_cli.core.fab_interactive import start_interactive_mode
@@ -117,7 +109,7 @@ def main():
 
 def _handle_keyboard_interrupt(args):
     """Handle KeyboardInterrupt with proper error formatting."""
-    fab_ui.print_output_error(
+    output_manager.print_output_error(
         FabricCLIError(
             "Operation cancelled",
             fab_constant.ERROR_OPERATION_CANCELLED,
@@ -134,7 +126,7 @@ def _handle_unexpected_error(err, args):
     except:
         error_message = "An unexpected error occurred"
     
-    fab_ui.print_output_error(
+    output_manager.print_output_error(
         FabricCLIError(error_message, fab_constant.ERROR_UNEXPECTED_ERROR), 
         output_format_type=args.output_format,
         )

@@ -12,7 +12,7 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.hiearchy.fab_onelake_element import OneLakeItem
 from fabric_cli.utils import fab_cmd_table_utils as utils_table
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 @handle_exceptions()
@@ -22,7 +22,7 @@ def schema_command(args: Namespace) -> None:
     context.check_command_support(Command.TABLE_SCHEMA)
     assert isinstance(context, OneLakeItem)
     utils_table.add_table_props_to_args(args, context)
-    utils_ui.print_grey(f"Getting schema for '{args.table_name}' table...")
+    output_manager.print_grey(f"Getting schema for '{args.table_name}' table...")
     tables_schema.exec_command(args)
 
 
@@ -34,7 +34,7 @@ def load_command(args: Namespace) -> None:
     assert isinstance(context, OneLakeItem)
     args.wait = True
     utils_table.add_table_props_to_args(args, context)
-    utils_ui.print_grey(f"Loading '{args.table_name}' table. It may take some time...")
+    output_manager.print_grey(f"Loading '{args.table_name}' table. It may take some time...")
     tables_load.exec_command(args, context)
 
 
@@ -51,7 +51,7 @@ def vacuum_command(args: Namespace) -> None:
         "vacuumSettings": {"retentionPeriod": retention_period},
     }
     args.configuration = json.dumps(vacuum_config)
-    utils_ui.print_grey(
+    output_manager.print_grey(
         f"Vacuuming the '{args.table_name}' table. It may take some time..."
     )
     tables_opt.exec_command(args)
@@ -75,7 +75,7 @@ def optimize_command(args: Namespace) -> None:
         optimize_config["optimizeSettings"]["zOrderBy"] = zorder_list
 
     args.configuration = json.dumps(optimize_config)
-    utils_ui.print_grey(
+    output_manager.print_grey(
         f"Optimizing the '{args.table_name}' table. It may take some time..."
     )
     tables_opt.exec_command(args)

@@ -10,7 +10,7 @@ from fabric_cli.client import fab_api_item as api_items
 from fabric_cli.client import fab_api_onelake as api_onelake
 from fabric_cli.client import fab_api_workspace as api_workspaces
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricAPIError, FabricCLIError
 from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import (
@@ -22,14 +22,13 @@ from fabric_cli.core.hiearchy.fab_hiearchy import (
 )
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_ls_utils as utils_ls
-from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def exec_command(args: Namespace, context: FabricElement) -> None:
     if isinstance(context, Workspace):
         _ls_acls_workspace(context, args)
     elif isinstance(context, Item):
-        fab_logger.log_warning(fab_constant.WARNING_FABRIC_ADMINISTRATOR)
+        output_manager.log_warning(fab_constant.WARNING_FABRIC_ADMINISTRATOR)
         _ls_acls_item(context, args)
     elif isinstance(context, VirtualWorkspaceItem):
         _ls_acls_vwitem(context, args)
@@ -38,7 +37,7 @@ def exec_command(args: Namespace, context: FabricElement) -> None:
         isinstance(context, OneLakeItem)
         and context.item.item_type == ItemType.LAKEHOUSE
     ):
-        fab_logger.log_warning(fab_constant.WARNING_ONELAKE_RBAC_ENABLED)
+        output_manager.log_warning(fab_constant.WARNING_ONELAKE_RBAC_ENABLED)
         _ls_acls_onelake(context, args)
 
 
@@ -301,7 +300,7 @@ def _ls_acls_onelake(context: OneLakeItem, args: Namespace) -> None:
 
     except FabricAPIError as e:
         if e.status_code == "BadRequest":
-            fab_ui.print_output_error(
+            output_manager.print_output_error(
                 FabricCLIError(
                     ErrorMessages.Common.universal_security_disabled(item_name),
                     fab_constant.ERROR_UNIVERSAL_SECURITY_DISABLED,
@@ -309,7 +308,7 @@ def _ls_acls_onelake(context: OneLakeItem, args: Namespace) -> None:
                 command=f"{args.command_path}",
                 output_format_type=args.output_format,
             )
-            fab_ui.print_grey(
+            output_manager.print_grey(
                 f"→ Run 'open /{workspace_name}/{item_name}' and enable it"
             )
         else:

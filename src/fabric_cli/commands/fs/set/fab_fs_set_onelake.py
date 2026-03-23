@@ -10,7 +10,7 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_set_utils as utils_set
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def onelake_shortcut(onelake: OneLakeItem, args: Namespace) -> None:
@@ -25,7 +25,7 @@ def onelake_shortcut(onelake: OneLakeItem, args: Namespace) -> None:
     current_name = shortcut_def.get("name", "")
 
     utils_set.print_set_warning()
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         # Read new values from the user and retrieve updated shortcut definition with the new values.
         updated_def = utils_set.update_fabric_element(
@@ -47,4 +47,4 @@ def onelake_shortcut(onelake: OneLakeItem, args: Namespace) -> None:
             args.shortcutConflictPolicy = "OverwriteOnly"
             shortcut_api.create_shortcut(args, updated_def)
 
-        utils_ui.print_output_format(args, message="Shortcut updated")
+        output_manager.print_output_format(args, message="Shortcut updated")

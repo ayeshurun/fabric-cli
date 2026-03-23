@@ -13,7 +13,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import Workspace
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -62,7 +62,7 @@ def exec(workspace: Workspace, args: Namespace) -> None:
             fab_constant.ERROR_INVALID_INPUT,
         )
 
-    utils_ui.print_grey("Creating a new Workspace...")
+    output_manager.print_grey("Creating a new Workspace...")
 
     # Remove all unwanted keys from the params
     utils.remove_keys_from_dict(args.params, ["displayName"])
@@ -81,5 +81,5 @@ def exec(workspace: Workspace, args: Namespace) -> None:
         # Add to mem_store
         utils_mem_store.upsert_workspace_to_cache(workspace)
 
-        utils_ui.print_output_format(args, message=f"'{workspace.name}' created", data=data, show_headers=True)
+        output_manager.print_output_format(args, message=f"'{workspace.name}' created", data=data, show_headers=True)
 

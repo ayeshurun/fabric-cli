@@ -5,14 +5,13 @@ from argparse import Namespace
 from typing import Any, Optional
 
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_auth import FabAuth
 from fabric_cli.core.fab_context import Context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_version_check
-from fabric_cli.utils import fab_output_manager as fab_ui
 
 
 def init(args: Namespace) -> Any:
@@ -61,7 +60,7 @@ def init(args: Namespace) -> Any:
             FabAuth().get_access_token(scope=fab_constant.SCOPE_AZURE_DEFAULT)
             Context().context = FabAuth().get_tenant()
     else:
-        selected_auth = fab_ui.prompt_select_item(
+        selected_auth = output_manager.prompt_select_item(
             "How would you like to authenticate Fabric CLI?", auth_options
         )
         # When user cancels the prompt, selected_auth will be None
@@ -76,16 +75,16 @@ def init(args: Namespace) -> Any:
                 FabAuth().get_access_token(scope=fab_constant.SCOPE_AZURE_DEFAULT)
                 Context().context = FabAuth().get_tenant()
             elif selected_auth.startswith("Service principal authentication"):
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "Ensure tenant setting is enabled for Service Principal auth"
                 )
 
-                tenant_id = fab_ui.prompt_ask("Enter tenant ID:")
+                tenant_id = output_manager.prompt_ask("Enter tenant ID:")
                 if tenant_id is None:  # User pressed CTRL+C
                     return
 
                 if tenant_id.strip() == "":
-                    fab_ui.print_output_error(
+                    output_manager.print_output_error(
                         FabricCLIError(
                             ErrorMessages.Auth.spn_auth_missing_tenant_id(),
                             fab_constant.ERROR_SPN_AUTH_MISSING,
@@ -95,12 +94,12 @@ def init(args: Namespace) -> Any:
                     )
                     return
 
-                client_id = fab_ui.prompt_ask("Enter client ID:")
+                client_id = output_manager.prompt_ask("Enter client ID:")
                 if client_id is None:  # User pressed CTRL+C
                     return
 
                 if client_id.strip() == "":
-                    fab_ui.print_output_error(
+                    output_manager.print_output_error(
                         FabricCLIError(
                             ErrorMessages.Auth.spn_auth_missing_client_id(),
                             fab_constant.ERROR_SPN_AUTH_MISSING,
@@ -111,14 +110,14 @@ def init(args: Namespace) -> Any:
                     return
 
                 if selected_auth == "Service principal authentication with certificate":
-                    cert_path = fab_ui.prompt_ask(
+                    cert_path = output_manager.prompt_ask(
                         "Enter certificate path (PEM, PKCS12 formats):"
                     )
                     if cert_path is None:  # User pressed CTRL+C
                         return
 
                     if cert_path.strip() == "":
-                        fab_ui.print_output_error(
+                        output_manager.print_output_error(
                             FabricCLIError(
                                 ErrorMessages.Auth.spn_auth_missing_cert_path(),
                                 fab_constant.ERROR_SPN_AUTH_MISSING,
@@ -127,17 +126,17 @@ def init(args: Namespace) -> Any:
                             output_format_type=args.output_format,
                         )
                         return
-                    cert_password = fab_ui.prompt_password(
+                    cert_password = output_manager.prompt_password(
                         "Enter certificate password (optional):"
                     )
                 elif selected_auth == "Service principal authentication with secret":
                     cert_path = None
-                    client_secret = fab_ui.prompt_password("Enter client secret:")
+                    client_secret = output_manager.prompt_password("Enter client secret:")
                     if client_secret is None:  # User pressed CTRL+C
                         return
 
                     if client_secret.strip() == "":
-                        fab_ui.print_output_error(
+                        output_manager.print_output_error(
                             FabricCLIError(
                                 ErrorMessages.Auth.spn_auth_missing_client_secret(),
                                 fab_constant.ERROR_SPN_AUTH_MISSING,
@@ -152,12 +151,12 @@ def init(args: Namespace) -> Any:
                 ):
                     cert_path = None
                     client_secret = None
-                    federated_token = fab_ui.prompt_password("Enter federated token:")
+                    federated_token = output_manager.prompt_password("Enter federated token:")
                     if federated_token is None:  # User pressed CTRL+C
                         return
 
                     if federated_token.strip() == "":
-                        fab_ui.print_output_error(
+                        output_manager.print_output_error(
                             FabricCLIError(
                                 ErrorMessages.Auth.spn_auth_missing_federated_token(),
                                 fab_constant.ERROR_SPN_AUTH_MISSING,
@@ -181,10 +180,10 @@ def init(args: Namespace) -> Any:
                 FabAuth().get_access_token(scope=fab_constant.SCOPE_AZURE_DEFAULT)
                 Context().context = FabAuth().get_tenant()
             elif selected_auth == "Managed identity authentication":
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     "Ensure tenant setting is enabled for Service Principal auth"
                 )
-                client_id = fab_ui.prompt_ask(
+                client_id = output_manager.prompt_ask(
                     "Enter client ID (only for User Assigned):"
                 )
 
@@ -214,7 +213,7 @@ def logout(args: Namespace) -> None:
     utils_mem_store.clear_caches()
     Context().reset_context()
 
-    fab_ui.print_output_format(args, message="Logged out of Fabric account")
+    output_manager.print_output_format(args, message="Logged out of Fabric account")
 
 
 def status(args: Namespace) -> None:
@@ -273,7 +272,7 @@ def status(args: Namespace) -> None:
         if is_logged_in
         else "✗ Not logged in to app.fabric.microsoft.com"
     )
-    fab_ui.print_grey(login_status)
+    output_manager.print_grey(login_status)
 
     auth_data = {
         "logged_in": is_logged_in,
@@ -285,7 +284,7 @@ def status(args: Namespace) -> None:
         "token_storage": storage_secret,
         "token_azure": azure_secret,
     }
-    fab_ui.print_output_format(args, data=auth_data, show_key_value_list=True)
+    output_manager.print_output_format(args, data=auth_data, show_key_value_list=True)
 
 
 # Utils

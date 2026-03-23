@@ -9,7 +9,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemOnelakeWritableFoldersMap, ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -32,9 +32,9 @@ def create_directory(onelake: OneLakeItem, args: Namespace) -> None:
     path_name = utils.process_nargs(args.path)  # onelake.get_path().strip("/")
     path_id = onelake.path_id.strip("/")
 
-    utils_ui.print_grey(f"Creating a new Directory...")
+    output_manager.print_grey(f"Creating a new Directory...")
     args.directory = path_id
 
     response = onelake_api.create_dir(args)
     if response.status_code in (200, 201):
-        utils_ui.print_output_format(args, message=f"'{path_name}' created")
+        output_manager.print_output_format(args, message=f"'{path_name}' created")

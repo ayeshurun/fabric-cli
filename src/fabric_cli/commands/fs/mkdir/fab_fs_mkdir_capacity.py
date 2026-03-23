@@ -12,7 +12,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualWorkspaceItem
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.utils import fab_util as utils
 
 
@@ -32,7 +32,7 @@ def exec(capacity: VirtualWorkspaceItem, args: Namespace) -> None:
         _sku,
     ) = utils.get_capacity_settings(args.params)
 
-    utils_ui.print_grey(f"Creating a new Capacity...")
+    output_manager.print_grey(f"Creating a new Capacity...")
 
     payload: MutableMapping = {
         "properties": {
@@ -71,7 +71,7 @@ def exec(capacity: VirtualWorkspaceItem, args: Namespace) -> None:
 
     response = capacity_api.create_capacity(args, payload=json_payload)
     if response.status_code in (200, 201):
-        utils_ui.print_output_format(args, message=f"'{capacity.name}' created", data=json.loads(response.text), show_headers=True)
+        output_manager.print_output_format(args, message=f"'{capacity.name}' created", data=json.loads(response.text), show_headers=True)
 
         # In here we use a different approach since the id responded by the API is not the same as the id we use in the code
         # The id in the response is the fully qualified azure resource ID for the resource
@@ -85,7 +85,7 @@ def exec(capacity: VirtualWorkspaceItem, args: Namespace) -> None:
         except FabricCLIError as e:
             # If the capacity is not found, it means the user is not an admin of the capacity
             if e.status_code == "NotFound":
-                utils_ui.print_warning(
+                output_manager.print_warning(
                     "You are not listed as and administrator of the capacity. You won't be able to see or manage it."
                 )
             else:

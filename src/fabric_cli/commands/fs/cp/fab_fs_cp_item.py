@@ -8,7 +8,7 @@ from typing import Optional
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_handle_context as handle_context
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
@@ -16,7 +16,6 @@ from fabric_cli.core.hiearchy.fab_hiearchy import Folder, Item, Workspace
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
-from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils import fab_util as util
 
 
@@ -158,14 +157,14 @@ def cp_single_item(
                         destination_path = existing_item_with_same_name.path
 
                 item_already_exists = True
-                fab_logger.log_warning(
+                output_manager.log_warning(
                     fab_constant.WARNING_ITEM_EXISTS_IN_PATH.format(destination_path)
                 )
-                if args.force or utils_ui.prompt_confirm("Overwrite?"):
+                if args.force or output_manager.prompt_confirm("Overwrite?"):
                     pass
                 else:
                     return False
-            utils_ui.print_grey(
+            output_manager.print_grey(
                 f"{'Moving' if delete_after_copy else 'Copying'} '{args.from_path}' → '{destination_path}'..."
             )
             # Copy including definition, cross ws
@@ -187,7 +186,7 @@ def cp_single_item(
 def _confirm_copy(bypass_confirmation: bool, is_move_command: bool) -> bool:
     if not bool(bypass_confirmation):
         confirm_message = item_utils.get_confirm_copy_move_message(is_move_command)
-        return utils_ui.prompt_confirm(confirm_message)
+        return output_manager.prompt_confirm(confirm_message)
     return True
 
 
@@ -242,6 +241,6 @@ def _copy_item_with_definition(
             # Add new one to mem_store
             utils_mem_store.upsert_item_to_cache(to_item)
 
-        utils_ui.print_output_format(
+        output_manager.print_output_format(
             args, message=f"{'Move' if delete_after_copy else 'Copy'} completed"
         )

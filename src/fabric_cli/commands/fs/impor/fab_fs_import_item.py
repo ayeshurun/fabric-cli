@@ -7,14 +7,13 @@ from argparse import Namespace
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, definition_format_mapping
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
-from fabric_cli.utils import fab_output_manager as utils_ui
 
 
 def import_single_item(item: Item, args: Namespace) -> None:
@@ -47,7 +46,7 @@ def import_single_item(item: Item, args: Namespace) -> None:
             fab_constant.ERROR_NOT_SUPPORTED,
         )
 
-    if args.force or utils_ui.prompt_confirm():
+    if args.force or output_manager.prompt_confirm():
 
         # Check first if an item exists
         item_exists = item.id is not None
@@ -59,13 +58,13 @@ def import_single_item(item: Item, args: Namespace) -> None:
         )
 
         if item_exists:
-            fab_logger.log_warning("An item with the same name exists")
+            output_manager.log_warning("An item with the same name exists")
 
             # Update
-            if args.force or utils_ui.prompt_confirm("Overwrite?"):
+            if args.force or output_manager.prompt_confirm("Overwrite?"):
                 args.id = item.id
 
-                utils_ui.print_grey(
+                output_manager.print_grey(
                     f"Importing (update) '{_input_path}' → '{item.path}'..."
                 )
 
@@ -75,11 +74,11 @@ def import_single_item(item: Item, args: Namespace) -> None:
                 else:
                     _import_update_item(args, payload)
 
-                utils_ui.print_output_format(
+                output_manager.print_output_format(
                     args, message=f"'{item.name}' imported")
         else:
             # Create
-            utils_ui.print_grey(
+            output_manager.print_grey(
                 f"Importing '{_input_path}' → '{item.path}'...")
 
             # Environment item type, not supporting definition yet
@@ -89,7 +88,7 @@ def import_single_item(item: Item, args: Namespace) -> None:
                 response = _import_create_item(args, payload)
 
             if response.status_code in (200, 201):
-                utils_ui.print_output_format(
+                output_manager.print_output_format(
                     args, message=f"'{item.name}' imported")
                 data = json.loads(response.text)
                 item._id = data["id"]

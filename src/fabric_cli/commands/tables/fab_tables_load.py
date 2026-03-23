@@ -11,7 +11,7 @@ from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import OneLakeItem
 from fabric_cli.utils import fab_cmd_table_utils as utils_table
-from fabric_cli.utils import fab_output_manager as utils_ui
+from fabric_cli.utils import fab_output_manager as output_manager
 
 
 def exec_command(args: Namespace, context: OneLakeItem) -> None:
@@ -83,6 +83,6 @@ def exec_command(args: Namespace, context: OneLakeItem) -> None:
     response = tables_api.load_table(args, payload=table_load_payload)
 
     if response.status_code == 202:
-        utils_ui.print_output_format(args, message="Load table operation started")
+        output_manager.print_output_format(args, message="Load table operation started")
     elif response.status_code in [200, 201]:
-        utils_ui.print_output_format(args, message=f"Table '{args.table_name}' loaded successfully")
+        output_manager.print_output_format(args, message=f"Table '{args.table_name}' loaded successfully")

@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant, fab_state_config
-from fabric_cli.utils import fab_output_manager as fab_logger
+from fabric_cli.utils import fab_output_manager as output_manager
 from fabric_cli.core.fab_exceptions import (
     AzureAPIError,
     FabricAPIError,
@@ -24,7 +24,6 @@ from fabric_cli.core.fab_exceptions import (
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_error_parser as utils_errors
 from fabric_cli.utils import fab_files as files_utils
-from fabric_cli.utils import fab_output_manager as utils_ui
 from fabric_cli.utils.fab_http_polling_utils import get_polling_interval
 
 GUID_PATTERN = r"([a-f0-9\-]{36})"
@@ -149,12 +148,12 @@ def do_request(
 
         for attempt in range(retries_count + 1):
 
-            fab_logger.log_debug_http_request(
+            output_manager.log_debug_http_request(
                 method, url, headers, timeout_sec, attempt, json, data, files
             )
             start_time = time.time()
             response = session.request(method=method, url=url, **request_params)
-            fab_logger.log_debug_http_response(
+            output_manager.log_debug_http_response(
                 response.status_code, response.headers, response.text, start_time
             )
 
@@ -188,7 +187,7 @@ def do_request(
                     )
                 case 429:
                     retry_after = int(response.headers["Retry-After"])
-                    utils_ui.print_info(
+                    output_manager.print_info(
                         f"Rate limit exceeded. {attempt}º retrying attemp in {retry_after} seconds"
                     )
                     time.sleep(retry_after)
@@ -206,7 +205,7 @@ def do_request(
                         content=response.content,
                         headers=response.headers,
                     )
-                    fab_logger.log_debug(f"Operation started. Polling for result...")
+                    output_manager.log_debug(f"Operation started. Polling for result...")
                     return _handle_fab_long_running_op(api_response)
                 case 201 | 202 if wait and scope == fab_constant.SCOPE_AZURE_DEFAULT:
                     # Track Azure API asynchronous operations
@@ -216,7 +215,7 @@ def do_request(
                         content=response.content,
                         headers=response.headers,
                     )
-                    fab_logger.log_debug(f"Operation started. Polling for result...")
+                    output_manager.log_debug(f"Operation started. Polling for result...")
                     return _handle_azure_async_op(api_response)
                 case c if c in [200, 201, 202, 204]:
                     api_response = ApiResponse(
@@ -251,7 +250,7 @@ def do_request(
         )
 
     except requests.RequestException as ex:
-        fab_logger.log_debug_http_request_exception(ex)
+        output_manager.log_debug_http_request_exception(ex)
         raise FabricCLIError(
             ErrorMessages.Common.unexpected_error(str(ex)),
             fab_constant.ERROR_UNEXPECTED_ERROR,
@@ -269,7 +268,7 @@ def _handle_successful_response(args: Namespace, response: ApiResponse) -> ApiRe
 
     # In ADLS Gen2 / Onelake, check for x-ms-continuation token in response headers
     if "x-ms-continuation" in response.headers:
-        # utils_ui.print_info(
+        # output_manager.print_info(
         #     f"Continuation token found for Onelake. Fetching next page of results..."
         # )
         _continuation_token = response.headers["x-ms-continuation"]
@@ -279,7 +278,7 @@ def _handle_successful_response(args: Namespace, response: ApiResponse) -> ApiRe
             _text = json.loads(response.text)
             if _text and "continuationToken" in _text:
                 _continuation_token = _text["continuationToken"]
-                # utils_ui.print_info(
+                # output_manager.print_info(
                 #     f"Continuation token found for Fabric. Fetching next page of results..."
                 # )
 
@@ -306,7 +305,7 @@ def _print_response_details(response: ApiResponse) -> None:
     except json.JSONDecodeError:
         pass
 
-    fab_logger.log_debug(json.dumps(dict(response_details), indent=4))
+    output_manager.log_debug(json.dumps(dict(response_details), indent=4))
 
 
 def _handle_fab_long_running_op(response: ApiResponse) -> ApiResponse:
@@ -381,7 +380,7 @@ def _poll_operation(
                 status = result_json.get("status")
                 #
                 if status == "Succeeded" or status == "Completed":
-                    fab_logger.log_progress(status)
+                    output_manager.log_progress(status)
                     if scope == fab_constant.SCOPE_AZURE_DEFAULT:
                         original_response.status_code = 200
                         return original_response
@@ -395,7 +394,7 @@ def _poll_operation(
                         original_response.status_code = 200
                         return original_response
                 elif status == "Failed":
-                    fab_logger.log_progress(status)
+                    output_manager.log_progress(status)
                     raise FabricCLIError(
                         ErrorMessages.Common.operation_failed(
                             str(result_json.get("error"))
@@ -403,7 +402,7 @@ def _poll_operation(
                         fab_constant.ERROR_OPERATION_FAILED,
                     )
                 elif status == "Cancelled":
-                    fab_logger.log_progress(status)
+                    output_manager.log_progress(status)
                     raise FabricCLIError(
                         ErrorMessages.Common.operation_cancelled(
                             str(result_json.get("error"))
@@ -460,9 +459,9 @@ def _log_operation_progress(result_json: dict) -> None:
     percentage_complete = result_json.get("percentageComplete")
     if percentage_complete is None:
         # But sometimes is missing in the response
-        fab_logger.log_progress(status)
+        output_manager.log_progress(status)
     else:
-        fab_logger.log_progress(status, percentage_complete)
+        output_manager.log_progress(status, percentage_complete)
 
 
 def _transform_workspace_url_for_private_link_if_needed(
