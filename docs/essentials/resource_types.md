@@ -15,6 +15,7 @@ Item types are the primary content resources within Fabric workspaces. Each type
 | `.DataPipeline`        | Data integration pipelines         |
 | `.Report`              | Power BI reports                   |
 | `.SemanticModel`       | Data models                        |
+| `.SnowflakeDatabase`   | Snowflake databases                |
 | `.KQLDatabase`         | Kusto databases                    |
 | `.KQLDashboard`        | Kusto dashboards                   |
 | `.KQLQueryset`         | Kusto query collections            |

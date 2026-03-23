@@ -279,6 +279,7 @@ class ItemType(_BaseItemType):
     REFLEX = "Reflex"
     REPORT = "Report"
     SEMANTIC_MODEL = "SemanticModel"
+    SNOWFLAKE_DATABASE = "SnowflakeDatabase"
     SPARK_JOB_DEFINITION = "SparkJobDefinition"
     SQL_ENDPOINT = "SQLEndpoint"
     WAREHOUSE = "Warehouse"
@@ -521,6 +522,7 @@ format_mapping = {
     ItemType.SQL_DATABASE: "sqlDatabases",
     ItemType.SQL_ENDPOINT: "sqlEndpoints",
     ItemType.SEMANTIC_MODEL: "semanticModels",
+    ItemType.SNOWFLAKE_DATABASE: "snowflakeDatabases",
     ItemType.SPARK_JOB_DEFINITION: "sparkJobDefinitions",
     ItemType.WAREHOUSE: "warehouses",
     ItemType.COPYJOB: "copyJobs",
@@ -566,6 +568,7 @@ uri_mapping = {
     ItemType.REFLEX: "reflexes",
     ItemType.REPORT: "reports",
     ItemType.SEMANTIC_MODEL: "datasets",
+    ItemType.SNOWFLAKE_DATABASE: "snowflakedatabases",
     ItemType.SPARK_JOB_DEFINITION: "sparkjobdefinitions",
     ItemType.SQL_DATABASE: "sqldatabases",
     ItemType.SQL_ENDPOINT: "lakewarehouses",
