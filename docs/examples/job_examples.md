@@ -37,7 +37,7 @@ Use a command flag to continue jobs even after timeout.
 
 ```py
 # Job will continue running even after timeout
-fab job run ws1.Workspace/sjd1.SparkJobDefinition --timeout 120 --cancel_on_timeout false
+fab job run ws1.Workspace/sjd1.SparkJobDefinition --timeout 120 --no_cancel_on_timeout
 ```
 
 ### Asynchronous Job Execution
