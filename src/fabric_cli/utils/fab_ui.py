@@ -2,11 +2,17 @@
 # Licensed under the MIT License.
 
 import builtins
+import csv
 import html
+import io
 import sys
 import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
+
+import rich.box as box
+from rich.table import Table
+from rich.text import Text
 
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
@@ -14,6 +20,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+from fabric_cli.utils.console import console, err_console
 
 
 def get_common_style():
@@ -71,11 +78,11 @@ def print(text: str) -> None:
 
 
 def print_fabric(text: str) -> None:
-    _safe_print(text, style="fg:#49C5B1")
+    _safe_print(text, style="#49C5B1")
 
 
 def print_grey(text: str, to_stderr: bool = True) -> None:
-    _safe_print(text, style="fg:grey", to_stderr=to_stderr)
+    _safe_print(text, style="grey62", to_stderr=to_stderr)
 
 
 def print_progress(text, progress: Optional[str] = None) -> None:
@@ -133,6 +140,12 @@ def print_output_format(
             _print_output_format_json(output.to_json())
         case "text":
             _print_output_format_result_text(output)
+        case "table":
+            _print_output_format_table(output)
+        case "yaml":
+            _print_output_format_yaml(output)
+        case "csv":
+            _print_output_format_csv(output)
         case _:
             raise FabricCLIError(
                 ErrorMessages.Common.output_format_not_supported(str(format_type)),
@@ -141,23 +154,24 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
+    # Escape the text to avoid injection and parsing issues
     escaped_text = html.escape(text)
-    _safe_print_formatted_text(
-        f"\n<ansigreen>*</ansigreen> {escaped_text}", escaped_text, to_stderr
-    )
+    t = Text()
+    t.append("\n")
+    t.append("*", style="green")
+    t.append(f" {escaped_text}")
+    _safe_print_rich_text(t, escaped_text, to_stderr)
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
+    # Escape the text to avoid injection and parsing issues
     text = text.rstrip(".")
     escaped_text = html.escape(text)
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(
-        f"<ansiyellow>!</ansiyellow> {command_text}{escaped_text}",
-        escaped_text,
-        to_stderr=True,
-    )
+    t = Text()
+    t.append("!", style="yellow")
+    t.append(f" {command_text}{escaped_text}")
+    _safe_print_rich_text(t, escaped_text, to_stderr=True)
 
 
 def print_output_error(
@@ -191,8 +205,18 @@ def print_output_error(
                 ).to_json()
             )
             return
-        case "text":
+        case "text" | "table" | "csv":
             _print_error_format_text(error.formatted_message(), command)
+            return
+        case "yaml":
+            _print_error_format_yaml(
+                FabricCLIOutput(
+                    status=OutputStatus.Failure,
+                    error_code=error.status_code,
+                    command=command,
+                    message=error.message,
+                )
+            )
             return
         case _:
             raise FabricCLIError(
@@ -202,14 +226,13 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
-    # Escape the text to avoid HTML injection and parsing issues
+    # Escape the text to avoid injection and parsing issues
     escaped_text = html.escape(text.rstrip("."))
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(
-        f"<ansiblue>*</ansiblue> {command_text}{escaped_text}",
-        escaped_text,
-        to_stderr=True,
-    )
+    t = Text()
+    t.append("*", style="blue")
+    t.append(f" {command_text}{escaped_text}")
+    _safe_print_rich_text(t, escaped_text, to_stderr=True)
 
 
 # Display
@@ -274,27 +297,23 @@ def print_entries_unix_style(
             fab_constant.ERROR_INVALID_ENTRIES_FORMAT,
         )
 
-    if header:
-        widths = [
-            max(len(field), max(get_visual_length(entry, field) for entry in _entries))
-            for field in fields
-        ]
-
-    else:
-        widths = [
-            max(len(str(entry.get(field, ""))) for entry in _entries)
-            for field in fields
-        ]
-    # Add extra space for better alignment
-    # Adjust this value for more space if needed
-    widths = [w + 2 for w in widths]
-    if header:
-        print_grey(_format_unix_style_field(fields, widths), to_stderr=False)
-        # Print a separator line, offset of 1 for each field
-        print_grey("-" * (sum(widths) + len(widths)), to_stderr=False)
+    table = Table(
+        show_header=bool(header),
+        box=box.SIMPLE_HEAD if header else None,
+        show_edge=False,
+        pad_edge=False,
+        padding=(0, 2),
+        style="grey62",
+        header_style="grey62",
+    )
+    for field in fields:
+        table.add_column(field)
 
     for entry in _entries:
-        print_grey(_format_unix_style_entry(entry, fields, widths), to_stderr=False)
+        row = [str(entry.get(field, "")) for field in fields]
+        table.add_row(*row)
+
+    console.print(table)
 
 
 # Others
@@ -308,25 +327,26 @@ def _safe_print(
 ) -> None:
 
     try:
-        # Redirect to stderr if `to_stderr` is True
-        output_stream = sys.stderr if to_stderr else sys.stdout
-        questionary_module = fab_lazy_load.questionary()
-        questionary_module.print(text, style=style, file=output_stream)
+        if text is None:
+            raise AttributeError("Cannot print None value")
+        target = err_console if to_stderr else console
+        target.print(text, style=style, markup=False)
 
     except (RuntimeError, AttributeError, Exception) as e:
         _print_fallback(text, e, to_stderr=to_stderr)
 
 
-def _safe_print_formatted_text(
-    formatted_text: str, escaped_text: str, to_stderr: bool = False
+def _safe_print_rich_text(
+    rich_text: Any, fallback_text: str, to_stderr: bool = False
 ) -> None:
-    from prompt_toolkit import HTML, print_formatted_text
-
+    """Print a Rich renderable with fallback to plain text."""
     try:
-        output_stream = sys.stderr if to_stderr else sys.stdout
-        print_formatted_text(HTML(formatted_text), file=output_stream)
+        if rich_text is None:
+            raise AttributeError("Cannot print None value")
+        target = err_console if to_stderr else console
+        target.print(rich_text)
     except (RuntimeError, AttributeError, Exception) as e:
-        _print_fallback(escaped_text, e, to_stderr)
+        _print_fallback(fallback_text, e, to_stderr)
 
 
 def _print_output_format_result_text(output: FabricCLIOutput) -> None:
@@ -368,23 +388,116 @@ def _print_output_format_result_text(output: FabricCLIOutput) -> None:
         print_grey("------------------------------")
         _print_raw_data(output_result.hidden_data)
 
-        
     if output_result.message:
         print_done(f"{output_result.message}\n")
+
+
+def _print_output_format_table(output: FabricCLIOutput) -> None:
+    """Print output as a Rich bordered table."""
+    output_result = output.result
+    if all(
+        value is None
+        for value in [
+            output_result.data,
+            output_result.hidden_data,
+            output_result.message,
+        ]
+    ):
+        raise FabricCLIError(
+            ErrorMessages.Common.invalid_result_format(),
+            fab_constant.ERROR_INVALID_INPUT,
+        )
+
+    if output_result.data:
+        data_keys = output.result.get_data_keys() if output_result.data else []
+        if len(data_keys) > 0:
+            _print_rich_bordered_table(output_result.data, data_keys)
+        else:
+            _print_raw_data(output_result.data)
+
+    if output_result.hidden_data:
+        print_grey("------------------------------")
+        _print_raw_data(output_result.hidden_data)
+
+    if output_result.message:
+        print_done(f"{output_result.message}\n")
+
+
+def _print_rich_bordered_table(data: list[Any], keys: list[str]) -> None:
+    """Render data as a Rich table with rounded borders."""
+    table = Table(
+        show_header=True,
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        padding=(0, 1),
+    )
+    for key in keys:
+        table.add_column(_format_key_to_convert_to_title_case(key))
+
+    for entry in data:
+        row = [str(entry.get(key, "")) for key in keys]
+        table.add_row(*row)
+
+    console.print(table)
+
+
+def _print_output_format_yaml(output: FabricCLIOutput) -> None:
+    """Print output in YAML format."""
+    import yaml
+
+    output_dict = output._to_dict()
+    yaml_output = yaml.dump(output_dict, default_flow_style=False, sort_keys=False)
+    _safe_print(yaml_output.rstrip())
+
+
+def _print_output_format_csv(output: FabricCLIOutput) -> None:
+    """Print output data in CSV format."""
+    output_result = output.result
+    if all(
+        value is None
+        for value in [
+            output_result.data,
+            output_result.hidden_data,
+            output_result.message,
+        ]
+    ):
+        raise FabricCLIError(
+            ErrorMessages.Common.invalid_result_format(),
+            fab_constant.ERROR_INVALID_INPUT,
+        )
+
+    if output_result.data:
+        data_keys = output.result.get_data_keys()
+        if data_keys:
+            string_io = io.StringIO()
+            writer = csv.DictWriter(
+                string_io, fieldnames=data_keys, extrasaction="ignore"
+            )
+            writer.writeheader()
+            for row in output_result.data:
+                writer.writerow({k: str(v) for k, v in row.items() if k in data_keys})
+            _safe_print(string_io.getvalue().rstrip())
+        else:
+            for item in output_result.data:
+                _safe_print(str(item))
+
+    if output_result.message:
+        print_done(f"{output_result.message}\n")
+
 
 def _print_raw_data(data: list[Any], to_stderr: bool = False) -> None:
     """
     Print raw data without headers/formatting using appropriate display strategy.
-    
+
     This function intelligently chooses the output format based on data structure:
-    - Complex dictionaries (multiple keys or list values) → JSON formatting
-    - Simple dictionaries (single key-value pairs) → Extract and display values only
-    - Other data types → Direct string conversion
-    
+    - Complex dictionaries (multiple keys or list values) -> JSON formatting
+    - Simple dictionaries (single key-value pairs) -> Extract and display values only
+    - Other data types -> Direct string conversion
+
     Args:
         data: List of data items to print
         to_stderr: Whether to output to stderr (True) or stdout (False)
-    
+
     Returns:
         None
     """
@@ -402,7 +515,7 @@ def _print_raw_data(data: list[Any], to_stderr: bool = False) -> None:
 def _print_dict(data: list[Any], to_stderr: bool) -> None:
     """
     Format and print data as pretty-printed JSON.
-    
+
     Args:
         data: Data to format as JSON
         to_stderr: Output stream selection
@@ -440,7 +553,19 @@ def _print_error_format_json(output: str) -> None:
 
 def _print_error_format_text(message: str, command: Optional[str] = None) -> None:
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(f"<ansired>x</ansired> {command_text}{message}", message)
+    t = Text()
+    t.append("x", style="red")
+    t.append(f" {command_text}{message}")
+    _safe_print_rich_text(t, str(message))
+
+
+def _print_error_format_yaml(output: FabricCLIOutput) -> None:
+    """Print error in YAML format."""
+    import yaml
+
+    output_dict = output._to_dict()
+    yaml_output = yaml.dump(output_dict, default_flow_style=False, sort_keys=False)
+    _safe_print(yaml_output.rstrip())
 
 
 def _print_fallback(text: str, e: Exception, to_stderr: bool = False) -> None:
@@ -450,34 +575,6 @@ def _print_fallback(text: str, e: Exception, to_stderr: bool = False) -> None:
     builtins.print(text, file=output_stream)
     if isinstance(e, AttributeError):  # Only re-raise AttributeError (pytest)
         raise
-
-
-def _format_unix_style_field(fields: list[str], widths: list[int]) -> str:
-    formatted = ""
-    # Dynamically format based on the fields provided
-    for i, field in enumerate(fields):
-        # Adjust spacing for better alignment
-        formatted += f"{field:<{widths[i]}} "
-
-    return formatted.strip()
-
-
-def _format_unix_style_entry(
-    entry: dict[str, str], fields: list[str], widths: list[int]
-) -> str:
-    formatted = ""
-    # Dynamically format based on the fields provided
-    for i, field in enumerate(fields):
-        value = str(entry.get(field, ""))
-        # Adjust spacing for better alignment
-        length = len(value)
-        visual_length = _get_visual_length(value)
-        if visual_length > length:
-            formatted += f"{value:<{widths[i] - (visual_length - length) + 2 }} "
-        else:
-            formatted += f"{value:<{widths[i]}} "
-
-    return formatted.strip()
 
 
 def _get_visual_length(string: str) -> int:
@@ -496,10 +593,10 @@ def _get_visual_length(string: str) -> int:
 
 def _print_entries_key_value_list_style(entries: Any) -> None:
     """Print entries in a key-value list format with formatted keys.
-    
+
     Args:
         entries: Dictionary or list of dictionaries to print
-        
+
     Example output:
         Logged In: true
         Account: johndoe@example.com
@@ -526,28 +623,28 @@ def _print_entries_key_value_list_style(entries: Any) -> None:
 
 def _format_key_to_convert_to_title_case(key: str) -> str:
     """Convert a snake_case key to a Title Case name.
-    
+
     Args:
         key: The key to format in snake_case format (e.g. 'user_id', 'account_name')
-        
+
     Returns:
         str: Formatted to title case name (e.g. 'User ID', 'Account Name')
-        
+
     Raises:
         ValueError: If the key is not in the expected underscore-separated format
     """
     # Allow letters, numbers, and underscores only
     if not key.replace('_', '').replace(' ', '').isalnum():
         raise ValueError(f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
-    
+
     # Check for invalid patterns (camelCase, spaces mixed with underscores, etc.)
     if ' ' in key and '_' in key:
         raise ValueError(f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
-    
+
     # Check for camelCase pattern (uppercase letters not at the start)
     if any(char.isupper() for char in key[1:]) and '_' not in key:
         raise ValueError(f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
-    
+
     pretty = key.replace('_', ' ').title().strip()
 
     return _check_special_cases(pretty)

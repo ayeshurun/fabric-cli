@@ -28,6 +28,7 @@ dependencies = [
     "argcomplete>=3.6.2",
     "psutil==7.0.0",
     "requests",
+    "rich>=14.0.0",
     "cryptography",
     "fabric-cicd>=0.3.1",
 ]

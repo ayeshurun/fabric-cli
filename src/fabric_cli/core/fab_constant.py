@@ -115,7 +115,7 @@ FAB_CONFIG_KEYS_TO_VALID_VALUES = {
     FAB_DEFAULT_AZ_ADMIN: [],
     FAB_DEFAULT_CAPACITY: [],
     FAB_DEFAULT_OPEN_EXPERIENCE: ["fabric", "powerbi"],
-    FAB_OUTPUT_FORMAT: ["text", "json"],
+    FAB_OUTPUT_FORMAT: ["text", "json", "table", "yaml", "csv"],
     FAB_FOLDER_LISTING_ENABLED: ["false", "true"],
     FAB_WS_PRIVATE_LINKS_ENABLED: ["false", "true"],
     FAB_CHECK_UPDATES: ["false", "true"],
