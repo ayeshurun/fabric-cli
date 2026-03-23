@@ -401,7 +401,7 @@ def test_print_output_format_text_success(
     )
 
     # Calls: rendered_table + separator + hidden1 + hidden2
-    # (print_done goes through _safe_print_rich_text, not captured here)
+    # print_done goes through _safe_print_rich_text (not _safe_print), so not captured
     assert mock_questionary_print.call_count == 4
     assert mock_questionary_print.mock_calls[2].args[0] == "hidden1"
     assert mock_questionary_print.mock_calls[3].args[0] == "hidden2"

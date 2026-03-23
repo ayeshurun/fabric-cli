@@ -10,12 +10,12 @@ import fabric_cli.core.fab_state_config as state_config
 
 @pytest.fixture
 def mock_questionary_print():
-    """Mock the low-level ``_safe_print`` function in ``fab_ui``.
+    """Mock the low-level _safe_print function in fab_ui.
 
     This captures data/JSON/grey text output (which flows through
-    ``_safe_print``) while leaving formatted messages (done, warning,
-    info, error text) uncaptured -- matching the old behaviour where
-    ``questionary.print`` was mocked but ``prompt_toolkit.print_formatted_text``
+    _safe_print) while leaving formatted messages (done, warning,
+    info, error text) uncaptured, matching the old behaviour where
+    questionary.print was mocked but prompt_toolkit.print_formatted_text
     was not.
     """
     with patch("fabric_cli.utils.fab_ui._safe_print") as mock:

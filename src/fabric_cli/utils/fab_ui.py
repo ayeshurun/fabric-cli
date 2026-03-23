@@ -10,6 +10,7 @@ from argparse import Namespace
 from typing import Any, Optional, Sequence
 
 import rich.box as box
+import yaml
 from rich.console import Console as _RichConsole
 from rich.table import Table
 from rich.text import Text
@@ -317,7 +318,7 @@ def print_entries_unix_style(
     # Render table to string and print via standard path so that
     # test mocks on _safe_print capture the rendered output.
     buf = io.StringIO()
-    _RichConsole(file=buf, width=10000, force_terminal=False, highlight=False).print(table, end="")
+    _RichConsole(file=buf, width=max(console.width or 80, 300), force_terminal=False, highlight=False).print(table, end="")
     print_grey(buf.getvalue(), to_stderr=False)
 
 
@@ -448,8 +449,6 @@ def _print_rich_bordered_table(data: list[Any], keys: list[str]) -> None:
 
 def _print_output_format_yaml(output: FabricCLIOutput) -> None:
     """Print output in YAML format."""
-    import yaml
-
     output_dict = output._to_dict()
     yaml_output = yaml.dump(output_dict, default_flow_style=False, sort_keys=False)
     _safe_print(yaml_output.rstrip())
@@ -566,8 +565,6 @@ def _print_error_format_text(message: str, command: Optional[str] = None) -> Non
 
 def _print_error_format_yaml(output: FabricCLIOutput) -> None:
     """Print error in YAML format."""
-    import yaml
-
     output_dict = output._to_dict()
     yaml_output = yaml.dump(output_dict, default_flow_style=False, sort_keys=False)
     _safe_print(yaml_output.rstrip())
