@@ -39,14 +39,14 @@ def exec_command(args: Namespace, item: Item) -> None:
                 )
             except TimeoutError as e:
                 fab_ui.print_warning(str(e))
-                # Get the configuration to check if we should cancel the job
-                if config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT) == "false":
+                cancel_on_timeout = _should_cancel_on_timeout(args)
+                if not cancel_on_timeout:
                     fab_ui.print_grey(
-                        f"Job still running. To change this behaviour and cancel on timeout, set {con.FAB_JOB_CANCEL_ONTIMEOUT} config property to 'true'"
+                        "Job still running. Remove '--no_cancel_on_timeout' to cancel when timeout is reached"
                     )
                 else:
                     fab_ui.print_grey(
-                        f"Cancelling job instance '{job_instance_id}' (timeout). To change this behaviour and continue running on timeout, set {con.FAB_JOB_CANCEL_ONTIMEOUT} config property to 'false'"
+                        f"Canceling job instance '{job_instance_id}' (timeout). Use '--no_cancel_on_timeout' to keep running on timeout"
                     )
                     args.instance_id = job_instance_id
                     response = jobs_api.cancel_item_job_instance(args)
@@ -63,3 +63,22 @@ def exec_command(args: Namespace, item: Item) -> None:
             fab_ui.print_grey(
                 f"→ To see status run 'job run-status {item.path} --id {job_instance_id}'"
             )
+
+
+def _should_cancel_on_timeout(args: Namespace) -> bool:
+    # Backward compatibility for existing config files
+    legacy_value = config.get_config(con.FAB_JOB_CANCEL_ONTIMEOUT_DEPRECATED)
+    if legacy_value is not None:
+        fab_ui.print_warning(
+            f"Config key '{con.FAB_JOB_CANCEL_ONTIMEOUT_DEPRECATED}' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
+    legacy_cancel_on_timeout = (
+        legacy_value == "true" if legacy_value in {"false", "true"} else None
+    )
+
+    if getattr(args, "no_cancel_on_timeout", False):
+        return False
+
+    if legacy_cancel_on_timeout is not None:
+        return legacy_cancel_on_timeout
+    return True

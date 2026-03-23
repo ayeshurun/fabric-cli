@@ -192,8 +192,8 @@ fab config set debug_enabled true
 # Set default capacity
 fab config set default_capacity "My Capacity"
 
-# Configure output sorting
-fab config set output_item_sort_criteria bytype
+# Configure output sorting for ls
+fab ls ws1.Workspace --sort_by type
 
 # View all settings
 fab config ls

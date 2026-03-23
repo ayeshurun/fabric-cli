@@ -33,14 +33,11 @@ fab job run ws1.Workspace/sjd1.SparkJobDefinition --timeout 120
 
 #### Run Job with Timeout (No Cancellation)
 
-Configure the CLI to continue jobs even after timeout.
+Use a command flag to continue jobs even after timeout.
 
 ```py
-# Configure to not cancel jobs on timeout
-fab config set job_cancel_ontimeout false
-
 # Job will continue running even after timeout
-fab job run ws1.Workspace/sjd1.SparkJobDefinition --timeout 120
+fab job run ws1.Workspace/sjd1.SparkJobDefinition --timeout 120 --no_cancel_on_timeout
 ```
 
 ### Asynchronous Job Execution

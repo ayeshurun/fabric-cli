@@ -18,6 +18,8 @@ def register_ls_parser(subparsers: _SubParsersAction) -> None:
         "$ ls -l\n",
         "# list lakehouse tables",
         "$ ls ws1.Workspace/lh1.Lakehouse/Tables\n",
+        "# list workspace items sorted by type",
+        "$ ls ws1.Workspace --sort_by type\n",
         "# list items with name matching a pattern",
         "$ ls -q [].name",
         "$ ls -q [?contains(name, 'Report')]\n",
@@ -54,6 +56,16 @@ def register_ls_parser(subparsers: _SubParsersAction) -> None:
         metavar="",
         required=False,
         help="JMESPath query to filter. Optional",
+    )
+    ls_parser.add_argument(
+        "--sort_by",
+        metavar="",
+        dest="sort_by",
+        choices=["name", "type"],
+        default="name",
+        help=(
+            "Sort workspace items by name or type. Optional (default: name)"
+        ),
     )
 
     ls_parser.usage = f"{utils_error_parser.get_usage_prog(ls_parser)}"

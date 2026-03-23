@@ -61,14 +61,6 @@ Allow authentication token cache in plaintext when encryption is unavailable.
 fab config set encryption_fallback_enabled true
 ```
 
-### Enable/Disable Job Timeout Behavior
-
-Control whether jobs are cancelled when they timeout.
-
-```
-fab config set job_cancel_ontimeout true
-```
-
 ### Set Labels Definition File
 
 Specify a local file containing label definitions for the CLI.
@@ -84,15 +76,6 @@ Set the default interaction mode for the CLI.
 
 ```
 fab config set mode interactive
-```
-
-### Configure Item Sort Order
-
-Set the default sorting criteria for listing items.
-**Allowed Values:** `byname`, `bytype`
-
-```
-fab config set output_item_sort_criteria bytype
 ```
 
 ### Show Hidden Elements
@@ -144,15 +127,6 @@ Configure the default Fabric capacity for workspace operations.
 
 ```
 fab config set default_capacity cap1
-```
-
-### Set Default Open Experience
-
-Configure the default experience when opening items in web browser.
-**Allowed Values:** `powerbi`, `fabric`
-
-```
-fab config set default_open_experience powerbi
 ```
 
 For complete details on all available configuration settings, see the [Settings documentation](../essentials/settings.md#available-settings).

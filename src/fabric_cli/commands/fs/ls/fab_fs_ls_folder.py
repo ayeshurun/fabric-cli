@@ -13,6 +13,10 @@ def exec(folder: Folder, args):
     show_details = bool(args.long)
 
     ws_elements: list[Union[Item, Folder]] = utils_fs.get_ws_elements(folder)
-    sort_elements = utils_fs.sort_ws_elements(ws_elements, show_details)
+    sort_elements = utils_fs.sort_ws_elements(
+        ws_elements,
+        show_details,
+        sort_criteria=getattr(args, "sort_by", None),
+    )
 
     utils_ui.print_output_format(args, data=sort_elements, show_headers=show_details)

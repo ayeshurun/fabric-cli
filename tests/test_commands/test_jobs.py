@@ -172,6 +172,172 @@ class TestJobs:
         assert calls[-1].args[0].split()[3] == "Manual"
         assert calls[-1].args[0].split()[4] in ["Cancelled", "NotStarted"]
 
+    def test_run_job_timeout_respects_cancel_on_timeout_flag_false(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            no_cancel_on_timeout=True,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(fab_jobs_run.jobs_api, "cancel_item_job_instance") as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_not_called()
+
+    def test_run_job_timeout_respects_cancel_on_timeout_flag_true(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            no_cancel_on_timeout=False,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "cancel_item_job_instance",
+                return_value=argparse.Namespace(status_code=202),
+            ) as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_called_once()
+
+    def test_run_job_timeout_uses_legacy_config_when_flag_missing(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            no_cancel_on_timeout=False,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(state_config, "get_config", return_value="false"),
+            patch.object(fab_jobs_run.jobs_api, "cancel_item_job_instance") as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning") as mock_print_warning,
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_not_called()
+        mock_print_warning.assert_any_call(
+            "Config key 'job_cancel_ontimeout' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
+
+    def test_run_job_timeout_invalid_legacy_config_defaults_to_cancel(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            no_cancel_on_timeout=False,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(state_config, "get_config", return_value="invalid"),
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "cancel_item_job_instance",
+                return_value=argparse.Namespace(status_code=202),
+            ) as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning") as mock_print_warning,
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_called_once()
+        mock_print_warning.assert_any_call(
+            "Config key 'job_cancel_ontimeout' is deprecated. Use '--no_cancel_on_timeout' instead"
+        )
+
+    def test_run_job_timeout_missing_legacy_config_defaults_to_cancel(self):
+        args = argparse.Namespace(
+            wait=True,
+            timeout=1,
+            polling_interval=None,
+            configuration=None,
+            no_cancel_on_timeout=False,
+        )
+
+        with (
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "run_on_demand_item_job",
+                return_value=(argparse.Namespace(status_code=202), "job-1"),
+            ),
+            patch.object(
+                fab_jobs_run.utils_job,
+                "wait_for_job_completion",
+                side_effect=TimeoutError("timed out"),
+            ),
+            patch.object(state_config, "get_config", return_value=None),
+            patch.object(
+                fab_jobs_run.jobs_api,
+                "cancel_item_job_instance",
+                return_value=argparse.Namespace(status_code=202),
+            ) as mock_cancel,
+            patch.object(fab_jobs_run.fab_ui, "print_warning"),
+            patch.object(fab_jobs_run.fab_ui, "print_grey"),
+            patch.object(fab_jobs_run.fab_ui, "print_output_format"),
+        ):
+            fab_jobs_run.exec_command(args, item=None)
+
+        mock_cancel.assert_called_once()
+
     def test_start_job_notebook_and_cancel(
         self, item_factory, cli_executor, mock_questionary_print
     ):
