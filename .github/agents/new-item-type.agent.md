@@ -60,7 +60,7 @@ Use this table to determine which steps apply to the new item type before readin
 
 ### Simple Item (no definition, no params)
 
-Only needs Steps 1-3, 9 (add to the standard multi-case match), 10 (review `command_support.yaml` for `unsupported_items`), 11 (ALL_ITEM_TYPES + basic_item_parametrize), 12, and 13.
+Only needs Steps 1-3, 9 (add to the standard multi-case match), 10a (review `command_support.yaml` for `unsupported_items`), 11 (ALL_ITEM_TYPES + basic_item_parametrize), 12, and 13.
 
 **Examples:** `Dashboard`, `Datamart`
 
@@ -324,7 +324,7 @@ case ItemType.NEW_ITEM:
 
 This file controls which CLI commands are enabled for each item type. Add the new item type's snake_case name to the appropriate command sections based on the API Support Matrix from the Prerequisites.
 
-> **This step applies to ALL item types, not just items with definition support.** Even simple items may need `unsupported_items` entries, or may need to be added to special command sections.
+> **This step applies to ALL item types, not just items with definition support.** Sub-step 10a (`unsupported_items` review) always applies. Sub-steps 10b-10e apply only to items with definition support.
 
 #### 10a. Check `unsupported_items` lists (always)
 
