@@ -248,3 +248,12 @@ class CommonErrors:
     @staticmethod
     def query_not_supported_for_set(query: str) -> str:
         return f"Query '{query}' is not supported for set command"
+
+    @staticmethod
+    def invalid_definition_format(valid_formats: list[str]) -> str:
+        if valid_formats:
+            message = f"Only the following formats are supported: {', '.join(valid_formats)}"
+        else:
+            message = "No formats are supported"
+        return f"Invalid format. {message}"
+
