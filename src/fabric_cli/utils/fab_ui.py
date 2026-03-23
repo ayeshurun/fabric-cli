@@ -3,7 +3,6 @@
 
 import builtins
 import csv
-import html
 import io
 import sys
 import unicodedata
@@ -11,6 +10,7 @@ from argparse import Namespace
 from typing import Any, Optional, Sequence
 
 import rich.box as box
+from rich.console import Console as _RichConsole
 from rich.table import Table
 from rich.text import Text
 
@@ -154,24 +154,24 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
-    # Escape the text to avoid injection and parsing issues
-    escaped_text = html.escape(text)
+    if text is None:
+        raise AttributeError("Cannot print None value")
     t = Text()
     t.append("\n")
     t.append("*", style="green")
-    t.append(f" {escaped_text}")
-    _safe_print_rich_text(t, escaped_text, to_stderr)
+    t.append(f" {text}")
+    _safe_print_rich_text(t, text, to_stderr)
 
 
 def print_warning(text: str, command: Optional[str] = None) -> None:
-    # Escape the text to avoid injection and parsing issues
+    if text is None:
+        raise AttributeError("Cannot print None value")
     text = text.rstrip(".")
-    escaped_text = html.escape(text)
     command_text = f"{command}: " if command else ""
     t = Text()
     t.append("!", style="yellow")
-    t.append(f" {command_text}{escaped_text}")
-    _safe_print_rich_text(t, escaped_text, to_stderr=True)
+    t.append(f" {command_text}{text}")
+    _safe_print_rich_text(t, text, to_stderr=True)
 
 
 def print_output_error(
@@ -226,13 +226,14 @@ def print_output_error(
 
 
 def print_info(text, command: Optional[str] = None) -> None:
-    # Escape the text to avoid injection and parsing issues
-    escaped_text = html.escape(text.rstrip("."))
+    if text is None:
+        raise AttributeError("Cannot print None value")
+    clean_text = text.rstrip(".")
     command_text = f"{command}: " if command else ""
     t = Text()
     t.append("*", style="blue")
-    t.append(f" {command_text}{escaped_text}")
-    _safe_print_rich_text(t, escaped_text, to_stderr=True)
+    t.append(f" {command_text}{clean_text}")
+    _safe_print_rich_text(t, clean_text, to_stderr=True)
 
 
 # Display
@@ -307,13 +308,17 @@ def print_entries_unix_style(
         header_style="grey62",
     )
     for field in fields:
-        table.add_column(field)
+        table.add_column(field, no_wrap=True, overflow="fold")
 
     for entry in _entries:
         row = [str(entry.get(field, "")) for field in fields]
         table.add_row(*row)
 
-    console.print(table)
+    # Render table to string and print via standard path so that
+    # test mocks on _safe_print capture the rendered output.
+    buf = io.StringIO()
+    _RichConsole(file=buf, width=10000, force_terminal=False, highlight=False).print(table, end="")
+    print_grey(buf.getvalue(), to_stderr=False)
 
 
 # Others

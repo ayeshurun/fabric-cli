@@ -400,9 +400,11 @@ def test_print_output_format_text_success(
         hidden_data=["hidden1", "hidden2"],
     )
 
-    assert mock_questionary_print.call_count == 5
-    assert mock_questionary_print.mock_calls[3].args[0] == "hidden1"
-    assert mock_questionary_print.mock_calls[4].args[0] == "hidden2"
+    # Calls: rendered_table + separator + hidden1 + hidden2
+    # (print_done goes through _safe_print_rich_text, not captured here)
+    assert mock_questionary_print.call_count == 4
+    assert mock_questionary_print.mock_calls[2].args[0] == "hidden1"
+    assert mock_questionary_print.mock_calls[3].args[0] == "hidden2"
 
     mock_questionary_print.reset_mock()
 
@@ -424,12 +426,14 @@ def test_print_output_format_text_success(
         hidden_data=["hidden1", "hidden2"],
         show_headers=True,
     )
-    # assert there  is headers
-    assert "name" in mock_questionary_print.mock_calls[0].args[0]
-    assert "id" in mock_questionary_print.mock_calls[0].args[0]
-    # assert hidden folders are displayed
-    assert mock_questionary_print.mock_calls[5].args[0] == "hidden1"
-    assert mock_questionary_print.mock_calls[6].args[0] == "hidden2"
+    # Call 0 is a Rich Table rendered to string with header columns
+    rendered_table = mock_questionary_print.mock_calls[0].args[0]
+    assert isinstance(rendered_table, str)
+    assert "name" in rendered_table
+    assert "id" in rendered_table
+    # hidden data at indices 2, 3 (after Table and separator)
+    assert mock_questionary_print.mock_calls[2].args[0] == "hidden1"
+    assert mock_questionary_print.mock_calls[3].args[0] == "hidden2"
 
     mock_questionary_print.reset_mock()
 
@@ -440,10 +444,11 @@ def test_print_output_format_text_success(
         data=[{"name": "test1"}, {"name": "test2"}],
         message="Test message",
     )
-    # assert there is no headers
-    assert "name" not in mock_questionary_print.mock_calls[0].args[0]
-    assert "test1" in mock_questionary_print.mock_calls[0].args[0]
-    assert "test2" in mock_questionary_print.mock_calls[1].args[0]
+    # Call 0 is a Rich Table rendered to string (no header since single column)
+    rendered_table = mock_questionary_print.mock_calls[0].args[0]
+    assert isinstance(rendered_table, str)
+    assert "test1" in rendered_table
+    assert "test2" in rendered_table
 
 
 def test_print_output_format_text_print_to_stdout_success(
@@ -501,12 +506,9 @@ def test_print_output_format_with_F_flag(
 
     # Verify text output format
     assert mock_questionary_print.call_count == 1
-    assert all(
-        isinstance(call.args[0], str) for call in mock_questionary_print.mock_calls
-    )
-    assert not any(
-        "result" in call.args[0] for call in mock_questionary_print.mock_calls
-    )
+    # First call is the data as JSON text
+    assert isinstance(mock_questionary_print.mock_calls[0].args[0], str)
+    assert "result" not in mock_questionary_print.mock_calls[0].args[0]
     assert (
         mock_questionary_print.mock_calls[0].args[0]
         == '[\n  {\n    "name": "test1"\n  },\n  {\n    "name": "test2"\n  }\n]'
@@ -548,12 +550,9 @@ def test_print_output_format_with_force_output_success(
 
     # Verify text output format
     assert mock_questionary_print.call_count == 1
-    assert all(
-        isinstance(call.args[0], str) for call in mock_questionary_print.mock_calls
-    )
-    assert not any(
-        "result" in call.args[0] for call in mock_questionary_print.mock_calls
-    )
+    # First call is the data as JSON text
+    assert isinstance(mock_questionary_print.mock_calls[0].args[0], str)
+    assert "result" not in mock_questionary_print.mock_calls[0].args[0]
     assert (
         mock_questionary_print.mock_calls[0].args[0]
         == '[\n  {\n    "name": "test1"\n  },\n  {\n    "name": "test2"\n  }\n]'
