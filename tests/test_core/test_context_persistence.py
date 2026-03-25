@@ -31,9 +31,6 @@ def test_context_persistence_save(monkeypatch):
 
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
 
-    context = Context()
-    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
-
     # Create a secure temporary context file path
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
         temp_context_file = temp_file.name
@@ -75,7 +72,6 @@ def test_context_persistence_load(monkeypatch):
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
 
     context = Context()
-    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Reset the context to force loading
     context._context = None
@@ -139,7 +135,6 @@ def test_context_persistence_disabled_by_default(monkeypatch):
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
 
     context = Context()
-    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Create a mock tenant and workspace
     tenant = Tenant("test_tenant", "1234")
@@ -177,7 +172,6 @@ def test_context_persistence_enabled_when_configured(monkeypatch):
     monkeypatch.setattr(fab_state_config, "get_config", mock_get_config)
 
     context = Context()
-    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     # Create a secure temporary context file path
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp_file:
@@ -360,7 +354,6 @@ def test_loading_context_re_entrancy_guard(monkeypatch):
 
     # Set runtime mode to command-line and enable context persistence
     context = Context()
-    monkeypatch.setattr(context, "get_runtime_mode", lambda: fab_constant.FAB_MODE_COMMANDLINE)
 
     def mock_get_config(key):
         if key == fab_constant.FAB_CONTEXT_PERSISTENCE_ENABLED:

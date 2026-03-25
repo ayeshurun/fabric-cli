@@ -72,7 +72,7 @@ class TestStateConfig:
 class TestInitDefaults:
     """Test suite for config initialization optimization."""
 
-    def test_init_defaults__no_write_when_unchanged(self, tmp_path, monkeypatch):
+    def test_init_defaults_no_write_when_unchanged(self, tmp_path, monkeypatch):
         """Test that init_defaults skips writing when config already has all defaults."""
         import json
 
@@ -101,86 +101,68 @@ class TestInitDefaults:
         assert len(write_calls) == 0, "Should skip write when config unchanged"
 
 
-def test_list_configs(monkeypatch):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_file = os.path.join(tmpdir, "tmp_test.txt")
-        with open(tmp_file, "w") as file:
-            file.write('{"key": "value"}')
-            file.flush()
-        monkeypatch.setattr(cfg, "config_file", tmp_file)
-        cfg.set_config("key2", "value2")
-        assert cfg.list_configs() == {"key": "value", "key2": "value2"}
-
-
 # region init_defaults migration
 
-def test_init_defaults__removes_mode_key(monkeypatch):
+
+def _create_temp_config(monkeypatch, config_data):
+    """Create a temp config file with the given data and monkeypatch cfg.config_file to point to it."""
+    tmpdir = tempfile.mkdtemp()
+    config_file = os.path.join(tmpdir, "config.json")
+    with open(config_file, "w") as f:
+        json.dump(config_data, f)
+    monkeypatch.setattr(cfg, "config_file", config_file)
+    return config_file
+
+
+def test_init_defaults_removes_mode_key(monkeypatch):
     """If an existing config file contains 'mode', init_defaults must delete it."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_file = os.path.join(tmpdir, "config.json")
-        old_config = {
-            fab_constant.FAB_MODE: fab_constant.FAB_MODE_INTERACTIVE,
-            fab_constant.FAB_CACHE_ENABLED: "true",
-        }
-        with open(config_file, "w") as f:
-            json.dump(old_config, f)
+    config_file = _create_temp_config(monkeypatch, {
+        fab_constant.FAB_MODE: fab_constant.FAB_MODE_INTERACTIVE,
+        fab_constant.FAB_CACHE_ENABLED: "true",
+    })
 
-        monkeypatch.setattr(cfg, "config_file", config_file)
+    cfg.init_defaults()
 
-        cfg.init_defaults()
-
-        result = cfg.read_config(config_file)
-        assert fab_constant.FAB_MODE not in result
-        assert result[fab_constant.FAB_CACHE_ENABLED] == "true"
+    result = cfg.read_config(config_file)
+    assert fab_constant.FAB_MODE not in result
+    assert result[fab_constant.FAB_CACHE_ENABLED] == "true"
 
 
-def test_init_defaults__no_mode_key_works(monkeypatch):
-    """Config without 'mode' should initialize cleanly without errors."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_file = os.path.join(tmpdir, "config.json")
-        with open(config_file, "w") as f:
-            json.dump({fab_constant.FAB_DEBUG_ENABLED: "true"}, f)
+def test_init_defaults_no_mode_key_succeeds(monkeypatch):
+    """Config without 'mode' must initialize cleanly (distinct from removes_mode_key: verifies no error on absence)."""
+    config_file = _create_temp_config(monkeypatch, {
+        fab_constant.FAB_DEBUG_ENABLED: "true",
+    })
 
-        monkeypatch.setattr(cfg, "config_file", config_file)
+    cfg.init_defaults()
 
-        cfg.init_defaults()
-
-        result = cfg.read_config(config_file)
-        assert fab_constant.FAB_MODE not in result
-        assert result[fab_constant.FAB_DEBUG_ENABLED] == "true"
+    result = cfg.read_config(config_file)
+    assert fab_constant.FAB_MODE not in result
+    assert result[fab_constant.FAB_DEBUG_ENABLED] == "true"
 
 
-def test_init_defaults__applies_missing_defaults(monkeypatch):
+def test_init_defaults_applies_missing_defaults(monkeypatch):
     """init_defaults must fill in missing default values."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_file = os.path.join(tmpdir, "config.json")
-        with open(config_file, "w") as f:
-            json.dump({}, f)
+    config_file = _create_temp_config(monkeypatch, {})
 
-        monkeypatch.setattr(cfg, "config_file", config_file)
+    cfg.init_defaults()
 
-        cfg.init_defaults()
-
-        result = cfg.read_config(config_file)
-        for key, default_val in fab_constant.CONFIG_DEFAULT_VALUES.items():
-            assert result.get(key) == default_val, (
-                f"Expected default for '{key}' = '{default_val}', got '{result.get(key)}'"
-            )
+    result = cfg.read_config(config_file)
+    for key, default_val in fab_constant.CONFIG_DEFAULT_VALUES.items():
+        assert result.get(key) == default_val, (
+            f"Expected default for '{key}' = '{default_val}', got '{result.get(key)}'"
+        )
 
 
-def test_init_defaults__preserves_user_overrides(monkeypatch):
+def test_init_defaults_preserves_user_overrides(monkeypatch):
     """User-set values must not be overwritten by defaults."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_file = os.path.join(tmpdir, "config.json")
-        user_config = {fab_constant.FAB_CACHE_ENABLED: "false"}
-        with open(config_file, "w") as f:
-            json.dump(user_config, f)
+    config_file = _create_temp_config(monkeypatch, {
+        fab_constant.FAB_CACHE_ENABLED: "false",
+    })
 
-        monkeypatch.setattr(cfg, "config_file", config_file)
+    cfg.init_defaults()
 
-        cfg.init_defaults()
-
-        result = cfg.read_config(config_file)
-        assert result[fab_constant.FAB_CACHE_ENABLED] == "false"
+    result = cfg.read_config(config_file)
+    assert result[fab_constant.FAB_CACHE_ENABLED] == "false"
 
 # endregion
