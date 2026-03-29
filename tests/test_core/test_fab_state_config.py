@@ -72,7 +72,7 @@ class TestStateConfig:
 class TestInitDefaults:
     """Test suite for config initialization optimization."""
 
-    def test_init_defaults_no_write_when_unchanged(self, tmp_path, monkeypatch):
+    def test_init_defaults_no_write_when_unchanged_success(self, tmp_path, monkeypatch):
         """Test that init_defaults skips writing when config already has all defaults."""
         import json
 
@@ -114,7 +114,7 @@ def _create_temp_config(monkeypatch, config_data):
     return config_file
 
 
-def test_init_defaults_removes_mode_key(monkeypatch):
+def test_init_defaults_removes_mode_key_success(monkeypatch):
     """If an existing config file contains 'mode', init_defaults must delete it."""
     config_file = _create_temp_config(monkeypatch, {
         fab_constant.FAB_MODE: fab_constant.FAB_MODE_INTERACTIVE,
@@ -141,7 +141,7 @@ def test_init_defaults_no_mode_key_success(monkeypatch):
     assert result[fab_constant.FAB_DEBUG_ENABLED] == "true"
 
 
-def test_init_defaults_applies_missing_defaults(monkeypatch):
+def test_init_defaults_applies_missing_defaults_success(monkeypatch):
     """init_defaults must fill in missing default values."""
     config_file = _create_temp_config(monkeypatch, {})
 
@@ -154,7 +154,7 @@ def test_init_defaults_applies_missing_defaults(monkeypatch):
         )
 
 
-def test_init_defaults_preserves_user_overrides(monkeypatch):
+def test_init_defaults_preserves_user_overrides_success(monkeypatch):
     """User-set values must not be overwritten by defaults."""
     config_file = _create_temp_config(monkeypatch, {
         fab_constant.FAB_CACHE_ENABLED: "false",
