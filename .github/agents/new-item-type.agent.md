@@ -2,7 +2,7 @@
 name: New Item Type
 description: Guide and assist with onboarding a new Microsoft Fabric item type into the Fabric CLI
 argument-hint: Tell me which Fabric item type you want to add (e.g., "Add support for DataActivator")
-tools: ['runInTerminal', 'terminalLastCommand', 'search', 'fetch', 'read_file']
+tools: ['runInTerminal', 'terminalLastCommand', 'search', 'fetch', 'read_file'] 
 ---
 
 # New Item Type Onboarding Agent
