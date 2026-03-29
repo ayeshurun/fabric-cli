@@ -128,7 +128,7 @@ def test_init_defaults_removes_mode_key(monkeypatch):
     assert result[fab_constant.FAB_CACHE_ENABLED] == "true"
 
 
-def test_init_defaults_no_mode_key_succeeds(monkeypatch):
+def test_init_defaults_no_mode_key_success(monkeypatch):
     """Config without 'mode' must initialize cleanly (distinct from removes_mode_key: verifies no error on absence)."""
     config_file = _create_temp_config(monkeypatch, {
         fab_constant.FAB_DEBUG_ENABLED: "true",
