@@ -555,27 +555,27 @@ def _make_item(item_type: str, parent=None) -> Item:
 class TestBuildPayload:
     """Validate _build_definition includes format when provided."""
 
-    def test_with_format__includes_format_key(self, tmp_path):
+    def test_with_format_includes_format_key(self, tmp_path):
         (tmp_path / "notebook.ipynb").write_text("{}")
         result = _build_definition(str(tmp_path), "ipynb")
         assert result["format"] == "ipynb"
         assert len(result["parts"]) == 1
         assert result["parts"][0]["path"] == "notebook.ipynb"
 
-    def test_without_format__no_format_key(self, tmp_path):
+    def test_without_format_no_format_key(self, tmp_path):
         (tmp_path / "notebook.ipynb").write_text("{}")
         result = _build_definition(str(tmp_path))
         assert "format" not in result
         assert len(result["parts"]) == 1
 
-    def test_empty_format__no_format_key(self, tmp_path):
+    def test_empty_format_no_format_key(self, tmp_path):
         (tmp_path / "file.json").write_text("{}")
         result = _build_definition(str(tmp_path), "")
         assert "format" not in result
 
     # -- Payload construction tests -------------------------------------------
 
-    def test_payload__lakehouse(self):
+    def test_payload_lakehouse(self):
         """Any item type can have a payload constructed."""
         item = _make_item("Lakehouse")
 
@@ -588,7 +588,7 @@ class TestBuildPayload:
         assert payload["displayName"] == "item"
         assert payload["definition"] == {"parts": {"key": "value"}}
 
-    def test_payload__kql_dashboard(self):
+    def test_payload_kql_dashboard(self):
         """KQLDashboard (was in ImportDefinitionTypes) still works."""
         item = _make_item("KQLDashboard")
 
@@ -601,7 +601,7 @@ class TestBuildPayload:
 
     # -- Folder-based items include folderId ----------------------------------
 
-    def test_payload__item_in_folder__includes_folder_id(self):
+    def test_payload_item_in_folder_includes_folder_id(self):
         """Items inside a folder should have folderId set."""
         tenant = Tenant(name="t", id="tid")
         ws = Workspace(name="ws", id="wsid", parent=tenant, type="Workspace")
@@ -619,14 +619,14 @@ class TestBuildPayload:
         assert payload["folderId"] == "folder123"
         assert payload["definition"]["format"] == "ipynb"
 
-    def test_payload__item_in_workspace__folder_id_none(self):
+    def test_payload_item_in_workspace_folder_id_none(self):
         """Items directly under workspace should have folderId=None."""
         item = _make_item("Notebook")
         assert item.folder_id is None
 
     # -- Unknown format is now validated upstream by resolve_definition_format --
 
-    def test_unknown_format__raises_error(self):
+    def test_unknown_format_raises_error(self):
         """Unknown format raises FabricCLIError during resolution."""
         from fabric_cli.utils.fab_item_util import resolve_definition_format
 

@@ -109,10 +109,11 @@ def test_context_persistence_not_used_in_interactive_mode(monkeypatch):
         patch.object(context, "_load_context_from_file") as mock_load,
     ):
 
-        # Set the context - this should NOT trigger file save when persistence is disabled
+        # Set the context - file save is skipped because REPL/interactive runtime mode
+        # disables context-file persistence even when the setting is enabled
         context.context = workspace
 
-        # Get the context - this should NOT trigger file load when persistence is disabled
+        # Get the context - file load is skipped for the same reason
         result = context.context
 
         # Verify that file operations were not called
