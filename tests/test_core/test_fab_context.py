@@ -443,7 +443,7 @@ def mock_get_command_context():
 class TestRuntimeMode:
     """Verify Context.set_runtime_mode / get_runtime_mode behaviour after mode-setting removal."""
 
-    def teardown_method(self):
+    def teardown_method(self, method):
         Context()._runtime_mode = fab_constant.FAB_MODE_COMMANDLINE
 
     def test_default_runtime_mode_is_command_line_success(self):
