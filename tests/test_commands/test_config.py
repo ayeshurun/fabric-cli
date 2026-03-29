@@ -12,11 +12,6 @@ from tests.test_commands.data.static_test_data import StaticTestData
 
 
 class TestConfig:
-    @pytest.fixture
-    def mock_repl(self):
-        with patch("fabric_cli.core.fab_interactive.start_interactive_mode") as mock:
-            yield mock
-
     # region config SET
     def test_config_set_success(self, mock_print_done, cli_executor: CLIExecutor):
         # Execute command
@@ -176,37 +171,6 @@ class TestConfig:
 
     # endregion
 
-    # region config MODE (deprecated)
-    def test_config_set_mode_interactive_shows_deprecation_warning(
-        self, mock_questionary_print, mock_print_warning, mock_repl, cli_executor: CLIExecutor
-    ):
-        """Test that 'config set mode interactive' shows deprecation warning and launches REPL."""
-        cli_executor.exec_command(f"config set mode {constant.FAB_MODE_INTERACTIVE}")
-
-        mock_print_warning.assert_any_call(DEPRECATION_WARNING)
-        mock_repl.assert_called_once()
-
-    def test_config_set_mode_command_line_shows_deprecation_warning(
-        self, mock_questionary_print, mock_print_warning, mock_repl, cli_executor: CLIExecutor
-    ):
-        """Test that 'config set mode command_line' shows deprecation warning without launching REPL."""
-        cli_executor.exec_command(f"config set mode {constant.FAB_MODE_COMMANDLINE}")
-
-        mock_print_warning.assert_any_call(DEPRECATION_WARNING)
-        mock_repl.assert_not_called()
-
-    def test_config_get_mode_shows_deprecation_warning(
-        self, mock_questionary_print, mock_print_warning, cli_executor: CLIExecutor
-    ):
-        """Test that 'config get mode' shows deprecation warning and returns runtime mode."""
-        cli_executor.exec_command("config get mode")
-
-        mock_print_warning.assert_any_call(DEPRECATION_WARNING)
-        # Should still output the runtime mode value
-        mock_questionary_print.assert_called()
-
-    # endregion
-
 
 DEPRECATION_WARNING = (
     "The 'mode' setting is deprecated and will be removed in a future release. "
@@ -224,7 +188,7 @@ class TestConfigModeDeprecated:
             yield mock
 
     def test_config_set_mode_interactive_warns_and_launches_repl_success(
-        self, mock_questionary_print, mock_print_warning, mock_repl, cli_executor: CLIExecutor
+        self, mock_print_warning, mock_repl, cli_executor: CLIExecutor
     ):
         """'config set mode interactive' must warn and launch REPL."""
         cli_executor.exec_command(f"config set mode {constant.FAB_MODE_INTERACTIVE}")
@@ -237,7 +201,7 @@ class TestConfigModeDeprecated:
         "bogus_value",
     ])
     def test_config_set_mode_non_interactive_warns_without_repl_success(
-        self, mode_value, mock_questionary_print, mock_print_warning, mock_repl, cli_executor: CLIExecutor
+        self, mode_value, mock_print_warning, mock_repl, cli_executor: CLIExecutor
     ):
         """'config set mode command_line' (or bogus) must warn but not launch REPL."""
         cli_executor.exec_command(f"config set mode {mode_value}")
@@ -246,10 +210,11 @@ class TestConfigModeDeprecated:
         mock_repl.assert_not_called()
 
     def test_config_set_non_mode_key_still_works_success(
-        self, mock_questionary_print, cli_executor: CLIExecutor
+        self, mock_print_done, cli_executor: CLIExecutor
     ):
         """Other config keys should still be writable."""
         cli_executor.exec_command(f"config set {constant.FAB_DEBUG_ENABLED} true")
+        mock_print_done.assert_called_once()
 
     def test_config_get_mode_warns_and_returns_runtime_mode_success(
         self, mock_questionary_print, mock_print_warning, cli_executor: CLIExecutor
@@ -265,3 +230,4 @@ class TestConfigModeDeprecated:
     ):
         """Other config keys should still be readable."""
         cli_executor.exec_command(f"config get {constant.FAB_DEBUG_ENABLED}")
+        mock_questionary_print.assert_called()
