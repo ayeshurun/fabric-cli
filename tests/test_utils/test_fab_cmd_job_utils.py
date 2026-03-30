@@ -71,7 +71,8 @@ def test_wait_for_job_completion_includes_job_id_in_data(mock_sleep, mock_api, m
 
     mock_print_output.assert_called_once()
     call_kwargs = mock_print_output.call_args
-    assert call_kwargs.kwargs.get("data") == {"jobId": "test-job-id"}
+    assert call_kwargs.kwargs.get("data") == {"job_id": "test-job-id"}
+    assert call_kwargs.kwargs.get("show_key_value_list") is True
 
 
 @patch('fabric_cli.utils.fab_cmd_job_utils.get_polling_interval')
@@ -222,7 +223,8 @@ def test_job_start_includes_job_id_in_data(mock_run_api, mock_print_output, mock
 
     mock_print_output.assert_called_once()
     call_kwargs = mock_print_output.call_args
-    assert call_kwargs.kwargs.get("data") == {"jobId": "abc-123-job-id"}
+    assert call_kwargs.kwargs.get("data") == {"job_id": "abc-123-job-id"}
+    assert call_kwargs.kwargs.get("show_key_value_list") is True
 
 if __name__ == "__main__":
     pytest.main([__file__])

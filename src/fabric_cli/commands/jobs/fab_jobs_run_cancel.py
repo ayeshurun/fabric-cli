@@ -29,7 +29,8 @@ def exec_command(args: Namespace, item: Item) -> None:
             fab_ui.print_output_format(
                 args,
                 message=f"Job instance '{args.id}' cancelled (async)",
-                data={"jobId": args.id},
+                data={"job_id": args.id},
+                show_key_value_list=True,
             )
             fab_ui.print_grey(
                 f"→ To see status run 'job run-status {item.path} --id {args.id}'"
