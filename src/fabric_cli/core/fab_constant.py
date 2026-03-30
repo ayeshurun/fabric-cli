@@ -335,7 +335,7 @@ ITEM_METADATA_PROPERTIES = {
 ################################################
 ### Only allowed for modification by CLI team ##
 
-ALLOWED_FAB_HOST_APP_VALUES = ["Fabric-AzureDevops-Extension"]
+ALLOWED_FAB_HOST_APP_VALUES = ("Fabric-AzureDevops-Extension",)
 ################################################
 
 # Item set constants
