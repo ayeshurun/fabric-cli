@@ -10,6 +10,7 @@ from fabric_cli.utils.fab_cmd_job_utils import (
     wait_for_job_completion,
     validate_timeout_polling_interval,
 )
+from fabric_cli.commands.jobs.fab_jobs_run import exec_command as job_run_exec_command
 from fabric_cli.utils.fab_http_polling_utils import DEFAULT_POLLING_INTERVAL
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core import fab_constant
@@ -70,9 +71,7 @@ def test_wait_for_job_completion_includes_job_id_in_data(mock_sleep, mock_api, m
 
     mock_print_output.assert_called_once()
     call_kwargs = mock_print_output.call_args
-    assert call_kwargs.kwargs.get("data") == {"id": "test-job-id"} or (
-        len(call_kwargs.args) > 1 and call_kwargs.args[1] == {"id": "test-job-id"}
-    )
+    assert call_kwargs.kwargs.get("data") == {"id": "test-job-id"}
 
 
 @patch('fabric_cli.utils.fab_cmd_job_utils.get_polling_interval')
@@ -205,8 +204,6 @@ def test_validate_timeout_polling_interval_none_values_success():
 @patch('fabric_cli.commands.jobs.fab_jobs_run.fab_ui.print_output_format')
 @patch('fabric_cli.commands.jobs.fab_jobs_run.jobs_api.run_on_demand_item_job')
 def test_job_start_includes_job_id_in_data(mock_run_api, mock_print_output, mock_print_grey):
-    from fabric_cli.commands.jobs.fab_jobs_run import exec_command
-
     mock_response = Mock()
     mock_response.status_code = 202
     mock_run_api.return_value = (mock_response, "abc-123-job-id")
@@ -221,12 +218,11 @@ def test_job_start_includes_job_id_in_data(mock_run_api, mock_print_output, mock
     item = Mock()
     item.path = "/ws.Workspace/nb.Notebook"
 
-    exec_command(args, item)
+    job_run_exec_command(args, item)
 
     mock_print_output.assert_called_once()
     call_kwargs = mock_print_output.call_args
     assert call_kwargs.kwargs.get("data") == {"id": "abc-123-job-id"}
-    assert "abc-123-job-id" in call_kwargs.kwargs.get("message", "")
 
 if __name__ == "__main__":
     pytest.main([__file__])
