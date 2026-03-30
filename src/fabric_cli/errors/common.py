@@ -234,3 +234,26 @@ class CommonErrors:
     @staticmethod
     def query_contains_filters_or_wildcards(query_value: str) -> str:
         return f"Query '{query_value}' contains filters or wildcards which are not supported for set item command"
+
+    @staticmethod
+    def gateway_type_not_supported(gateway_type: str) -> str:
+        return f"Set operation on Gateway type '{gateway_type}' not supported"
+
+    @staticmethod
+    def gateway_property_not_supported_for_type(
+        property_name: str, gateway_type: str
+    ) -> str:
+        return f"Setting '{property_name}' is not supported for Gateway type '{gateway_type}'"
+
+    @staticmethod
+    def query_not_supported_for_set(query: str) -> str:
+        return f"Query '{query}' is not supported for set command"
+
+    @staticmethod
+    def invalid_definition_format(valid_formats: list[str]) -> str:
+        if valid_formats:
+            message = f"Only the following formats are supported: {', '.join(valid_formats)}"
+        else:
+            message = "No formats are supported"
+        return f"Invalid format. {message}"
+

@@ -64,6 +64,7 @@ nav:
               - Resource Types: essentials/resource_types.md
               - CLI Parameters: essentials/parameters.md
               - CLI Input: essentials/input.md
+              - Output Format: essentials/output_format.md
               - Modes: essentials/modes.md
               - Settings: essentials/settings.md
               - Environment Variables: essentials/env_vars.md
@@ -80,6 +81,7 @@ nav:
               - cd: commands/fs/cd.md
               - config: commands/config/index.md
               - cp (copy): commands/fs/cp.md
+              - deploy: commands/fs/deploy.md
               - desc: commands/desc/index.md
               - export: commands/fs/export.md
               - exists: commands/fs/exists.md
@@ -105,7 +107,9 @@ nav:
                       - Auth Examples: examples/auth_examples.md
                       - Config Examples: examples/config_examples.md
               - Core Management:
-                      - API Examples: examples/api_examples.md
+                      - API Examples:
+                              - examples/api_examples.md
+                              - Example of semantic model refresh: examples/refresh_semantic_model_example.md
                       - ACL Examples: examples/acl_examples.md
                       - Describe Examples: examples/desc_examples.md
               - Tenant Management:
