@@ -94,7 +94,8 @@ def wait_for_job_completion(
                 fab_ui.print_progress(f"Job instance status: {status}")
                 if status == "Completed":
                     fab_ui.print_output_format(
-                        args, message=f"Job instance '{job_ins_id}' completed"
+                        args, message=f"Job instance '{job_ins_id}' completed",
+                        data={"id": job_ins_id},
                     )
                 else:
                     fab_logger.log_warning(

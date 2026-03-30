@@ -58,6 +58,23 @@ def test_wait_for_job_completion_immediate_success(mock_sleep, mock_api, mock_ge
     mock_get_polling_interval.assert_called_once_with({}, None)
 
 
+@patch('fabric_cli.utils.fab_cmd_job_utils.fab_ui.print_output_format')
+@patch('fabric_cli.utils.fab_cmd_job_utils.get_polling_interval')
+@patch('fabric_cli.utils.fab_cmd_job_utils.jobs_api.get_item_job_instance')
+@patch('fabric_cli.utils.fab_cmd_job_utils.time.sleep')
+def test_wait_for_job_completion_includes_job_id_in_data(mock_sleep, mock_api, mock_get_polling_interval, mock_print_output, default_job_args, mock_job_response):
+    mock_get_polling_interval.return_value = DEFAULT_POLLING_INTERVAL
+    mock_api.return_value = create_mock_response()
+
+    wait_for_job_completion(default_job_args, "test-job-id", mock_job_response, custom_polling_interval=None)
+
+    mock_print_output.assert_called_once()
+    call_kwargs = mock_print_output.call_args
+    assert call_kwargs.kwargs.get("data") == {"id": "test-job-id"} or (
+        len(call_kwargs.args) > 1 and call_kwargs.args[1] == {"id": "test-job-id"}
+    )
+
+
 @patch('fabric_cli.utils.fab_cmd_job_utils.get_polling_interval')
 @patch('fabric_cli.utils.fab_cmd_job_utils.jobs_api.get_item_job_instance')
 @patch('fabric_cli.utils.fab_cmd_job_utils.time.sleep')
@@ -182,6 +199,34 @@ def test_validate_timeout_polling_interval_none_values_success():
     args = Namespace(timeout=None, polling_interval=None)
     
     validate_timeout_polling_interval(args)
+
+
+@patch('fabric_cli.commands.jobs.fab_jobs_run.fab_ui.print_grey')
+@patch('fabric_cli.commands.jobs.fab_jobs_run.fab_ui.print_output_format')
+@patch('fabric_cli.commands.jobs.fab_jobs_run.jobs_api.run_on_demand_item_job')
+def test_job_start_includes_job_id_in_data(mock_run_api, mock_print_output, mock_print_grey):
+    from fabric_cli.commands.jobs.fab_jobs_run import exec_command
+
+    mock_response = Mock()
+    mock_response.status_code = 202
+    mock_run_api.return_value = (mock_response, "abc-123-job-id")
+
+    args = Namespace(
+        command="job",
+        jobs_command="start",
+        command_path="job start",
+        wait=False,
+        configuration=None,
+    )
+    item = Mock()
+    item.path = "/ws.Workspace/nb.Notebook"
+
+    exec_command(args, item)
+
+    mock_print_output.assert_called_once()
+    call_kwargs = mock_print_output.call_args
+    assert call_kwargs.kwargs.get("data") == {"id": "abc-123-job-id"}
+    assert "abc-123-job-id" in call_kwargs.kwargs.get("message", "")
 
 if __name__ == "__main__":
     pytest.main([__file__])
