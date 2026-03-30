@@ -299,7 +299,11 @@ def _build_user_agent(ctxt_cmd: str) -> str:
     Example:
         ms-fabric-cli/1.0.0 (create; Windows/10; Python/3.10.2) host-app/ado/2.0.0
     """
-    user_agent = f"{fab_constant.API_USER_AGENT}/{fab_constant.FAB_VERSION} ({ctxt_cmd}; {platform.system()}/{platform.release()}; Python/{platform.python_version()})"
+    user_agent = (
+        f"{fab_constant.API_USER_AGENT}/{fab_constant.FAB_VERSION} "
+        f"({ctxt_cmd}; {platform.system()}/{platform.release()}; "
+        f"Python/{platform.python_version()})"
+    )
     host_app = _get_host_app()
     if host_app:
         user_agent += host_app
