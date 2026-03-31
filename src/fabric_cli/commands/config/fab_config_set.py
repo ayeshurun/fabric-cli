@@ -21,11 +21,17 @@ def exec_command(args: Namespace) -> None:
     # Backward compatibility: 'mode' is no longer a configurable setting.
     # Phase 1: warn but still honour the request so existing scripts don't break.
     if key == fab_constant.FAB_MODE:
-        utils_ui.print_warning(
-            "The 'mode' setting is deprecated and will be removed in a future release. "
-            "Run 'fab' without arguments to enter REPL mode, "
-            "or use 'fab <command>' for command-line mode."
-        )
+        from fabric_cli.core.fab_context import Context
+
+        msg = "The 'mode' setting is deprecated. "
+        if Context().get_runtime_mode() == fab_constant.FAB_MODE_INTERACTIVE:
+            msg += "Run 'exit' to leave the REPL, then use 'fab <command>' for command-line mode."
+        else:
+            msg += (
+                "Run 'fab' without arguments to enter REPL mode, "
+                "or use 'fab <command>' for command-line mode."
+            )
+        utils_ui.print_warning(msg)
         if value == fab_constant.FAB_MODE_INTERACTIVE:
             from fabric_cli.core.fab_interactive import start_interactive_mode
 

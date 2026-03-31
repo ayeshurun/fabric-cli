@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 import fabric_cli.core.fab_constant as constant
+from fabric_cli.core.fab_context import Context
 from fabric_cli.errors import ErrorMessages
 from tests.test_commands.commands_parser import CLIExecutor
 from tests.test_commands.data.static_test_data import StaticTestData
@@ -172,11 +173,16 @@ class TestConfig:
     # endregion
 
 
-DEPRECATION_WARNING = (
-    "The 'mode' setting is deprecated and will be removed in a future release. "
+DEPRECATION_PREFIX = "The 'mode' setting is deprecated. "
+DEPRECATION_COMMANDLINE_SUFFIX = (
     "Run 'fab' without arguments to enter REPL mode, "
     "or use 'fab <command>' for command-line mode."
 )
+DEPRECATION_INTERACTIVE_SUFFIX = (
+    "Run 'exit' to leave the REPL, then use 'fab <command>' for command-line mode."
+)
+DEPRECATION_WARNING_COMMANDLINE = DEPRECATION_PREFIX + DEPRECATION_COMMANDLINE_SUFFIX
+DEPRECATION_WARNING_INTERACTIVE = DEPRECATION_PREFIX + DEPRECATION_INTERACTIVE_SUFFIX
 
 
 class TestConfigModeDeprecated:
@@ -193,7 +199,7 @@ class TestConfigModeDeprecated:
         """'config set mode interactive' must warn and launch REPL."""
         cli_executor.exec_command(f"config set mode {constant.FAB_MODE_INTERACTIVE}")
 
-        mock_print_warning.assert_called_once_with(DEPRECATION_WARNING)
+        mock_print_warning.assert_called_once_with(DEPRECATION_WARNING_INTERACTIVE)
         mock_repl.assert_called_once()
 
     @pytest.mark.parametrize("mode_value", [
@@ -206,7 +212,20 @@ class TestConfigModeDeprecated:
         """'config set mode command_line' (or bogus) must warn but not launch REPL."""
         cli_executor.exec_command(f"config set mode {mode_value}")
 
-        mock_print_warning.assert_called_once_with(DEPRECATION_WARNING)
+        mock_print_warning.assert_called_once_with(DEPRECATION_WARNING_INTERACTIVE)
+        mock_repl.assert_not_called()
+
+    def test_config_set_mode_in_commandline_warns_with_fab_hint_success(
+        self, mock_print_warning, mock_repl, cli_executor: CLIExecutor
+    ):
+        """'config set mode command_line' in command-line mode must show fab hint."""
+        Context().set_runtime_mode(constant.FAB_MODE_COMMANDLINE)
+        try:
+            cli_executor.exec_command(f"config set mode {constant.FAB_MODE_COMMANDLINE}")
+        finally:
+            Context().set_runtime_mode(constant.FAB_MODE_INTERACTIVE)
+
+        mock_print_warning.assert_called_once_with(DEPRECATION_WARNING_COMMANDLINE)
         mock_repl.assert_not_called()
 
     def test_config_set_non_mode_key_still_works_success(
@@ -222,7 +241,20 @@ class TestConfigModeDeprecated:
         """'config get mode' must warn and return the runtime mode."""
         cli_executor.exec_command("config get mode")
 
-        mock_print_warning.assert_any_call(DEPRECATION_WARNING)
+        mock_print_warning.assert_any_call(DEPRECATION_WARNING_INTERACTIVE)
+        mock_questionary_print.assert_called()
+
+    def test_config_get_mode_in_commandline_warns_with_fab_hint_success(
+        self, mock_questionary_print, mock_print_warning, cli_executor: CLIExecutor
+    ):
+        """'config get mode' in command-line mode must show fab hint."""
+        Context().set_runtime_mode(constant.FAB_MODE_COMMANDLINE)
+        try:
+            cli_executor.exec_command("config get mode")
+        finally:
+            Context().set_runtime_mode(constant.FAB_MODE_INTERACTIVE)
+
+        mock_print_warning.assert_any_call(DEPRECATION_WARNING_COMMANDLINE)
         mock_questionary_print.assert_called()
 
     def test_config_get_non_mode_key_still_works_success(
