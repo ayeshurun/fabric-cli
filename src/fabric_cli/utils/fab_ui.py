@@ -8,12 +8,120 @@ import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
 
+from rich.console import Console as RichConsole
+
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+
+# Rich console bound to stderr — shared by the Spinner and intermediate
+# output helpers (print_progress / print_warning / print_info).  Using
+# the *same* console instance lets Rich's Live display properly interleave
+# spinner animation with log-style messages.
+_stderr_console = RichConsole(stderr=True, highlight=False)
+
+# Module-level reference to the currently active spinner (if any).
+_active_spinner: Optional["Spinner"] = None
+
+
+def stop_active_spinner() -> None:
+    """Stop any active spinner before producing output."""
+    global _active_spinner
+    if _active_spinner is not None:
+        _active_spinner.stop()
+        _active_spinner = None
+
+
+class Spinner:
+    """Fabric-branded progress spinner for long-running CLI commands.
+
+    Wraps :pymod:`rich`'s ``Console.status()`` to display a braille-dot
+    animation in Fabric teal on *stderr*.  Because ``print_progress``,
+    ``print_warning`` and ``print_info`` share the same Rich console
+    instance, their output is properly interleaved: it scrolls *above*
+    the spinner while the animation keeps running at the bottom.
+
+    The spinner is automatically suppressed when stderr is not a TTY.
+
+    Usage::
+
+        with Spinner("Loading..."):
+            do_work()
+    """
+
+    _SPINNER_STYLE = "#49C5B1"  # Fabric teal
+    _MESSAGE_STYLE = "dim"
+
+    def __init__(self, message: str = "Working...") -> None:
+        self._message = message
+        self._status: Any = None
+        self._running = False
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def start(self) -> "Spinner":
+        """Begin the spinner animation."""
+        if not self._is_interactive():
+            return self
+
+        global _active_spinner
+        self._running = True
+        _active_spinner = self
+        self._status = _stderr_console.status(
+            f"[{self._MESSAGE_STYLE}]{self._message}[/{self._MESSAGE_STYLE}]",
+            spinner="dots",
+            spinner_style=self._SPINNER_STYLE,
+        )
+        self._status.start()
+        return self
+
+    def stop(self) -> None:
+        """Stop the spinner and remove it from the screen."""
+        global _active_spinner
+        self._running = False
+        if self._status is not None:
+            self._status.stop()
+            self._status = None
+        if _active_spinner is self:
+            _active_spinner = None
+
+    # Context-manager support
+    def __enter__(self) -> "Spinner":
+        return self.start()
+
+    def __exit__(self, *_: object) -> None:
+        self.stop()
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_interactive() -> bool:
+        """Return *True* when stderr is connected to a real terminal."""
+        return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+
+
+def _with_status_stopped(fn: Any) -> Any:
+    """Run *fn* with the spinner's status display temporarily stopped.
+
+    Questionary / prompt-toolkit manage the terminal themselves, so the
+    Rich ``Live`` display must be suspended while they run.  The status
+    is restarted automatically afterward.
+    """
+    spinner = _active_spinner
+    if spinner is not None and spinner._status is not None:
+        spinner._status.stop()
+        try:
+            return fn()
+        finally:
+            spinner._status.start()
+    return fn()
 
 
 def get_common_style():
@@ -34,36 +142,37 @@ def get_common_style():
 
 
 def prompt_ask(text: str = "Question") -> Any:
-    return fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_password(text: str = "password") -> Any:
-    return fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_confirm(text: str = "Are you sure?") -> Any:
-    return fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_select_items(question: str, choices: Sequence) -> Any:
-    selected_items = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .checkbox(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
 
-    return selected_items
-
 
 def prompt_select_item(question: str, choices: Sequence) -> Any:
-    # Prompt the user to select a single item from a list of choices
-    selected_item = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .select(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
-
-    return selected_item
 
 
 def print(text: str) -> None:
@@ -109,6 +218,7 @@ def print_output_format(
     Returns:
         FabricCLIOutput: Configured output instance ready for printing
     """
+    stop_active_spinner()
 
     command = getattr(args, "command", None)
     subcommand = getattr(args, f"{command}_subcommand", None)
@@ -141,6 +251,7 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text)
     _safe_print_formatted_text(
@@ -176,6 +287,8 @@ def print_output_error(
     Raises:
         FabricCLIError: If the output format is not supported.
     """
+    stop_active_spinner()
+
     # Get format from output or config
     format_type = output_format_type or fab_state_config.get_config(
         fab_constant.FAB_OUTPUT_FORMAT
@@ -303,9 +416,22 @@ def print_entries_unix_style(
 # Utils
 
 
+# Map questionary/prompt-toolkit style strings to Rich equivalents.
+_STYLE_MAP: dict[Optional[str], Optional[str]] = {
+    None: None,
+    "fg:grey": "dim",
+    "fg:#49C5B1": "#49C5B1",
+}
+
+
 def _safe_print(
     text: str, style: Optional[str] = None, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stderr writes must go through the same
+    # Rich console so that the Live display can properly interleave them.
+    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
+        _stderr_console.print(text, style=_STYLE_MAP.get(style, style))
+        return
 
     try:
         # Redirect to stderr if `to_stderr` is True
@@ -320,6 +446,11 @@ def _safe_print(
 def _safe_print_formatted_text(
     formatted_text: str, escaped_text: str, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stderr writes must go through Rich.
+    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
+        _stderr_console.print(escaped_text)
+        return
+
     from prompt_toolkit import HTML, print_formatted_text
 
     try:
