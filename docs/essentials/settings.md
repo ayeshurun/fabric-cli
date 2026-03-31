@@ -26,6 +26,25 @@ The Fabric CLI provides a comprehensive set of configuration settings that allow
 | `folder_listing_enabled`       | Enables recursive folder listing when using `ls` command            | `BOOLEAN`  | `false` |
 | `workspace_private_links_enabled`      | Enables workspace private links support in `api` command                | `BOOLEAN`  | `false` |
 
+## Debug Logging
+
+Debug logging can be enabled in two ways:
+
+1. **Using the `--debug` global flag**: Add `--debug` after the command to enable debug logging for a single command execution.
+   ```
+   fab ls / --debug
+   ```
+
+2. **Using the `debug_enabled` config setting**: Set `debug_enabled` to `true` to enable debug logging for all CLI commands.
+   ```
+   fab config set debug_enabled true
+   ```
+
+When debug logging is enabled:
+- Debug messages are printed to the console with a `[debug]` prefix
+- All debug logs are saved to a log file (location shown when debug is enabled)
+- HTTP request/response details are logged for troubleshooting API issues
+
 ## Managing Settings
 
 You can view and modify these settings using the following commands:
