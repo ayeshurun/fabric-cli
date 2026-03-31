@@ -121,7 +121,7 @@ mv_item_to_item_success_params = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.MAP
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.MAP
 ])
 
 mv_item_to_item_unsupported_failure_params = pytest.mark.parametrize("unsupported_item_type", [
@@ -140,7 +140,7 @@ mv_item_within_workspace_rename_success_params = pytest.mark.parametrize("item_t
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.MAP
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.MAP
 ])
 
 get_item_with_properties_success_params = pytest.mark.parametrize("item_type,expected_properties", [
@@ -243,6 +243,7 @@ export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expec
     (ItemType.COSMOS_DB_DATABASE, ".json"),
     (ItemType.USER_DATA_FUNCTION, ".json"),
     (ItemType.GRAPH_QUERY_SET, ".json"),
+    (ItemType.DIGITAL_TWIN_BUILDER, ".json"),
     (ItemType.MAP, ".json")
 ])
 
@@ -257,6 +258,7 @@ export_item_types_parameters = pytest.mark.parametrize("item_type", [
     ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION,
     ItemType.GRAPH_QUERY_SET,
+    ItemType.DIGITAL_TWIN_BUILDER,
     ItemType.MAP
 ])
 
@@ -282,7 +284,8 @@ export_item_default_format_parameters = pytest.mark.parametrize("item_type,expec
     (ItemType.KQL_DATABASE, 3),
     (ItemType.COSMOS_DB_DATABASE, 2),
     (ItemType.USER_DATA_FUNCTION, 2),
-    (ItemType.GRAPH_QUERY_SET, 2)
+    (ItemType.GRAPH_QUERY_SET, 2),
+    (ItemType.DIGITAL_TWIN_BUILDER, 2)
 ])
 
 export_item_invalid_format_parameters = pytest.mark.parametrize("item_type,invalid_format", [
@@ -293,7 +296,8 @@ export_item_invalid_format_parameters = pytest.mark.parametrize("item_type,inval
     (ItemType.MIRRORED_DATABASE, ".txt"),
     (ItemType.COSMOS_DB_DATABASE, ".txt"),
     (ItemType.USER_DATA_FUNCTION, ".txt"),
-    (ItemType.GRAPH_QUERY_SET, ".txt")
+    (ItemType.GRAPH_QUERY_SET, ".txt"),
+    (ItemType.DIGITAL_TWIN_BUILDER, ".txt")
 ])
 
 # TODO: Fix capacity teardown issue CannotOverwriteExistingCassetteException & uncomment the item parameter
@@ -307,7 +311,7 @@ cp_item_types_success_params = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER,
 ])
 
 assign_entity_item_not_supported_failure_parameters = pytest.mark.parametrize("entity_type,factory_key,path_template", [
