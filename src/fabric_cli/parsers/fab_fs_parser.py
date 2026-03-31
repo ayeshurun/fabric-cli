@@ -236,7 +236,7 @@ def register_cp_parser(subparsers: _SubParsersAction) -> None:
         "--block_on_path_collision",
         required=False,
         action="store_true",
-        help="Block on path collision. Optional, prevents copying when an item with the same name exists in a different folder within the target workspace.",
+        help="Block on path collision. Optional, prevents copying when an item with the same name exists in a different folder within the target workspace. Applicable for Fabric to Fabric copies only.",
     )
     cp_parser.add_argument(
         "--format",

@@ -33,7 +33,7 @@ fab cp <from_path> <to_path> [-r] [-f] [-bpc] [--format <format>]
 |------|:---:|:---:|:---:|
 | `-r, --recursive` | ✅ | — | — |
 | `-f, --force` | ✅ | ✅ | ✅ |
-| `-bpc, --block_on_path_collision` | ✅ | — | ✅ |
+| `-bpc, --block_on_path_collision` | ✅ | — | — |
 | `--format` | — | ✅ | ✅ |
 
 

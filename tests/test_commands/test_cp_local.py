@@ -278,59 +278,6 @@ class TestCPLocal:
         # Assert
         assert_fabric_cli_error(constant.ERROR_INVALID_PATH)
 
-    def test_cp_local_to_item__bpc_blocks_when_name_exists_in_different_folder(
-        self,
-        item_factory,
-        folder_factory,
-        workspace,
-        cli_executor: CLIExecutor,
-        assert_fabric_cli_error,
-        tmp_path,
-    ):
-        """Cp local to item with -bpc fails when same-name item exists in a different folder."""
-        # Setup – create item in a folder, export it
-        folder = folder_factory()
-        item_in_folder = item_factory(ItemType.NOTEBOOK, path=folder.full_path)
-        _export_item(item_in_folder.full_path, output=str(tmp_path))
-
-        # Execute – import to workspace root (different path than the folder)
-        cli_executor.exec_command(
-            f"cp {str(tmp_path)}/{item_in_folder.name} "
-            f"{workspace.full_path}/{item_in_folder.name} "
-            f"--force --block_on_path_collision"
-        )
-
-        # Assert
-        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT)
-
-    def test_cp_local_to_item__bpc_allows_when_no_name_conflict(
-        self,
-        item_factory,
-        cli_executor: CLIExecutor,
-        mock_print_done,
-        mock_print_warning,
-        mock_print_grey,
-        tmp_path,
-    ):
-        """Cp local to item with -bpc succeeds when no same-name item exists elsewhere."""
-        # Setup – create and export item
-        item = item_factory(ItemType.NOTEBOOK)
-        _export_item(item.full_path, output=str(tmp_path))
-
-        # Reset mock
-        mock_print_done.reset_mock()
-        mock_print_warning.reset_mock()
-        mock_print_grey.reset_mock()
-
-        # Execute – re-import to same path with -bpc (no conflict)
-        cli_executor.exec_command(
-            f"cp {str(tmp_path)}/{item.name} {item.full_path} "
-            f"--force --block_on_path_collision"
-        )
-
-        # Assert
-        mock_print_done.assert_called()
-
     # endregion
 
     # region Local → Workspace (import via cp)
