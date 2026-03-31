@@ -331,6 +331,7 @@ def test_do_request_fabric_api_error_raised_on_failed_response(mock_get_token):
         ("Invalid-App", "1.0.0", ""),
         ("", None, ""),
         (None, None, ""),
+        # Invalid version format - host app is still included but version is silently dropped
         (
             "Fabric-AzureDevops-Extension",
             "1.2.0.4",  # Invalid format
@@ -422,6 +423,7 @@ def setup_default_private_links(mock_fab_set_state_config):
             "1.2.0",
             " host-app/fabric-azuredevops-extension/1.2.0",
         ),
+        # Invalid app name - host-app suffix is omitted entirely from User-Agent
         ("Invalid-App", "1.0.0", ""),
     ],
 )

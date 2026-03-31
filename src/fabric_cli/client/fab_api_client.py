@@ -15,6 +15,8 @@ from requests.adapters import HTTPAdapter, Retry
 
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+
+_HOST_APP_VERSION_RE = re.compile(r"\d+(\.\d+){0,2}(-[a-zA-Z0-9\.-]+)?")
 from fabric_cli.core.fab_exceptions import (
     AzureAPIError,
     FabricAPIError,
@@ -338,9 +340,7 @@ def _get_host_app() -> str:
     host_app_version = os.environ.get(fab_constant.FAB_HOST_APP_VERSION_ENV_VAR)
 
     # validate host_app_version format is a valid version (e.g., 1.0.0)
-    if host_app_version and re.match(
-        r"^\d+(\.\d+){0,2}(-[a-zA-Z0-9\.-]+)?$", host_app_version
-    ):
+    if host_app_version and _HOST_APP_VERSION_RE.fullmatch(host_app_version):
         host_app += f"/{host_app_version}"
     return host_app
 
