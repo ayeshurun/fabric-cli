@@ -188,6 +188,12 @@ DEPRECATION_WARNING_INTERACTIVE = DEPRECATION_PREFIX + DEPRECATION_INTERACTIVE_S
 class TestConfigModeDeprecated:
     """Unit tests for mode deprecation in config set/get commands."""
 
+    @pytest.fixture(autouse=True)
+    def _reset_runtime_mode(self):
+        """Ensure runtime mode is always restored to interactive after each test."""
+        yield
+        Context().set_runtime_mode(constant.FAB_MODE_INTERACTIVE)
+
     @pytest.fixture
     def mock_repl(self):
         with patch("fabric_cli.core.fab_interactive.start_interactive_mode") as mock:
@@ -220,10 +226,7 @@ class TestConfigModeDeprecated:
     ):
         """'config set mode command_line' in command-line mode must show fab hint."""
         Context().set_runtime_mode(constant.FAB_MODE_COMMANDLINE)
-        try:
-            cli_executor.exec_command(f"config set mode {constant.FAB_MODE_COMMANDLINE}")
-        finally:
-            Context().set_runtime_mode(constant.FAB_MODE_INTERACTIVE)
+        cli_executor.exec_command(f"config set mode {constant.FAB_MODE_COMMANDLINE}")
 
         mock_print_warning.assert_called_once_with(DEPRECATION_WARNING_COMMANDLINE)
         mock_repl.assert_not_called()
@@ -249,10 +252,7 @@ class TestConfigModeDeprecated:
     ):
         """'config get mode' in command-line mode must show fab hint."""
         Context().set_runtime_mode(constant.FAB_MODE_COMMANDLINE)
-        try:
-            cli_executor.exec_command("config get mode")
-        finally:
-            Context().set_runtime_mode(constant.FAB_MODE_INTERACTIVE)
+        cli_executor.exec_command("config get mode")
 
         mock_print_warning.assert_any_call(DEPRECATION_WARNING_COMMANDLINE)
         mock_questionary_print.assert_called()
