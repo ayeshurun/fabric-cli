@@ -18,14 +18,9 @@ def exec_command(args: Namespace) -> None:
         from fabric_cli.core.fab_context import Context
 
         runtime_mode = Context().get_runtime_mode()
-        msg = "The 'mode' setting is deprecated. "
-        if runtime_mode == fab_constant.FAB_MODE_INTERACTIVE:
-            msg += "Run 'exit' to leave the REPL, then use 'fab <command>' for command-line mode."
-        else:
-            msg += (
-                "Run 'fab' without arguments to enter REPL mode, "
-                "or use 'fab <command>' for command-line mode."
-            )
+        msg = ErrorMessages.Config.mode_deprecated(
+            runtime_mode, fab_constant.FAB_MODE_INTERACTIVE
+        )
         utils_ui.print_warning(msg)
         utils_ui.print_output_format(args, data=runtime_mode)
         return

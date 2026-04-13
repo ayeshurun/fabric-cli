@@ -107,6 +107,7 @@ class InteractiveCLI:
             return
 
         self._is_running = True
+        previous_mode = Context().get_runtime_mode()
 
         try:
             utils_ui.print("\nWelcome to the Fabric CLI ⚡")
@@ -148,7 +149,7 @@ class InteractiveCLI:
             utils_ui.print(fab_constant.INTERACTIVE_EXIT_MESSAGE)
         finally:
             self._is_running = False
-            Context().set_runtime_mode(fab_constant.FAB_MODE_COMMANDLINE)
+            Context().set_runtime_mode(previous_mode)
 
 
 def start_interactive_mode():
