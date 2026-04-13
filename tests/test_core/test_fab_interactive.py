@@ -390,6 +390,30 @@ class TestInteractiveCLI:
             mock_print.assert_called_once_with("Interactive mode is already running.")
 
 
+    def test_start_interactive_restores_previous_mode(
+        self, interactive_cli, mock_print_ui
+    ):
+        """Test that start_interactive restores the previous runtime mode on exit."""
+        # Simulate being called while already in interactive mode (nested REPL).
+        mock_context_instance = patch(
+            "fabric_cli.core.fab_interactive.Context"
+        ).start()
+        ctx = mock_context_instance.return_value
+        ctx.get_runtime_mode.return_value = fab_constant.FAB_MODE_INTERACTIVE
+        ctx.context.path = "/test/workspace"
+
+        interactive_cli.session.prompt.side_effect = ["quit"]
+
+        with patch.object(
+            interactive_cli, "handle_command", side_effect=lambda cmd: cmd == "quit"
+        ):
+            interactive_cli.start_interactive()
+
+        # Must restore to the mode that was active before entering the REPL,
+        # not unconditionally reset to FAB_MODE_COMMANDLINE.
+        ctx.set_runtime_mode.assert_called_with(fab_constant.FAB_MODE_INTERACTIVE)
+        patch.stopall()
+
     # endregion
 
 @pytest.fixture
