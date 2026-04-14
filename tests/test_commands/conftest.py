@@ -53,6 +53,7 @@ ALL_ITEM_TYPES = [
     ItemType.SPARK_JOB_DEFINITION, ItemType.WAREHOUSE, ItemType.COPYJOB,
     ItemType.GRAPHQLAPI, ItemType.DATAFLOW, ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.GRAPH_QUERY_SET,
+    ItemType.MAP,
 ]
 
 item_type_paramerter = pytest.mark.parametrize("item_type", ALL_ITEM_TYPES)
@@ -63,7 +64,38 @@ basic_item_parametrize = pytest.mark.parametrize("item_type", [
     ItemType.ML_MODEL, ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION, ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.GRAPH_QUERY_SET,
+    ItemType.MAP,
 ])
+
+import_update_existing_item_success_params = pytest.mark.parametrize("item_type", [
+    ItemType.DATA_PIPELINE, ItemType.ENVIRONMENT, ItemType.EVENTSTREAM,
+    ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
+    ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
+    ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION
+])
+
+import_create_new_item_success_params = pytest.mark.parametrize("item_type", [
+    ItemType.NOTEBOOK, ItemType.SPARK_JOB_DEFINITION, ItemType.DATA_PIPELINE,
+    ItemType.REPORT, ItemType.SEMANTIC_MODEL, ItemType.KQL_DATABASE,
+    ItemType.KQL_QUERYSET, ItemType.EVENTHOUSE, ItemType.MIRRORED_DATABASE,
+    ItemType.REFLEX, ItemType.KQL_DASHBOARD, ItemType.SQL_DATABASE,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION
+])
+
+import_create_new_item_fail_params = pytest.mark.parametrize("item_type", [
+    ItemType.DASHBOARD, ItemType.DATAMART, ItemType.LAKEHOUSE,
+    ItemType.MIRRORED_WAREHOUSE, ItemType.ML_EXPERIMENT, ItemType.ML_MODEL,
+    ItemType.PAGINATED_REPORT, ItemType.SQL_ENDPOINT, ItemType.WAREHOUSE,
+])
+
+import_item_wrong_format_fail_params = pytest.mark.parametrize("item_type", [
+    (ItemType.NOTEBOOK),
+    (ItemType.SPARK_JOB_DEFINITION),
+    (ItemType.SEMANTIC_MODEL),
+    (ItemType.DATA_PIPELINE),
+],
+)
 
 rm_item_without_force_cancel_operation_success_params = pytest.mark.parametrize("item_type", [
     item_type for item_type in ALL_ITEM_TYPES if item_type != ItemType.REPORT
@@ -89,7 +121,7 @@ mv_item_to_item_success_params = pytest.mark.parametrize("item_type", [
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.MAP
 ])
 
 mv_item_to_item_unsupported_failure_params = pytest.mark.parametrize("unsupported_item_type", [
@@ -108,7 +140,7 @@ mv_item_within_workspace_rename_success_params = pytest.mark.parametrize("item_t
     ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
     ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
     ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION, ItemType.MAP
 ])
 
 get_item_with_properties_success_params = pytest.mark.parametrize("item_type,expected_properties", [
@@ -154,7 +186,7 @@ set_item_metadata_for_all_types_success_item_params = pytest.mark.parametrize("i
     ItemType.DATA_PIPELINE, ItemType.ENVIRONMENT, ItemType.EVENTSTREAM,
     ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET, ItemType.ML_EXPERIMENT,
     ItemType.NOTEBOOK, ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
-    ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER
+    ItemType.USER_DATA_FUNCTION, ItemType.DIGITAL_TWIN_BUILDER, ItemType.MAP
 ])
 
 set_item_metadata_success_params = pytest.mark.parametrize(
@@ -210,7 +242,8 @@ export_item_with_extension_parameters = pytest.mark.parametrize("item_type,expec
     (ItemType.MIRRORED_DATABASE, ".json"),
     (ItemType.COSMOS_DB_DATABASE, ".json"),
     (ItemType.USER_DATA_FUNCTION, ".json"),
-    (ItemType.GRAPH_QUERY_SET, ".json")
+    (ItemType.GRAPH_QUERY_SET, ".json"),
+    (ItemType.MAP, ".json")
 ])
 
 export_item_types_parameters = pytest.mark.parametrize("item_type", [
@@ -223,7 +256,8 @@ export_item_types_parameters = pytest.mark.parametrize("item_type", [
     ItemType.KQL_DATABASE,
     ItemType.COSMOS_DB_DATABASE,
     ItemType.USER_DATA_FUNCTION,
-    ItemType.GRAPH_QUERY_SET
+    ItemType.GRAPH_QUERY_SET,
+    ItemType.MAP
 ])
 
 export_item_format_parameters = pytest.mark.parametrize(
@@ -260,6 +294,20 @@ export_item_invalid_format_parameters = pytest.mark.parametrize("item_type,inval
     (ItemType.COSMOS_DB_DATABASE, ".txt"),
     (ItemType.USER_DATA_FUNCTION, ".txt"),
     (ItemType.GRAPH_QUERY_SET, ".txt")
+])
+
+# TODO: Fix capacity teardown issue CannotOverwriteExistingCassetteException & uncomment the item parameter
+cp_virtual_workspace_item_failure_params = pytest.mark.parametrize("virtual_workspace_type", [
+    VirtualWorkspaceType.DOMAIN,
+    # VirtualWorkspaceType.CAPACITY,
+    VirtualWorkspaceType.GATEWAY,
+])
+
+cp_item_types_success_params = pytest.mark.parametrize("item_type", [
+    ItemType.DATA_PIPELINE, ItemType.KQL_DASHBOARD, ItemType.KQL_QUERYSET,
+    ItemType.MIRRORED_DATABASE, ItemType.NOTEBOOK,
+    ItemType.REFLEX, ItemType.SPARK_JOB_DEFINITION,
+    ItemType.COSMOS_DB_DATABASE, ItemType.USER_DATA_FUNCTION,
 ])
 
 assign_entity_item_not_supported_failure_parameters = pytest.mark.parametrize("entity_type,factory_key,path_template", [
@@ -749,7 +797,9 @@ def workspace_factory(vcr_instance, cassette_name, test_data: StaticTestData):
 
 @pytest.fixture
 def virtual_workspace_item_factory(
-    vcr_instance, cassette_name, test_data: StaticTestData
+    vcr_instance,
+    cassette_name,
+    test_data: StaticTestData,
 ):
     # Keep track of all workspaces created during this test
     created_virtual_workspace_items = []
@@ -780,8 +830,7 @@ def virtual_workspace_item_factory(
 
         # Build the metadata for the created resource
         metadata = EntityMetadata(
-            generated_name, virtual_workspace_name, virtual_workspace_item_path
-        )
+            generated_name, virtual_workspace_name, virtual_workspace_item_path)
         created_virtual_workspace_items.append(metadata)
         return metadata
 
@@ -799,6 +848,7 @@ def mkdir(element_full_path, params=None):
         command_path="mkdir",
         path=element_full_path,
         params=params if params else ["run=true"],
+        output_format="text",
     )
 
     context = handle_context.get_command_context(args.path, False)
@@ -812,6 +862,7 @@ def rm(element_full_path):
         command_path="rm",
         path=element_full_path,
         force=True,
+        output_format="text",
     )
 
     context = handle_context.get_command_context(args.path)
@@ -1011,7 +1062,7 @@ def _create_config_file(
     config_name="config.yml"
 ):
     """Helper function for creating deploy configuration files with specified parameters.
-    
+
     Args:
         tmp_path: Temporary path for file creation
         workspace_name: Name of the workspace
@@ -1020,7 +1071,7 @@ def _create_config_file(
         target_env: Target environment name (if None, workspace_name is used directly)
         parameter_file: Path to parameter file (optional)
         config_name: Name of the config file to create
-        
+
     Returns:
         Path to the created configuration file
     """
@@ -1062,7 +1113,7 @@ def deploy_setup_factory(tmp_path, cli_executor, item_factory, workspace):
         path_override=None,
     ):
         """Create a complete deploy scenario with items, repository, and config file.
-        
+
         Args:
             item_type: Type of item to create (backwards compatibility, deprecated)
             target_env: Target environment name

@@ -11,13 +11,13 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
     uri: https://api.fabric.microsoft.com/v1/workspaces
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "7361766b-0a72-4ac0-8a8d-47b606ce4e18",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -28,15 +28,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '3104'
+      - '1593'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:02 GMT
+      - Tue, 17 Mar 2026 10:08:48 GMT
       Pragma:
       - no-cache
       RequestId:
-      - df6cf31a-f532-423a-95eb-ac35802fc5a4
+      - d42dc1f0-4547-4d79-b540-3b06590bc2ad
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -62,71 +62,58 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -135,15 +122,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1261'
+      - '1050'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:03 GMT
+      - Tue, 17 Mar 2026 10:08:50 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 979e6545-1391-4c5e-8f92-dab68f79893c
+      - d76024af-14c5-4c30-9b09-6311c49c6c4c
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -169,71 +156,58 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -242,15 +216,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1261'
+      - '1050'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:04 GMT
+      - Tue, 17 Mar 2026 10:08:51 GMT
       Pragma:
       - no-cache
       RequestId:
-      - ed90ce15-68ee-4977-9bc7-d919831fa8e2
+      - 6d420f7a-8f43-4033-aeee-d3f82ef88bdd
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -279,14 +253,14 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: POST
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/lakehouses
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/lakehouses
   response:
     body:
-      string: '{"id": "45a1185c-63c8-465e-8818-13ff8aa44698", "type": "Lakehouse",
+      string: '{"id": "fa46a6bb-39aa-4e14-8612-cb17745ec5b7", "type": "Lakehouse",
         "displayName": "fabcli000001", "description": "Created by fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}'
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId,ETag
@@ -295,17 +269,17 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '168'
+      - '167'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:06 GMT
+      - Tue, 17 Mar 2026 10:08:53 GMT
       ETag:
       - '""'
       Pragma:
       - no-cache
       RequestId:
-      - 50865729-e6ac-4b5f-88b9-0150af8b0341
+      - d2d98a0f-183a-4996-adbc-9b71209e47fc
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -331,13 +305,13 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
     uri: https://api.fabric.microsoft.com/v1/workspaces
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "7361766b-0a72-4ac0-8a8d-47b606ce4e18",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -348,15 +322,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '3104'
+      - '1593'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:07 GMT
+      - Tue, 17 Mar 2026 10:08:54 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 9cf60485-cf3d-4b74-983d-8b7aa4a40bf2
+      - b93da0a8-02a6-44d7-927d-2f638a901f71
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -382,73 +356,60 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "45a1185c-63c8-465e-8818-13ff8aa44698", "type": "Lakehouse", "displayName":
-        "fabcli000001", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fa46a6bb-39aa-4e14-8612-cb17745ec5b7",
+        "type": "Lakehouse", "displayName": "fabcli000001", "description": "Created
+        by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -457,15 +418,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1300'
+      - '1095'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:07 GMT
+      - Tue, 17 Mar 2026 10:08:55 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 286842d6-2675-4e8e-9b0e-9c40bb59c8a7
+      - d35a0e70-34d1-4daa-a5d8-9d6a520f8eb3
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -491,73 +452,60 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "45a1185c-63c8-465e-8818-13ff8aa44698", "type": "Lakehouse", "displayName":
-        "fabcli000001", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fa46a6bb-39aa-4e14-8612-cb17745ec5b7",
+        "type": "Lakehouse", "displayName": "fabcli000001", "description": "Created
+        by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -566,15 +514,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1300'
+      - '1095'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:08 GMT
+      - Tue, 17 Mar 2026 10:08:56 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 7d562780-0dd7-4331-9db0-472a9d627c72
+      - 3b1ea4f3-28e3-49d5-b374-2c090366df08
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -600,13 +548,13 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
     uri: https://api.fabric.microsoft.com/v1/workspaces
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "7361766b-0a72-4ac0-8a8d-47b606ce4e18",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -617,15 +565,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '3104'
+      - '1593'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:08 GMT
+      - Tue, 17 Mar 2026 10:08:57 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 82e7ecf8-6b09-415e-bee6-0f87c5172802
+      - 2cccc008-ec50-42c6-968b-5e41d80b8c6a
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -651,73 +599,60 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "45a1185c-63c8-465e-8818-13ff8aa44698", "type": "Lakehouse", "displayName":
-        "fabcli000001", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fa46a6bb-39aa-4e14-8612-cb17745ec5b7",
+        "type": "Lakehouse", "displayName": "fabcli000001", "description": "Created
+        by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -726,15 +661,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1300'
+      - '1095'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:08 GMT
+      - Tue, 17 Mar 2026 10:08:57 GMT
       Pragma:
       - no-cache
       RequestId:
-      - fba1301b-27ef-49a2-a58f-454c7feb1c18
+      - b91c5ecf-9f36-4faa-9940-84311b61962c
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -760,13 +695,13 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
     uri: https://api.fabric.microsoft.com/v1/workspaces
   response:
     body:
       string: '{"value": [{"id": "3634a139-2c9e-4205-910b-3b089a31be47", "displayName":
-        "My workspace", "description": "", "type": "Personal"}, {"id": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb",
+        "My workspace", "description": "", "type": "Personal"}, {"id": "7361766b-0a72-4ac0-8a8d-47b606ce4e18",
         "displayName": "fabriccli_WorkspacePerTestclass_000001", "description": "Created
         by fab", "type": "Workspace", "capacityId": "00000000-0000-0000-0000-000000000004"}]}'
     headers:
@@ -777,15 +712,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '3104'
+      - '1593'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:08 GMT
+      - Tue, 17 Mar 2026 10:08:59 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 0ea2c6a5-5aa3-4f57-8df5-21442cd7bfcc
+      - a18e222b-dc6f-42af-a649-aca0ad7eb0e9
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -811,73 +746,62 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: GET
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items
   response:
     body:
-      string: '{"value": [{"id": "c2bcad3f-04fc-4705-b258-160678bfac5f", "type": "Report",
-        "displayName": "fabcli000001_new_11", "description": "Imported from fab",
-        "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "ce57bbc8-a136-46fa-a687-7f34d7738b01",
+      string: '{"value": [{"id": "2342603d-d333-41be-a74f-12b9cc81edf2", "type": "Report",
+        "displayName": "fabcli000001_new_5", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fee642a9-279d-4632-9c11-f6ab81750546",
         "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "32a26236-8f8f-4003-87fb-7852b22cb05c",
-        "type": "SemanticModel", "displayName": "fabcli000001_auto", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9070945b-6fd3-48cd-a336-8883231eaff8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_12", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "117c6b63-91e0-483d-a197-32674455613c",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_13", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4ef5b06a-fe06-4482-bab6-6d87f267afd8",
-        "type": "SemanticModel", "displayName": "fabcli000001_new_14", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "a307a7fa-f82e-47e6-8ef8-79cb61044b98",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_3", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e0e9a9e0-cf16-47c8-b642-85aa37308a2e",
-        "type": "SQLEndpoint", "displayName": "fabcli000001_new_18", "description":
-        "", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "1525a7f2-a3c8-46a0-8b2a-f5e9d5a515ed",
-        "type": "Eventhouse", "displayName": "fabcli000001_auto", "description": "Created
-        by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "c5b79419-35d0-4915-b77b-c173d671f711",
-        "type": "KQLDatabase", "displayName": "fabcli000001_auto", "description":
-        "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "c1656af4-ef66-4477-9747-c6b51b88c5ed", "type": "Notebook", "displayName":
-        "fabcli000001_new_2", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "b2096f34-77ab-4e2d-b64f-e4a527d869d2", "type": "SQLDatabase", "displayName":
-        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4e7da642-0369-400d-82cc-c416684ebc9e", "type": "Notebook", "displayName":
-        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8198b87e-915f-46d1-86a3-86be76dbd772", "type": "Notebook", "displayName":
-        "fabcli000001_new_5", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "fb191b6c-0151-46a0-a358-cb2f4a5fc41b", "type": "Notebook", "displayName":
-        "fabcli000001_new_6", "description": "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "7c966d1a-e0f3-452f-b2b8-d9cc46b1b273", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_7", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4de31537-ac2b-4c2a-b6e8-65cddbc70e68",
-        "type": "SparkJobDefinition", "displayName": "fabcli000001_new_8", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "8bc8f020-a3fd-4de0-b59a-77711aa24a83", "type": "SparkJobDefinition",
-        "displayName": "fabcli000001_new_9", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "e2fa10e0-41d1-41e5-a960-fdab5bbc2587",
-        "type": "DataPipeline", "displayName": "fabcli000001_new_10", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "609d9b17-df9e-4230-82f5-3406d502e641", "type": "Eventhouse", "displayName":
-        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "313d5878-182e-4b62-9257-8355d4ff91e5", "type": "KQLDatabase", "displayName":
-        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "d047b7e4-c57c-4c58-8d36-419dbf012e64", "type": "KQLDatabase", "displayName":
-        "fabcli000001_new_15", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "4b5d0127-a326-4e18-b73f-72f2e2118aa1",
-        "type": "KQLQueryset", "displayName": "fabcli000001_new_16", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "02ff8fec-e083-463d-9a66-9df7911aa285", "type": "Eventhouse", "displayName":
-        "fabcli000001_new_17", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "359ed4e3-088f-4ab2-9517-6089c27ea096",
-        "type": "MirroredDatabase", "displayName": "fabcli000001_new_18", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "4df52957-46d5-43bd-a765-d6dd3359b468", "type": "Reflex", "displayName":
-        "fabcli000001_new_19", "description": "Imported from fab", "workspaceId":
-        "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}, {"id": "9b5f4a5d-d92f-403e-99bc-5b3754e43292",
-        "type": "KQLDashboard", "displayName": "fabcli000001_new_20", "description":
-        "Imported from fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"},
-        {"id": "45a1185c-63c8-465e-8818-13ff8aa44698", "type": "Lakehouse", "displayName":
-        "fabcli000001", "description": "Created by fab", "workspaceId": "c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb"}]}'
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "ea5ea637-8d16-478e-bb2e-c76d297320ad",
+        "type": "SemanticModel", "displayName": "fabcli000001_new_6", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b8ac6894-0df7-4308-b963-e49fda14c954",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_10", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d23cdde5-4127-4174-812f-38a952042285",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_13", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "13930fa5-87c8-4671-96bb-2f399df663a3",
+        "type": "SQLEndpoint", "displayName": "fabcli000001_new_14", "description":
+        "", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "6a68611c-af71-4f2b-9c31-8f32dcd996f4",
+        "type": "SQLEndpoint", "displayName": "fabcli000001", "description": "", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "9fe568fa-0fc9-417f-9f09-df8a8e09e401",
+        "type": "Notebook", "displayName": "fabcli000001_new_2", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "c043e9aa-77dd-489a-a807-315aaaac020a", "type": "SparkJobDefinition", "displayName":
+        "fabcli000001_new_3", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "776cc7e0-e9d0-41b2-a9a1-09b48fd07ede", "type": "DataPipeline", "displayName":
+        "fabcli000001_new_4", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1f40bc8b-b6fc-43df-9744-e13a49c5bcc7", "type": "Eventhouse", "displayName":
+        "fabcli000001_auto", "description": "Created by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "5a274e07-f7a0-43d0-9c59-0dbf236ec856", "type": "KQLDatabase", "displayName":
+        "fabcli000001_auto", "description": "fabcli000001_auto", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "352a2148-0bc2-4516-9594-530b2d9e93b0", "type": "KQLDatabase", "displayName":
+        "fabcli000001_new_7", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "6e292b65-d872-4fa9-8d41-cb6981a1e4d1", "type": "KQLQueryset", "displayName":
+        "fabcli000001_new_8", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "1aae77b0-c7a7-4762-ab23-0a6a09518835", "type": "Eventhouse", "displayName":
+        "fabcli000001_new_9", "description": "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "0a8a81f1-9775-4968-82ad-b6b0be90274d", "type": "MirroredDatabase",
+        "displayName": "fabcli000001_new_10", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "b9b9e9ce-8a7f-4f1f-902d-1241906ee306",
+        "type": "Reflex", "displayName": "fabcli000001_new_11", "description": "Imported
+        from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id":
+        "8df8534c-e272-4655-af77-65e26c08729f", "type": "KQLDashboard", "displayName":
+        "fabcli000001_new_12", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "d8c9d6ab-c21d-4768-8398-8a32500ac2f1",
+        "type": "SQLDatabase", "displayName": "fabcli000001_new_13", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "4c0b3fba-c21d-458c-9ca3-41b3b2fb7012", "type": "CosmosDBDatabase",
+        "displayName": "fabcli000001_new_14", "description": "Imported from fab",
+        "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "1ca44f31-1727-4f65-bd2b-f0254ff994b2",
+        "type": "UserDataFunction", "displayName": "fabcli000001_new_15", "description":
+        "Imported from fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"},
+        {"id": "aa51f3c6-4db7-43bf-8fde-79ae679883c9", "type": "Notebook", "displayName":
+        "fabcli000001_new_16", "description": "Imported from fab", "workspaceId":
+        "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}, {"id": "fa46a6bb-39aa-4e14-8612-cb17745ec5b7",
+        "type": "Lakehouse", "displayName": "fabcli000001", "description": "Created
+        by fab", "workspaceId": "7361766b-0a72-4ac0-8a8d-47b606ce4e18"}]}'
     headers:
       Access-Control-Expose-Headers:
       - RequestId
@@ -886,15 +810,15 @@ interactions:
       Content-Encoding:
       - gzip
       Content-Length:
-      - '1300'
+      - '1124'
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sun, 22 Feb 2026 13:55:10 GMT
+      - Tue, 17 Mar 2026 10:09:00 GMT
       Pragma:
       - no-cache
       RequestId:
-      - e32b4edc-5110-4ec2-998e-b6f090c78c4a
+      - b3695749-1a68-47e0-bd87-85644ddc5b5c
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
@@ -922,9 +846,9 @@ interactions:
       Content-Type:
       - application/json
       User-Agent:
-      - ms-fabric-cli-test/1.4.0
+      - ms-fabric-cli-test/1.5.0
     method: DELETE
-    uri: https://api.fabric.microsoft.com/v1/workspaces/c5e32d92-0cb4-4d87-b02f-7ed7a244c0bb/items/45a1185c-63c8-465e-8818-13ff8aa44698
+    uri: https://api.fabric.microsoft.com/v1/workspaces/7361766b-0a72-4ac0-8a8d-47b606ce4e18/items/fa46a6bb-39aa-4e14-8612-cb17745ec5b7
   response:
     body:
       string: ''
@@ -940,11 +864,11 @@ interactions:
       Content-Type:
       - application/octet-stream
       Date:
-      - Sun, 22 Feb 2026 13:55:10 GMT
+      - Tue, 17 Mar 2026 10:09:00 GMT
       Pragma:
       - no-cache
       RequestId:
-      - 870da140-eab0-49bf-b461-d6fc0b612f30
+      - 81aec2ba-8820-4601-8144-7e9cd9317e2b
       Strict-Transport-Security:
       - max-age=31536000; includeSubDomains
       X-Content-Type-Options:
