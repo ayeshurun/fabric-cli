@@ -3,12 +3,12 @@
 
 import builtins
 import html
+import itertools
 import sys
+import threading
 import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
-
-from rich.console import Console as RichConsole
 
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
@@ -16,12 +16,6 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
-
-# Rich console bound to stderr — shared by the Spinner and intermediate
-# output helpers (print_progress / print_warning / print_info).  Using
-# the *same* console instance lets Rich's Live display properly interleave
-# spinner animation with log-style messages.
-_stderr_console = RichConsole(stderr=True, highlight=False)
 
 # Module-level reference to the currently active spinner (if any).
 _active_spinner: Optional["Spinner"] = None
@@ -36,15 +30,11 @@ def stop_active_spinner() -> None:
 
 
 class Spinner:
-    """Fabric-branded progress spinner for long-running CLI commands.
+    """Progress spinner for long-running CLI commands.
 
-    Wraps :pymod:`rich`'s ``Console.status()`` to display a braille-dot
-    animation in Fabric teal on *stderr*.  Because ``print_progress``,
-    ``print_warning`` and ``print_info`` share the same Rich console
-    instance, their output is properly interleaved: it scrolls *above*
-    the spinner while the animation keeps running at the bottom.
-
-    The spinner is automatically suppressed when stderr is not a TTY.
+    Displays a braille-dot animation on *stderr* using a background
+    thread.  The spinner is automatically suppressed when stderr is
+    not a TTY.
 
     Usage::
 
@@ -52,13 +42,14 @@ class Spinner:
             do_work()
     """
 
-    _SPINNER_STYLE = "#49C5B1"  # Fabric teal
-    _MESSAGE_STYLE = "dim"
+    _FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    _INTERVAL = 0.08  # seconds between frames
 
     def __init__(self, message: str = "Working...") -> None:
         self._message = message
-        self._status: Any = None
         self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
 
     # ------------------------------------------------------------------
     # Public API
@@ -72,21 +63,23 @@ class Spinner:
         global _active_spinner
         self._running = True
         _active_spinner = self
-        self._status = _stderr_console.status(
-            f"[{self._MESSAGE_STYLE}]{self._message}[/{self._MESSAGE_STYLE}]",
-            spinner="dots",
-            spinner_style=self._SPINNER_STYLE,
-        )
-        self._status.start()
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._animate, daemon=True)
+        self._thread.start()
         return self
 
     def stop(self) -> None:
         """Stop the spinner and remove it from the screen."""
         global _active_spinner
         self._running = False
-        if self._status is not None:
-            self._status.stop()
-            self._status = None
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+            self._thread = None
+        # Clear the spinner line
+        if self._is_interactive():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
         if _active_spinner is self:
             _active_spinner = None
 
@@ -101,6 +94,15 @@ class Spinner:
     # Internals
     # ------------------------------------------------------------------
 
+    def _animate(self) -> None:
+        """Background thread: cycle through braille frames on stderr."""
+        for frame in itertools.cycle(self._FRAMES):
+            if self._stop_event.is_set():
+                break
+            sys.stderr.write(f"\r{frame} {self._message}")
+            sys.stderr.flush()
+            self._stop_event.wait(self._INTERVAL)
+
     @staticmethod
     def _is_interactive() -> bool:
         """Return *True* when stderr is connected to a real terminal."""
@@ -108,19 +110,18 @@ class Spinner:
 
 
 def _with_status_stopped(fn: Any) -> Any:
-    """Run *fn* with the spinner's status display temporarily stopped.
+    """Run *fn* with the spinner temporarily stopped.
 
     Questionary / prompt-toolkit manage the terminal themselves, so the
-    Rich ``Live`` display must be suspended while they run.  The status
-    is restarted automatically afterward.
+    spinner animation must be suspended while they run.
     """
     spinner = _active_spinner
-    if spinner is not None and spinner._status is not None:
-        spinner._status.stop()
+    if spinner is not None and spinner._running:
+        spinner.stop()
         try:
             return fn()
         finally:
-            spinner._status.start()
+            spinner.start()
     return fn()
 
 
@@ -416,22 +417,12 @@ def print_entries_unix_style(
 # Utils
 
 
-# Map questionary/prompt-toolkit style strings to Rich equivalents.
-_STYLE_MAP: dict[Optional[str], Optional[str]] = {
-    None: None,
-    "fg:grey": "dim",
-    "fg:#49C5B1": "#49C5B1",
-}
-
-
 def _safe_print(
     text: str, style: Optional[str] = None, to_stderr: bool = False
 ) -> None:
-    # When the spinner is active, stderr writes must go through the same
-    # Rich console so that the Live display can properly interleave them.
-    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
-        _stderr_console.print(text, style=_STYLE_MAP.get(style, style))
-        return
+    # When the spinner is active, stop it briefly so output is clean.
+    if _active_spinner is not None and _active_spinner._running:
+        _active_spinner.stop()
 
     try:
         # Redirect to stderr if `to_stderr` is True
@@ -446,10 +437,9 @@ def _safe_print(
 def _safe_print_formatted_text(
     formatted_text: str, escaped_text: str, to_stderr: bool = False
 ) -> None:
-    # When the spinner is active, stderr writes must go through Rich.
-    if to_stderr and _active_spinner is not None and _active_spinner._status is not None:
-        _stderr_console.print(escaped_text)
-        return
+    # When the spinner is active, stop it briefly so output is clean.
+    if _active_spinner is not None and _active_spinner._running:
+        _active_spinner.stop()
 
     from prompt_toolkit import HTML, print_formatted_text
 

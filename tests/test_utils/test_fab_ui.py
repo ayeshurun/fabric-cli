@@ -793,7 +793,7 @@ def test_spinner__init_defaults():
     spinner = ui.Spinner()
     assert spinner._message == "Working..."
     assert spinner._running is False
-    assert spinner._status is None
+    assert spinner._thread is None
 
 
 def test_spinner__init_custom_message():
@@ -807,7 +807,7 @@ def test_spinner__noop_when_not_tty(monkeypatch):
     monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: False))
     spinner = ui.Spinner()
     spinner.start()
-    assert spinner._status is None
+    assert spinner._thread is None
     assert not spinner._running
     spinner.stop()  # should be safe to call
 
@@ -816,20 +816,20 @@ def test_spinner__context_manager_when_not_tty(monkeypatch):
     """Using Spinner as context manager when not a TTY should be a no-op."""
     monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: False))
     with ui.Spinner() as s:
-        assert s._status is None
+        assert s._thread is None
         assert not s._running
 
 
 def test_spinner__start_and_stop_when_tty(monkeypatch):
-    """Spinner should start a Rich status display when stderr is a TTY."""
+    """Spinner should start an animation thread when stderr is a TTY."""
     monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
     spinner = ui.Spinner()
     spinner.start()
     assert spinner._running is True
-    assert spinner._status is not None
+    assert spinner._thread is not None
     spinner.stop()
     assert spinner._running is False
-    assert spinner._status is None
+    assert spinner._thread is None
 
 
 def test_spinner__context_manager_when_tty(monkeypatch):
@@ -878,7 +878,7 @@ def test_stop_active_spinner__noop_when_none():
 
 
 def test_spinner__fast_command_skips_animation(monkeypatch):
-    """A fast command should cleanly start and stop the Rich status."""
+    """A fast command should cleanly start and stop the spinner thread."""
     monkeypatch.setattr(ui.Spinner, "_is_interactive", staticmethod(lambda: True))
     with ui.Spinner():
         pass  # exits immediately
