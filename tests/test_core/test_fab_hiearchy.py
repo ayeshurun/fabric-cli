@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from unittest.mock import patch
+
 import pytest
 
 import fabric_cli.core.fab_constant as fab_constant
@@ -8,9 +10,13 @@ from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import *
 from fabric_cli.core.hiearchy.fab_hiearchy import *
+from fabric_cli.utils.fab_cmd_import_utils import (
+    _build_definition,
+    get_payload_for_item_type,
+)
 
 
-def test_create_tenant():
+def test_create_tenant_success():
     tenant = Tenant(name="tenant_name", id="0000")
     assert tenant.id == "0000"
     assert tenant.name == "tenant_name.Tenant"
@@ -20,7 +26,7 @@ def test_create_tenant():
     assert tenant.check_command_support(Command.FS_LS)
 
 
-def test_create_workspace():
+def test_create_workspace_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -37,7 +43,7 @@ def test_create_workspace():
     assert str(workspace) == "[Workspace] (workspace_name, workspace_id)"
 
 
-def test_create_invalid_workspace():
+def test_create_invalid_workspace_failure():
     tenant = Tenant(name="tenant_name", id="0000")
 
     with pytest.raises(FabricCLIError) as e:
@@ -47,7 +53,7 @@ def test_create_invalid_workspace():
     assert e.value.status_code == fab_constant.ERROR_INVALID_WORKSPACE_TYPE
 
 
-def test_create_virtual_workspace():
+def test_create_virtual_workspace_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = VirtualWorkspace(
         name=".capacities", id="virtual_workspace_id", parent=tenant
@@ -63,7 +69,7 @@ def test_create_virtual_workspace():
     assert workspace.check_command_support(Command.FS_LS)
 
 
-def test_create_invalid_virtual_workspace():
+def test_create_invalid_virtual_workspace_failure():
     tenant = Tenant(name="tenant_name", id="0000")
 
     with pytest.raises(FabricCLIError) as e:
@@ -71,7 +77,7 @@ def test_create_invalid_virtual_workspace():
     assert e.value.status_code == fab_constant.ERROR_INVALID_WORKSPACE_TYPE
 
 
-def test_create_item():
+def test_create_item_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -101,7 +107,7 @@ def test_create_item():
     assert e.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND
 
 
-def test_create_invalid_item():
+def test_create_invalid_item_failure():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -126,7 +132,7 @@ def test_create_invalid_item():
     assert e.value.status_code == fab_constant.WARNING_INVALID_ITEM_NAME
 
 
-def test_create_virtual_item():
+def test_create_virtual_item_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="My workspace", id="workspace_id", parent=tenant, type="Personal"
@@ -153,7 +159,7 @@ def test_create_virtual_item():
     assert item.check_command_support(Command.FS_EXISTS)
 
 
-def test_create_virtual_workspace_item():
+def test_create_virtual_workspace_item_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = VirtualWorkspace(
         name=".capacities", id="virtual_workspace_id", parent=tenant
@@ -177,7 +183,7 @@ def test_create_virtual_workspace_item():
     assert item.check_command_support(Command.FS_EXISTS)
 
 
-def test_create_onelakeelement():
+def test_create_onelakeelement_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -264,7 +270,7 @@ def test_create_onelakeelement():
     assert onelake_file != onelake_copy
 
 
-def test_create_invalid_virtualworkspace_item_type():
+def test_create_invalid_virtualworkspace_item_type_failure():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = VirtualWorkspace(
         name=".capacities", id="virtual_workspace_id", parent=tenant
@@ -280,7 +286,7 @@ def test_create_invalid_virtualworkspace_item_type():
     assert e.value.status_code == fab_constant.ERROR_INVALID_ITEM_TYPE
 
 
-def test_create_invalid_virtualworkspace():
+def test_create_invalid_virtualworkspace_failure():
     tenant = Tenant(name="tenant_name", id="0000")
 
     with pytest.raises(FabricCLIError) as e:
@@ -288,7 +294,7 @@ def test_create_invalid_virtualworkspace():
     assert e.value.status_code == fab_constant.ERROR_INVALID_WORKSPACE_TYPE
 
 
-def test_create_invalid_virtual_item_container():
+def test_create_invalid_virtual_item_container_failure():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Personal"
@@ -299,7 +305,7 @@ def test_create_invalid_virtual_item_container():
     assert e.value.status_code == fab_constant.ERROR_INVALID_ITEM_TYPE
 
 
-def test_create_invalid_virtual_item():
+def test_create_invalid_virtual_item_failure():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -318,7 +324,7 @@ def test_create_invalid_virtual_item():
     assert e.value.status_code == fab_constant.ERROR_INVALID_ITEM_TYPE
 
 
-def test_command_support():
+def test_command_support_success():
     # TODO: Improve using custom config and not rely on the default one
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
@@ -351,7 +357,7 @@ def test_command_support():
     assert e.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND
 
 
-def test_create_virtual_item_container():
+def test_create_virtual_item_container_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="My workspace", id="workspace_id", parent=tenant, type="Personal"
@@ -374,7 +380,7 @@ def test_create_virtual_item_container():
     assert container.check_command_support(Command.FS_CD)
 
 
-def test_get_item_payloads():
+def test_get_item_payloads_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -385,6 +391,12 @@ def test_get_item_payloads():
             "key": "value",
         }
     }
+
+    def _mock_build(path, resolved_format=""):
+        result = {"parts": _base_payload["parts"]}
+        if resolved_format:
+            result["format"] = resolved_format
+        return result
 
     # Test Notebook
     notebook = Item(
@@ -403,7 +415,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert notebook.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", notebook, "ipynb") == _expected_payload
 
     # Test Spark Job Definition
     spark_job_def = Item(
@@ -425,8 +439,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert spark_job_def.get_payload(
-        _base_payload, "SparkJobDefinitionV2") == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy",
+                                         spark_job_def, "SparkJobDefinitionV2") == _expected_payload
 
     _expected_payload = {
         "type": "SparkJobDefinition",
@@ -440,7 +455,9 @@ def test_get_item_payloads():
     }
 
     # Check that the payload is correct
-    assert spark_job_def.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", spark_job_def, "SparkJobDefinitionV1") == _expected_payload
 
     # Test EventHouse
     event_house = Item(
@@ -455,11 +472,13 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
     # Check that the payload is correct
-    assert event_house.get_payload(_base_payload) == _expected_payload
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type(
+            "dummy", event_house) == _expected_payload
 
     # Test Report
     report = Item(
@@ -474,7 +493,7 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
     # Check that the payload is correct for SemanticModel which can have different formatting
@@ -490,11 +509,12 @@ def test_get_item_payloads():
         "description": "Imported from fab",
         "displayName": "item_name",
         "folderId": None,
-        "definition": _base_payload,
+        "definition": {"parts": _base_payload["parts"]},
     }
 
-    assert smenticModel.get_payload(
-        _base_payload) == _expected_payload_without_format
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy",
+                                         smenticModel) == _expected_payload_without_format
 
     _expected_payload_with_format = {
         "type": "SemanticModel",
@@ -507,27 +527,115 @@ def test_get_item_payloads():
         },
     }
 
-    assert (
-        smenticModel.get_payload(_base_payload, input_format="TMDL")
-        == _expected_payload_with_format
-    )
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert (
+            get_payload_for_item_type("dummy", smenticModel, "TMDL")
+            == _expected_payload_with_format
+        )
 
     # Check that the payload is correct
-    assert report.get_payload(_base_payload) == _expected_payload
-
-    # Unsuported item
-    with pytest.raises(FabricCLIError) as e:
-        unsupported_item = Item(
-            name="item_name",
-            id="item_id",
-            parent=workspace,
-            item_type="Lakehouse",
-        )
-        unsupported_item.get_payload(_base_payload)
-    assert e.value.status_code == fab_constant.ERROR_UNSUPPORTED_COMMAND
+    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        assert get_payload_for_item_type("dummy", report) == _expected_payload
 
 
-def test_create_folder():
+# -------------------------------------------------------------------
+# Tests for _build_definition format handling
+# -------------------------------------------------------------------
+
+
+def _make_item(item_type: str, parent=None) -> Item:
+    """Helper to create an Item with minimal boilerplate."""
+    if parent is None:
+        tenant = Tenant(name="t", id="tid")
+        parent = Workspace(name="ws", id="wsid",
+                           parent=tenant, type="Workspace")
+    return Item(name="item", id="iid", parent=parent, item_type=item_type)
+
+
+class TestBuildPayload:
+    """Validate _build_definition includes format when provided."""
+
+    def test_with_format_includes_format_key_success(self, tmp_path):
+        (tmp_path / "notebook.ipynb").write_text("{}")
+        result = _build_definition(str(tmp_path), "ipynb")
+        assert result["format"] == "ipynb"
+        assert len(result["parts"]) == 1
+        assert result["parts"][0]["path"] == "notebook.ipynb"
+
+    def test_without_format_no_format_key_success(self, tmp_path):
+        (tmp_path / "notebook.ipynb").write_text("{}")
+        result = _build_definition(str(tmp_path))
+        assert "format" not in result
+        assert len(result["parts"]) == 1
+
+    def test_empty_format_no_format_key_success(self, tmp_path):
+        (tmp_path / "file.json").write_text("{}")
+        result = _build_definition(str(tmp_path), "")
+        assert "format" not in result
+
+    # -- Payload construction tests -------------------------------------------
+
+    def test_payload_lakehouse_success(self):
+        """Any item type can have a payload constructed."""
+        item = _make_item("Lakehouse")
+
+        def _mock_build(path, resolved_format=""):
+            return {"parts": {"key": "value"}}
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item)
+        assert payload["type"] == "Lakehouse"
+        assert payload["displayName"] == "item"
+        assert payload["definition"] == {"parts": {"key": "value"}}
+
+    def test_payload_kql_dashboard_success(self):
+        """KQLDashboard (was in ImportDefinitionTypes) still works."""
+        item = _make_item("KQLDashboard")
+
+        def _mock_build(path, resolved_format=""):
+            return {"parts": {"key": "value"}}
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item)
+        assert payload["definition"] == {"parts": {"key": "value"}}
+
+    # -- Folder-based items include folderId ----------------------------------
+
+    def test_payload_item_in_folder_includes_folder_id_success(self):
+        """Items inside a folder should have folderId set."""
+        tenant = Tenant(name="t", id="tid")
+        ws = Workspace(name="ws", id="wsid", parent=tenant, type="Workspace")
+        folder = Folder(name="myfolder", id="folder123", parent=ws)
+        item = Item(name="nb", id="nbid", parent=folder, item_type="Notebook")
+
+        def _mock_build(path, resolved_format=""):
+            result = {"parts": {"key": "value"}}
+            if resolved_format:
+                result["format"] = resolved_format
+            return result
+
+        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+            payload = get_payload_for_item_type("dummy", item, "ipynb")
+        assert payload["folderId"] == "folder123"
+        assert payload["definition"]["format"] == "ipynb"
+
+    def test_payload_item_in_workspace_folder_id_none_success(self):
+        """Items directly under workspace should have folderId=None."""
+        item = _make_item("Notebook")
+        assert item.folder_id is None
+
+    # -- Unknown format is now validated upstream by resolve_definition_format --
+
+    def test_unknown_format_raises_error_failure(self):
+        """Unknown format raises FabricCLIError during resolution."""
+        from fabric_cli.utils.fab_item_util import resolve_definition_format
+
+        item = _make_item("SemanticModel")
+        with pytest.raises(FabricCLIError):
+            resolve_definition_format(item.item_type, "UnknownFormat")
+
+
+def test_create_folder_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"
@@ -545,7 +653,7 @@ def test_create_folder():
     assert folder.check_command_support(Command.FS_LS)
 
 
-def test_create_subfolder():
+def test_create_subfolder_success():
     tenant = Tenant(name="tenant_name", id="0000")
     workspace = Workspace(
         name="workspace_name", id="workspace_id", parent=tenant, type="Workspace"

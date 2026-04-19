@@ -39,7 +39,8 @@ class Item(_BaseItem):
             return _item_type
         else:
             raise FabricCLIError(
-                ErrorMessages.Hierarchy.item_type_not_valid(str(super().item_type)),
+                ErrorMessages.Hierarchy.item_type_not_valid(
+                    str(super().item_type)),
                 fab_constant.ERROR_INVALID_ITEM_TYPE,
             )
 
@@ -73,91 +74,6 @@ class Item(_BaseItem):
         else:
             assert isinstance(self.parent, Folder)
             return self.parent.workspace
-
-    def get_payload(self, definition, input_format=None) -> dict:
-        match self.item_type:
-
-            case ItemType.SPARK_JOB_DEFINITION:
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": {
-                        "format": (
-                            "SparkJobDefinitionV1"
-                            if input_format is None
-                            else input_format
-                        ),
-                        "parts": definition["parts"],
-                    },
-                }
-            case ItemType.NOTEBOOK:
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": {
-                        **(
-                            {"parts": definition["parts"]}
-                            if input_format == ".py"
-                            else {"format": "ipynb", "parts": definition["parts"]}
-                        )
-                    },
-                }
-            case ItemType.SEMANTIC_MODEL:
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": (
-                        definition
-                        if input_format is None
-                        else {
-                            "format": input_format,
-                            "parts": definition["parts"],
-                        }
-                    ),
-                }
-            case (
-                ItemType.REPORT
-                | ItemType.KQL_DASHBOARD
-                | ItemType.DATA_PIPELINE
-                | ItemType.KQL_QUERYSET
-                | ItemType.EVENTHOUSE
-                | ItemType.KQL_DATABASE
-                | ItemType.MIRRORED_DATABASE
-                | ItemType.DIGITAL_TWIN_BUILDER
-                | ItemType.REFLEX
-                | ItemType.EVENTSTREAM
-                | ItemType.MOUNTED_DATA_FACTORY
-                | ItemType.COPYJOB
-                | ItemType.VARIABLE_LIBRARY
-                | ItemType.GRAPHQLAPI
-                | ItemType.DATAFLOW
-                | ItemType.SQL_DATABASE
-                | ItemType.COSMOS_DB_DATABASE
-                | ItemType.GRAPH_QUERY_SET
-                | ItemType.USER_DATA_FUNCTION
-                | ItemType.MAP
-                | ItemType.SNOWFLAKE_DATABASE
-            ):
-                return {
-                    "type": str(self.item_type),
-                    "description": "Imported from fab",
-                    "folderId": self.folder_id,
-                    "displayName": self.short_name,
-                    "definition": definition,
-                }
-            case _:
-                raise FabricCLIError(
-                    ErrorMessages.Hierarchy.item_type_doesnt_support_definition_payload(
-                        str(self.item_type)
-                    ),
-                    fab_constant.ERROR_UNSUPPORTED_COMMAND,
-                )
 
     def get_folders(self) -> List[str]:
         return ItemFoldersMap.get(self.item_type, [])

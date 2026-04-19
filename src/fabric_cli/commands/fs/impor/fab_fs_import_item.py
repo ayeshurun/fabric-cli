@@ -8,41 +8,26 @@ from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant, fab_logger
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.core.fab_types import ItemType, definition_format_mapping
+from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
 from fabric_cli.utils import fab_cmd_import_utils as utils_import
+from fabric_cli.utils import fab_item_util
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_storage as utils_storage
 from fabric_cli.utils import fab_ui as utils_ui
 
 
 def import_single_item(item: Item, args: Namespace) -> None:
-    _input_format = None
-    if args.format:
-        _input_format = args.format
-        if item.item_type in definition_format_mapping:
-            valid_formats = list(
-                definition_format_mapping[item.item_type].keys())
-            if _input_format not in valid_formats:
-                available_formats = [
-                    k for k in valid_formats if k != "default"]
-                raise FabricCLIError(
-                    f"Invalid format. Only the following formats are supported: {', '.join(available_formats)}",
-                    fab_constant.ERROR_INVALID_INPUT,
-                )
-        else:
-            raise FabricCLIError(
-                f"Invalid format. No formats are supported",
-                fab_constant.ERROR_INVALID_INPUT,
-            )
+    _input_format = fab_item_util.resolve_definition_format(
+        item_type=item.item_type, format_param=getattr(args, "format", None)
+    )
 
     args.ws_id = item.workspace.id
     input_path = utils_storage.get_import_path(args.input)
 
-    # Input path only support from local directories
-    if input_path["type"] == "lakehouse":
+    if input_path["type"] != "local":
         raise FabricCLIError(
-            "Import from Lakehouse/Files not supported",
+            f"Import only supports local paths. Unsupported input path type: '{input_path['type']}'.",
             fab_constant.ERROR_NOT_SUPPORTED,
         )
 
@@ -54,7 +39,7 @@ def import_single_item(item: Item, args: Namespace) -> None:
 
         # Get the payload
         payload = utils_import.get_payload_for_item_type(
-            _input_path, item, _input_format
+            _input_path, item, input_format=_input_format
         )
 
         if item_exists:
