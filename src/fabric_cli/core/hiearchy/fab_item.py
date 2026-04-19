@@ -39,7 +39,8 @@ class Item(_BaseItem):
             return _item_type
         else:
             raise FabricCLIError(
-                ErrorMessages.Hierarchy.item_type_not_valid(str(super().item_type)),
+                ErrorMessages.Hierarchy.item_type_not_valid(
+                    str(super().item_type)),
                 fab_constant.ERROR_INVALID_ITEM_TYPE,
             )
 
