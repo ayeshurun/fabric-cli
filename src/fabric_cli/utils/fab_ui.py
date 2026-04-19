@@ -3,7 +3,9 @@
 
 import builtins
 import html
+import itertools
 import sys
+import threading
 import unicodedata
 from argparse import Namespace
 from typing import Any, Optional, Sequence
@@ -14,6 +16,113 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
+
+# Module-level reference to the currently active spinner (if any).
+_active_spinner: Optional["Spinner"] = None
+
+
+def stop_active_spinner() -> None:
+    """Stop any active spinner before producing output."""
+    global _active_spinner
+    if _active_spinner is not None:
+        _active_spinner.stop()
+        _active_spinner = None
+
+
+class Spinner:
+    """Progress spinner for long-running CLI commands.
+
+    Displays a braille-dot animation on *stderr* using a background
+    thread.  The spinner is automatically suppressed when stderr is
+    not a TTY.
+
+    Usage::
+
+        with Spinner("Loading..."):
+            do_work()
+    """
+
+    _FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    _INTERVAL = 0.08  # seconds between frames
+
+    def __init__(self, message: str = "Working...") -> None:
+        self._message = message
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def start(self) -> "Spinner":
+        """Begin the spinner animation."""
+        if not self._is_interactive():
+            return self
+
+        global _active_spinner
+        self._running = True
+        _active_spinner = self
+        self._stop_event.clear()
+        self._thread = threading.Thread(target=self._animate, daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self) -> None:
+        """Stop the spinner and remove it from the screen."""
+        global _active_spinner
+        self._running = False
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+            self._thread = None
+        # Clear the spinner line
+        if self._is_interactive():
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        if _active_spinner is self:
+            _active_spinner = None
+
+    # Context-manager support
+    def __enter__(self) -> "Spinner":
+        return self.start()
+
+    def __exit__(self, *_: object) -> None:
+        self.stop()
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+
+    def _animate(self) -> None:
+        """Background thread: cycle through braille frames on stderr."""
+        for frame in itertools.cycle(self._FRAMES):
+            if self._stop_event.is_set():
+                break
+            sys.stderr.write(f"\r{frame} {self._message}")
+            sys.stderr.flush()
+            self._stop_event.wait(self._INTERVAL)
+
+    @staticmethod
+    def _is_interactive() -> bool:
+        """Return *True* when stderr is connected to a real terminal."""
+        return hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+
+
+def _with_status_stopped(fn: Any) -> Any:
+    """Run *fn* with the spinner temporarily stopped.
+
+    Questionary / prompt-toolkit manage the terminal themselves, so the
+    spinner animation must be suspended while they run.
+    """
+    spinner = _active_spinner
+    if spinner is not None and spinner._running:
+        spinner.stop()
+        try:
+            return fn()
+        finally:
+            spinner.start()
+    return fn()
 
 
 def get_common_style():
@@ -34,36 +143,37 @@ def get_common_style():
 
 
 def prompt_ask(text: str = "Question") -> Any:
-    return fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().text(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_password(text: str = "password") -> Any:
-    return fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().password(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_confirm(text: str = "Are you sure?") -> Any:
-    return fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary().confirm(text, style=get_common_style()).ask()
+    )
 
 
 def prompt_select_items(question: str, choices: Sequence) -> Any:
-    selected_items = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .checkbox(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
 
-    return selected_items
-
 
 def prompt_select_item(question: str, choices: Sequence) -> Any:
-    # Prompt the user to select a single item from a list of choices
-    selected_item = (
-        fab_lazy_load.questionary()
+    return _with_status_stopped(
+        lambda: fab_lazy_load.questionary()
         .select(question, choices=choices, pointer=">", style=get_common_style())
         .ask()
     )
-
-    return selected_item
 
 
 def print(text: str) -> None:
@@ -109,6 +219,7 @@ def print_output_format(
     Returns:
         FabricCLIOutput: Configured output instance ready for printing
     """
+    stop_active_spinner()
 
     command = getattr(args, "command", None)
     subcommand = getattr(args, f"{command}_subcommand", None)
@@ -141,6 +252,7 @@ def print_output_format(
 
 
 def print_done(text: str, to_stderr: bool = False) -> None:
+    stop_active_spinner()
     # Escape the text to avoid HTML injection and parsing issues
     escaped_text = html.escape(text)
     _safe_print_formatted_text(
@@ -176,6 +288,8 @@ def print_output_error(
     Raises:
         FabricCLIError: If the output format is not supported.
     """
+    stop_active_spinner()
+
     # Get format from output or config
     format_type = output_format_type or fab_state_config.get_config(
         fab_constant.FAB_OUTPUT_FORMAT
@@ -306,6 +420,9 @@ def print_entries_unix_style(
 def _safe_print(
     text: str, style: Optional[str] = None, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stop it briefly so output is clean.
+    if _active_spinner is not None and _active_spinner._running:
+        _active_spinner.stop()
 
     try:
         # Redirect to stderr if `to_stderr` is True
@@ -320,6 +437,10 @@ def _safe_print(
 def _safe_print_formatted_text(
     formatted_text: str, escaped_text: str, to_stderr: bool = False
 ) -> None:
+    # When the spinner is active, stop it briefly so output is clean.
+    if _active_spinner is not None and _active_spinner._running:
+        _active_spinner.stop()
+
     from prompt_toolkit import HTML, print_formatted_text
 
     try:
