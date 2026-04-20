@@ -27,6 +27,7 @@ from fabric_cli.core.fab_types import (
     VirtualWorkspaceType,
     VWIMap,
 )
+from fabric_cli.utils import fab_cmd_import_utils
 from tests.test_commands.commands_parser import CLIExecutor
 from tests.test_commands.data.models import EntityMetadata
 from tests.test_commands.data.static_test_data import (
@@ -588,8 +589,8 @@ def workspace(vcr_instance, test_data):
         workspace_name = f"{display_name}.Workspace"
         workspace_path = f"/{workspace_name}"
 
-        mkdir(workspace_path, params=[
-              f"capacityName={test_data.capacity.name}"])
+        mkdir(workspace_path, params=_append_description(
+              [f"capacityName={test_data.capacity.name}"], FAB_DEFAULT_MKDIR_DESCRIPTION))
         yield EntityMetadata(display_name, workspace_name, workspace_path)
         rm(workspace_path)
 
@@ -623,7 +624,7 @@ def item_factory(vcr_instance, cassette_name, workspace):
         if content_path:
             import_cmd(item_path, content_path)
         else:
-            mkdir(item_path)
+            mkdir(item_path, params=_append_description(None, FAB_DEFAULT_MKDIR_DESCRIPTION))
 
         # Build the metadata for the created resource
         metadata = EntityMetadata(generated_name, item_name, item_path)
@@ -658,7 +659,7 @@ def folder_factory(vcr_instance, cassette_name, workspace):
         folder_name = f"{generated_name}.Folder"
         folder_path = cli_path_join(path, folder_name)
 
-        mkdir(folder_path)
+        mkdir(folder_path, params=_append_description(None, FAB_DEFAULT_MKDIR_DESCRIPTION))
 
         # Build the metadata for the created resource
         metadata = EntityMetadata(generated_name, folder_name, folder_path)
@@ -784,8 +785,8 @@ def workspace_factory(vcr_instance, cassette_name, test_data: StaticTestData):
         workspace_name = f"{generated_name}.Workspace"
         workspace_path = f"/{workspace_name}"
 
-        mkdir(workspace_path, params=[
-              f"capacityName={test_data.capacity.name}"])
+        mkdir(workspace_path, params=_append_description(
+              [f"capacityName={test_data.capacity.name}"], FAB_DEFAULT_MKDIR_DESCRIPTION))
 
         # Build the metadata for the created resource
         metadata = EntityMetadata(
@@ -823,9 +824,9 @@ def virtual_workspace_item_factory(
 
         match type:
             case VirtualWorkspaceType.CONNECTION:
-                params = [
+                params = _append_description([
                     f"connectionDetails.type=SQL,connectionDetails.parameters.server={test_data.sql_server.server}.database.windows.net,connectionDetails.parameters.database={test_data.sql_server.database},credentialDetails.type=Basic,credentialDetails.username={test_data.credential_details.username},credentialDetails.password={test_data.credential_details.password}"
-                ]
+                ], FAB_DEFAULT_MKDIR_DESCRIPTION)
             case VirtualWorkspaceType.GATEWAY:
                 params = [
                     f"capacity={test_data.capacity.name},virtualNetworkName={test_data.vnet.name},subnetName={test_data.vnet.subnet}"
@@ -844,6 +845,23 @@ def virtual_workspace_item_factory(
     # Teardown: remove everything we created during the test
     for metadata in created_virtual_workspace_items:
         rm(metadata.full_path)
+
+
+FAB_DEFAULT_MKDIR_DESCRIPTION = "Created by fab"
+FAB_DEFAULT_IMPORT_DESCRIPTION = "Imported from fab"
+
+
+def _append_description(params, description):
+    """Append a description param for backward compatibility with VCR recordings."""
+    desc_param = f"description={description}"
+    if params is None:
+        return [f"run=true,{desc_param}"]
+    if isinstance(params, str):
+        return [f"{params},{desc_param}"]
+    # params is a list
+    if len(params) > 0:
+        return [f"{params[0]},{desc_param}"] + params[1:]
+    return [desc_param]
 
 
 def mkdir(element_full_path, params=None):
@@ -885,8 +903,17 @@ def import_cmd(element_full_path, content_path, format=None):
         format=format,
     )
 
+    original_get_payload = fab_cmd_import_utils.get_payload_for_item_type
+
+    def _patched_get_payload(*a, **kw):
+        payload = original_get_payload(*a, **kw)
+        if "description" not in payload:
+            payload["description"] = FAB_DEFAULT_IMPORT_DESCRIPTION
+        return payload
+
     context = handle_context.get_command_context(args.path, raise_error=False)
-    fab_fs_import.exec_command(args, context)
+    with patch.object(fab_cmd_import_utils, "get_payload_for_item_type", side_effect=_patched_get_payload):
+        fab_fs_import.exec_command(args, context)
 
 
 def delete_cassette_if_record_mode_all(vcr_instance, cassette_name):

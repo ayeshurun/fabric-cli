@@ -113,6 +113,8 @@ def exec(connection: VirtualWorkspaceItem, args: Namespace) -> None:
         "displayName": connection.short_name,
         "connectivityType": connectivityType,
     }
+    if params.get("description"):
+        payload["description"] = params.get("description")
     if gateway_id:
         payload["gatewayId"] = gateway_id
 

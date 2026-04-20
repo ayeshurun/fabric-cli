@@ -288,7 +288,7 @@ def _create_payload(directory, params, type=None, semantic_model_id=None, encode
 
 def get_params_per_item_type(item: Item):
     required_params = []
-    optional_params = []
+    optional_params = ["description"]
 
     match item.item_type:
         case ItemType.LAKEHOUSE:

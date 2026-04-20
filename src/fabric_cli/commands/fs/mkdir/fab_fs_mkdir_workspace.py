@@ -19,7 +19,7 @@ from fabric_cli.utils import fab_util as utils
 
 def exec(workspace: Workspace, args: Namespace) -> None:
     # Params
-    optional_params = ["capacityName"]
+    optional_params = ["capacityName", "description"]
     if mkdir_utils.show_params_desc(
         args.params, workspace.ws_type, optional_params=optional_params
     ):
