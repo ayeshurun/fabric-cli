@@ -127,7 +127,8 @@ def _execute_command(args, subparsers, parser):
         subparser_args.command_path = Command.get_command_path(subparser_args)
 
         if hasattr(subparser_args, "func"):
-            return subparser_args.func(subparser_args)
+            with fab_ui.Spinner():
+                return subparser_args.func(subparser_args)
         else:
             return None
     else:
