@@ -224,12 +224,12 @@ def add_type_specific_payload(item: Item, args, payload):
                 # Optional properties: backupRetentionDays, collation.
                 # Note: params are pre-lowercased, but error messages use
                 # camelCase to match get_params_per_item_type() output.
-                creation_payload: dict = {}
+                new_properties: dict = {}
 
                 backup_retention_days = params.get("backupretentiondays")
                 if backup_retention_days is not None:
                     try:
-                        creation_payload["backupRetentionDays"] = int(
+                        new_properties["backupRetentionDays"] = int(
                             backup_retention_days
                         )
                     except (ValueError, TypeError):
@@ -240,14 +240,16 @@ def add_type_specific_payload(item: Item, args, payload):
 
                 collation = params.get("collation")
                 if collation is not None:
-                    creation_payload["collation"] = collation
+                    new_properties["collation"] = collation
 
                 # Only emit a creationPayload when the user explicitly requested
                 # the New mode or supplied New-mode properties, preserving the
                 # default standard-creation behavior otherwise.
-                if mode == "new" or creation_payload:
-                    creation_payload["creationMode"] = "New"
-                    payload_dict["creationPayload"] = creation_payload
+                if mode == "new" or new_properties:
+                    payload_dict["creationPayload"] = {
+                        "creationMode": "New",
+                        **new_properties,
+                    }
 
             elif mode == "restore":
                 # Point-in-time restore mode
