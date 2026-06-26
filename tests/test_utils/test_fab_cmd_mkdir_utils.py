@@ -445,6 +445,230 @@ class TestSQLDatabaseRestore:
         assert "creationPayload" in result
 
 
+class TestSQLDatabaseNewMode:
+    """Test cases for SQLDatabase New (default) creation mode."""
+
+    @pytest.fixture
+    def mock_sql_database_item(self):
+        """Create a mock SQL database item."""
+        mock_workspace = Mock(spec=Workspace)
+        mock_workspace.id = "workspace-id-123"
+
+        item = Mock(spec=Item)
+        item.item_type = ItemType.SQL_DATABASE
+        item.workspace = mock_workspace
+        item.short_name = "test-db"
+        return item
+
+    @pytest.fixture
+    def mock_args(self):
+        """Create mock args namespace."""
+        args = Namespace()
+        args.params = {}
+        return args
+
+    def test_new_mode_with_backup_retention_days_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test New mode adds backupRetentionDays as an integer."""
+        mock_args.params = {"mode": "new", "backupretentiondays": "7"}
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "New"
+        assert result["creationPayload"]["backupRetentionDays"] == 7
+        assert isinstance(result["creationPayload"]["backupRetentionDays"], int)
+
+    def test_new_mode_with_collation_success(self, mock_sql_database_item, mock_args):
+        """Test New mode adds collation."""
+        mock_args.params = {
+            "mode": "new",
+            "collation": "SQL_Latin1_General_CP1_CI_AS",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "New"
+        assert result["creationPayload"]["collation"] == "SQL_Latin1_General_CP1_CI_AS"
+
+    def test_new_mode_with_both_properties_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test New mode with both backupRetentionDays and collation."""
+        mock_args.params = {
+            "mode": "new",
+            "backupretentiondays": "14",
+            "collation": "Latin1_General_100_CI_AS",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "New"
+        assert result["creationPayload"]["backupRetentionDays"] == 14
+        assert result["creationPayload"]["collation"] == "Latin1_General_100_CI_AS"
+
+    def test_new_mode_explicit_without_properties_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test explicit New mode emits a creationPayload even without properties."""
+        mock_args.params = {"mode": "new"}
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"] == {"creationMode": "New"}
+
+    def test_new_mode_case_insensitive_success(self, mock_sql_database_item, mock_args):
+        """Test New mode is case-insensitive."""
+        mock_args.params = {"mode": "NEW", "backupretentiondays": "10"}
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "New"
+        assert result["creationPayload"]["backupRetentionDays"] == 10
+
+    def test_no_mode_with_new_properties_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test New-mode properties are honored even when mode is omitted."""
+        mock_args.params = {"backupretentiondays": "5", "collation": "dbo_collation"}
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "New"
+        assert result["creationPayload"]["backupRetentionDays"] == 5
+        assert result["creationPayload"]["collation"] == "dbo_collation"
+
+    def test_new_mode_invalid_backup_retention_days_failure(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test New mode fails when backupRetentionDays is not an integer."""
+        mock_args.params = {"mode": "new", "backupretentiondays": "not-a-number"}
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+
+        with pytest.raises(FabricCLIError) as exc_info:
+            add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert exc_info.value.status_code == fab_constant.ERROR_INVALID_INPUT
+        assert "backupRetentionDays" in exc_info.value.message
+
+
+class TestSQLDatabaseRestoreDeleted:
+    """Test cases for SQLDatabase RestoreDeletedDatabase creation mode."""
+
+    @pytest.fixture
+    def mock_sql_database_item(self):
+        """Create a mock SQL database item."""
+        mock_workspace = Mock(spec=Workspace)
+        mock_workspace.id = "workspace-id-123"
+
+        item = Mock(spec=Item)
+        item.item_type = ItemType.SQL_DATABASE
+        item.workspace = mock_workspace
+        item.short_name = "test-db"
+        return item
+
+    @pytest.fixture
+    def mock_args(self):
+        """Create mock args namespace."""
+        args = Namespace()
+        args.params = {}
+        return args
+
+    def test_restore_deleted_valid_params_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test RestoreDeletedDatabase with valid parameters."""
+        mock_args.params = {
+            "mode": "restoredeleteddatabase",
+            "restorepointintime": "2024-01-15T10:30:00Z",
+            "restorabledeleteddatabasename": "deleted-db-name",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "RestoreDeletedDatabase"
+        assert (
+            result["creationPayload"]["restorableDeletedDatabaseName"]
+            == "deleted-db-name"
+        )
+        assert result["creationPayload"]["restorePointInTime"] == "2024-01-15T10:30:00Z"
+
+    def test_restore_deleted_case_insensitive_success(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test RestoreDeletedDatabase mode is case-insensitive."""
+        mock_args.params = {
+            "mode": "RestoreDeletedDatabase",
+            "restorepointintime": "2024-01-15T10:30:00Z",
+            "restorabledeleteddatabasename": "deleted-db-name",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+        result = add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert result["creationPayload"]["creationMode"] == "RestoreDeletedDatabase"
+
+    def test_restore_deleted_missing_restore_point_in_time_failure(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test RestoreDeletedDatabase fails when restorePointInTime is missing."""
+        mock_args.params = {
+            "mode": "restoredeleteddatabase",
+            "restorabledeleteddatabasename": "deleted-db-name",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+
+        with pytest.raises(FabricCLIError) as exc_info:
+            add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert exc_info.value.status_code == fab_constant.ERROR_INVALID_INPUT
+        assert "restorePointInTime" in exc_info.value.message
+
+    def test_restore_deleted_missing_database_name_failure(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test RestoreDeletedDatabase fails when restorableDeletedDatabaseName is missing."""
+        mock_args.params = {
+            "mode": "restoredeleteddatabase",
+            "restorepointintime": "2024-01-15T10:30:00Z",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+
+        with pytest.raises(FabricCLIError) as exc_info:
+            add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert exc_info.value.status_code == fab_constant.ERROR_INVALID_INPUT
+        assert "restorableDeletedDatabaseName" in exc_info.value.message
+
+    def test_restore_deleted_invalid_timestamp_format_failure(
+        self, mock_sql_database_item, mock_args
+    ):
+        """Test RestoreDeletedDatabase fails with invalid timestamp format."""
+        mock_args.params = {
+            "mode": "restoredeleteddatabase",
+            "restorepointintime": "2024-01-15T10:30:00",  # Missing timezone
+            "restorabledeleteddatabasename": "deleted-db-name",
+        }
+
+        payload = {"displayName": "test-db", "type": "SQLDatabase"}
+
+        with pytest.raises(FabricCLIError) as exc_info:
+            add_type_specific_payload(mock_sql_database_item, mock_args, payload)
+
+        assert exc_info.value.status_code == fab_constant.ERROR_INVALID_INPUT
+        assert "ISO 8601" in exc_info.value.message
+
+
 class TestGetParamsPerItemTypeSQLDatabase:
     """Test cases for get_params_per_item_type for SQLDatabase."""
 
@@ -460,8 +684,11 @@ class TestGetParamsPerItemTypeSQLDatabase:
         required, optional = get_params_per_item_type(mock_sql_database_item)
 
         assert required == []
-        assert len(optional) == 4
+        assert len(optional) == 7
         assert "mode" in optional
+        assert "backupRetentionDays" in optional
+        assert "collation" in optional
         assert "restorePointInTime" in optional
         assert "itemId" in optional
         assert "workspaceId" in optional
+        assert "restorableDeletedDatabaseName" in optional

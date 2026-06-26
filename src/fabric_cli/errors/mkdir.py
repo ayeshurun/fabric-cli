@@ -36,9 +36,24 @@ class MkdirErrors:
         )
 
     @staticmethod
+    def missing_restore_deleted_params() -> str:
+        return (
+            "Missing required parameter(s) for restoreDeletedDatabase mode. "
+            "Required: restorePointInTime, restorableDeletedDatabaseName. "
+            "Example: -P mode=restoreDeletedDatabase,restorePointInTime=2024-01-15T10:30:00Z,restorableDeletedDatabaseName=<name>"
+        )
+
+    @staticmethod
+    def invalid_backup_retention_days() -> str:
+        return (
+            "Invalid backupRetentionDays value. "
+            "Please provide an integer number of days (e.g., '7')"
+        )
+
+    @staticmethod
     def invalid_creation_mode(mode: str) -> str:
         return (
             f"Invalid mode '{mode}' for SQLDatabase creation. "
-            "Supported modes: 'restore'. "
+            "Supported modes: 'new', 'restore', 'restoreDeletedDatabase'. "
             "Omit mode parameter for standard database creation."
         )

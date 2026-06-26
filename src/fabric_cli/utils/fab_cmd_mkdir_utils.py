@@ -219,7 +219,37 @@ def add_type_specific_payload(item: Item, args, payload):
         case ItemType.SQL_DATABASE:
             mode = params.get("mode", "").lower()
 
-            if mode == "restore":
+            if mode in ("", "new"):
+                # Default (New) creation mode.
+                # Optional properties: backupRetentionDays, collation.
+                # Note: params are pre-lowercased, but error messages use
+                # camelCase to match get_params_per_item_type() output.
+                creation_payload: dict = {}
+
+                backup_retention_days = params.get("backupretentiondays")
+                if backup_retention_days is not None:
+                    try:
+                        creation_payload["backupRetentionDays"] = int(
+                            backup_retention_days
+                        )
+                    except (ValueError, TypeError):
+                        raise FabricCLIError(
+                            ErrorMessages.Mkdir.invalid_backup_retention_days(),
+                            fab_constant.ERROR_INVALID_INPUT,
+                        )
+
+                collation = params.get("collation")
+                if collation is not None:
+                    creation_payload["collation"] = collation
+
+                # Only emit a creationPayload when the user explicitly requested
+                # the New mode or supplied New-mode properties, preserving the
+                # default standard-creation behavior otherwise.
+                if mode == "new" or creation_payload:
+                    creation_payload["creationMode"] = "New"
+                    payload_dict["creationPayload"] = creation_payload
+
+            elif mode == "restore":
                 # Point-in-time restore mode
                 # Note: params are pre-lowercased, but error messages use camelCase
                 # to match get_params_per_item_type() output
@@ -266,7 +296,35 @@ def add_type_specific_payload(item: Item, args, payload):
                     },
                     "restorePointInTime": restore_point_in_time,
                 }
-            elif mode:
+            elif mode == "restoredeleteddatabase":
+                # Restore from a restorable deleted database.
+                # Note: params are pre-lowercased, but error messages use
+                # camelCase to match get_params_per_item_type() output.
+                restore_point_in_time = params.get("restorepointintime")
+                restorable_deleted_database_name = params.get(
+                    "restorabledeleteddatabasename"
+                )
+
+                # Validate all required parameters are present
+                if not restore_point_in_time or not restorable_deleted_database_name:
+                    raise FabricCLIError(
+                        ErrorMessages.Mkdir.missing_restore_deleted_params(),
+                        fab_constant.ERROR_INVALID_INPUT,
+                    )
+
+                # Validate restorePointInTime format (ISO 8601 with timezone)
+                if not is_valid_iso8601_timestamp(restore_point_in_time):
+                    raise FabricCLIError(
+                        ErrorMessages.Mkdir.invalid_restore_point_in_time(),
+                        fab_constant.ERROR_INVALID_INPUT,
+                    )
+
+                payload_dict["creationPayload"] = {
+                    "creationMode": "RestoreDeletedDatabase",
+                    "restorableDeletedDatabaseName": restorable_deleted_database_name,
+                    "restorePointInTime": restore_point_in_time,
+                }
+            else:
                 # Invalid mode specified
                 raise FabricCLIError(
                     ErrorMessages.Mkdir.invalid_creation_mode(mode),
@@ -401,9 +459,12 @@ def get_params_per_item_type(item: Item):
             # These camelCase names are for user-facing help text display only.
             optional_params = [
                 "mode",
+                "backupRetentionDays",
+                "collation",
                 "restorePointInTime",
                 "itemId",
                 "workspaceId",
+                "restorableDeletedDatabaseName",
             ]
 
     return required_params, optional_params

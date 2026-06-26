@@ -1,0 +1,6 @@
+kind: added
+body: Add support for optional SQLDatabase creation modes in ``mkdir`` (``new`` with ``backupRetentionDays``/``collation``, ``restore``, and ``restoreDeletedDatabase``)
+time: 2026-06-26T06:34:00.0000000+00:00
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun
