@@ -73,7 +73,7 @@ class TestDeploy:
         assert "Deployment completed successfully" in str(
             mock_print_done.call_args)
 
-    def test_deploy_multiple_items_bulk_publish_enabled_success(
+    def test_deploy_multiple_items_feature_flags_enabled_success(
         self,
         deploy_setup_factory,
         cli_executor: CLIExecutor,
@@ -81,11 +81,12 @@ class TestDeploy:
         mock_print_done,
     ):
         """
-        Test successful deployment of multiple items when the experimental
-        --bulk_publish flag is passed.
+        Test successful deployment of multiple items when fabric-cicd feature
+        flags are enabled through the --feature_flags argument.
 
-        The test asserts the experimental bulk-publish flags were appended
-        before invoking the mocked fabric-cicd deployment call.
+        The test asserts the requested feature flags (and the always-on
+        enable_experimental_features gate) were appended before invoking the
+        mocked fabric-cicd deployment call.
         """
         import fabric_cli.commands.fs.deploy.fab_fs_deploy_config_file as deploy_mod
 
@@ -102,9 +103,9 @@ class TestDeploy:
             patch.object(deploy_mod, "append_feature_flag") as mock_flag,
         ):
             cli_executor.exec_command(
-                f"deploy --config {str(deploy_config_path)} --target_env dev --force --bulk_publish")
+                f"deploy --config {str(deploy_config_path)} --target_env dev --force --feature_flags enable_bulk_publish")
 
-        # Assert deployment completed and the bulk publish flags were applied
+        # Assert deployment completed and the requested feature flags were applied
         mock_print_done.assert_called()
         assert "Deployment completed successfully" in str(
             mock_print_done.call_args)

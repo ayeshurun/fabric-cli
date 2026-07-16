@@ -456,8 +456,8 @@ def register_deploy_parser(subparsers: _SubParsersAction) -> None:
         "$ deploy --config config.yml --target_env dev\n",
         "# deploy with config file, environment, and optional parameters",
         "$ deploy --config config.yml --target_env prod -P '[{\"param1\":\"value1\"}]' -f\n",
-        "# deploy using experimental bulk publish (single bulk import API call)",
-        "$ deploy --config config.yml --target_env dev --bulk_publish",
+        "# deploy enabling fabric-cicd feature flags",
+        "$ deploy --config config.yml --target_env dev --feature_flags enable_shortcut_publish,enable_bulk_publish",
     ]
 
     deploy_parser = subparsers.add_parser(
@@ -491,14 +491,13 @@ def register_deploy_parser(subparsers: _SubParsersAction) -> None:
     )
 
     deploy_parser.add_argument(
-        "-f", "--force", required=False, action="store_true", help="Force. Optional"
+        "--feature_flags",
+        type=str,
+        help="fabric-cicd feature flags to enable, comma-separated (e.g., enable_shortcut_publish,enable_bulk_publish). Optional",
     )
 
     deploy_parser.add_argument(
-        "--bulk_publish",
-        required=False,
-        action="store_true",
-        help="Experimental. Deploy all items in a single bulk import API call instead of one at a time. Optional",
+        "-f", "--force", required=False, action="store_true", help="Force. Optional"
     )
 
     deploy_parser.set_defaults(func=lazy_command(
