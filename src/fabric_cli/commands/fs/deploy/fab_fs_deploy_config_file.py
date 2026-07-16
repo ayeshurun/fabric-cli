@@ -20,17 +20,9 @@ from fabric_cli.utils.fab_util import get_dict_from_params
 #   fabric-cicd feature flag to take effect; harmless on its own.
 _ALWAYS_ON_FEATURE_FLAGS = {"disable_print_identity", "enable_experimental_features"}
 
-# Valid fabric-cicd feature flag names. Prefer the library's public
-# get_supported_feature_flags() (kept in sync with its FeatureFlag enum); fall
-# back to deriving the same set from the enum for older fabric-cicd releases that
-# do not expose the function yet.
+# Valid fabric-cicd feature flag names, derived from the library's FeatureFlag enum.
 # See https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/
-try:
-    from fabric_cicd import get_supported_feature_flags  # type: ignore
-
-    VALID_FEATURE_FLAGS = set(get_supported_feature_flags())
-except ImportError:
-    VALID_FEATURE_FLAGS = {flag.value for flag in FeatureFlag}
+VALID_FEATURE_FLAGS = {flag.value for flag in FeatureFlag}
 
 
 def deploy_with_config_file(args: Namespace) -> None:
