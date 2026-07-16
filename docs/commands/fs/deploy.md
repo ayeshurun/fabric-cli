@@ -15,7 +15,7 @@ You can deploy:
 **Usage:**
 
 ```bash
-fab deploy --config <config_file> [--target_env <environment>] [--params <parameters>] [--force]
+fab deploy --config <config_file> [--target_env <environment>] [--params <parameters>] [--feature_flags <flags>] [--force]
 ```
 
 **Parameters:**
@@ -23,6 +23,7 @@ fab deploy --config <config_file> [--target_env <environment>] [--params <parame
 - `--config <file>`: Path to the deployment configuration YAML file. **Required**.
 - `--target_env, -tenv <env>`: Environment name used to select environment-specific settings from the configuration file and the parameter file (if present). Optional.
 - `--params, -P <params>`: JSON-formatted parameters provided to the deployment process at runtime. Optional.
+- `--feature_flags <flags>`: fabric-cicd feature flags to enable, comma-separated (e.g., `enable_shortcut_publish,enable_bulk_publish`). Optional.
 - `--force, -f`: Run the deployment without interactive confirmation prompts. Optional.
 
 **Example:**
@@ -50,22 +51,29 @@ The deployment to the Fabric workspaces is executed via the Fabric REST APIs.
 
 ---
 
-### Bulk Publish (Experimental)
+### Feature Flags
 
-By default, `deploy` publishes items **one at a time**. You can optionally enable
-**bulk publish**, which deploys all items in a **single bulk import API call**.
-
-Enable it with the `--bulk_publish` flag:
+[`fabric-cicd`](https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/)
+exposes a set of optional **feature flags** that change deployment behavior (for
+example bulk publish, shortcut publish, or selective unpublish). Enable them with the
+`--feature_flags` argument, which accepts a comma-separated list of flag names.
 
 ```bash
-fab deploy --config config.yml --target_env dev --bulk_publish
+# enable a single feature flag
+fab deploy --config config.yml --target_env dev --feature_flags enable_shortcut_publish
+
+# enable multiple feature flags (comma-separated)
+fab deploy --config config.yml --target_env dev --feature_flags enable_shortcut_publish,enable_bulk_publish
 ```
 
 Notes:
 
-- This feature is **experimental** in the underlying [`fabric-cicd`](https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/) library and uses its bulk import (beta) API. It may change or fail; omit the `--bulk_publish` flag to use the standard per-item publish behavior.
-- It is **disabled by default**, so existing deployments keep the standard per-item publish behavior.
-- When enabled, the CLI turns on the required `enable_experimental_features` and `enable_bulk_publish` fabric-cicd feature flags for you.
+- Flag names are validated against the fabric-cicd supported
+  [feature flag list](https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/);
+  an unknown flag raises a clear error.
+- Many flags are **experimental** in fabric-cicd. The CLI always enables the required
+  `enable_experimental_features` gate for you, so you never need to pass it explicitly.
+  If you do pass `enable_experimental_features`, it is simply skipped.
 
 ---
 

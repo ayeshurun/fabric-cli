@@ -4,7 +4,7 @@
 import json
 from argparse import Namespace
 
-from fabric_cicd import append_feature_flag, configure_external_file_logging, deploy_with_config, disable_file_logging  # type: ignore
+from fabric_cicd import FeatureFlag, append_feature_flag, configure_external_file_logging, deploy_with_config, disable_file_logging  # type: ignore
 
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core import fab_logger
@@ -12,6 +12,25 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_msal_bridge import create_fabric_token_credential
 from fabric_cli.utils import fab_ui
 from fabric_cli.utils.fab_util import get_dict_from_params
+
+# Feature flags the CLI always enables on the user's behalf, so they are skipped
+# (not re-appended, not validated) if a user also passes them via --feature_flags:
+# - disable_print_identity: avoids printing identity info in fabric-cicd logs.
+# - enable_experimental_features: gate that must be on for any experimental
+#   fabric-cicd feature flag to take effect; harmless on its own.
+_ALWAYS_ON_FEATURE_FLAGS = {"disable_print_identity", "enable_experimental_features"}
+
+# Valid fabric-cicd feature flag names. Prefer the library's public
+# get_supported_feature_flags() (kept in sync with its FeatureFlag enum); fall
+# back to deriving the same set from the enum for older fabric-cicd releases that
+# do not expose the function yet.
+# See https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/
+try:
+    from fabric_cicd import get_supported_feature_flags  # type: ignore
+
+    VALID_FEATURE_FLAGS = set(get_supported_feature_flags())
+except ImportError:
+    VALID_FEATURE_FLAGS = {flag.value for flag in FeatureFlag}
 
 
 def deploy_with_config_file(args: Namespace) -> None:
@@ -26,14 +45,13 @@ def deploy_with_config_file(args: Namespace) -> None:
             # prevent creation of a log file for fabric-cicd logs when debug mode is disabled
             disable_file_logging()
 
-        # feature flags to avoid printing identity info in logs
-        append_feature_flag("disable_print_identity")
-
-        # opt-in experimental bulk publish (single bulk import API call)
-        _apply_bulk_publish_feature_flags(args)
+        # enable the always-on flags plus any opt-in fabric-cicd feature flags
+        # passed via --feature_flags
+        _apply_feature_flags(args)
 
         deploy_config_file = args.config
         deploy_parameters = get_dict_from_params(args.params, max_depth=1)
+
         for param in deploy_parameters:
             if isinstance(deploy_parameters[param], str):
                 try:
@@ -59,21 +77,50 @@ def deploy_with_config_file(args: Namespace) -> None:
             fab_constant.ERROR_IN_DEPLOYMENT)
 
 
-def _apply_bulk_publish_feature_flags(args: Namespace) -> None:
-    """Enable fabric-cicd bulk publish when the --bulk_publish flag is set.
+def _apply_feature_flags(args: Namespace) -> None:
+    """Enable fabric-cicd feature flags.
 
-    Bulk publish deploys all items in a single bulk import API call instead of
-    one item at a time. It is experimental in fabric-cicd and requires both the
-    'enable_experimental_features' and 'enable_bulk_publish' feature flags, so
-    the CLI appends both. Disabled by default to preserve backward-compatible
-    standard (per-item) publish behavior.
+    Always enables the flags the CLI turns on by default (_ALWAYS_ON_FEATURE_FLAGS):
+    - disable_print_identity keeps identity info out of fabric-cicd logs.
+    - enable_experimental_features is the gate required for any experimental
+      fabric-cicd feature flag to take effect; it has no effect on its own, so
+      enabling it by default spares users from passing it alongside experimental
+      flags.
+
+    Also enables any opt-in flags passed via --feature_flags, which accepts a
+    single comma-separated list of flag names
+    (--feature_flags enable_shortcut_publish,enable_bulk_publish). Each is
+    validated against the fabric-cicd supported feature flag list and enabled via
+    append_feature_flag. Flags already enabled by default are skipped here if
+    passed explicitly.
     """
-    if getattr(args, "bulk_publish", False):
-        append_feature_flag("enable_experimental_features")
-        append_feature_flag("enable_bulk_publish")
-        fab_ui.print_warning(
-            "Experimental bulk publish is enabled: items will be deployed in a "
-            "single bulk import API call. This feature is experimental in "
-            "fabric-cicd and may change or fail; omit the '--bulk_publish' flag "
-            "to use standard per-item publish."
-        )
+    for flag in _ALWAYS_ON_FEATURE_FLAGS:
+        append_feature_flag(flag)
+
+    raw_flags = getattr(args, "feature_flags", None)
+    if not raw_flags:
+        return
+
+    for flag in _parse_feature_flags(raw_flags):
+        if flag in _ALWAYS_ON_FEATURE_FLAGS:
+            # already enabled by the CLI; skip redundant handling
+            continue
+        if flag not in VALID_FEATURE_FLAGS:
+            raise FabricCLIError(
+                f"Unknown fabric-cicd feature flag: '{flag}'. Valid flags: "
+                f"{', '.join(sorted(VALID_FEATURE_FLAGS))}. See "
+                f"https://microsoft.github.io/fabric-cicd/latest/how_to/optional_feature/",
+                fab_constant.ERROR_INVALID_INPUT,
+            )
+        append_feature_flag(flag)
+
+
+def _parse_feature_flags(raw_flags: str) -> list:
+    """Split the comma-separated --feature_flags value into a flat list of flag
+    name strings.
+
+    Surrounding '[' ']' brackets and whitespace are ignored and empty entries are
+    dropped, so 'a,b', ' a , b ' and '[a,b]' all yield ['a', 'b'].
+    """
+    raw_flags = raw_flags.strip().strip("[]")
+    return [name.strip() for name in raw_flags.split(",") if name.strip()]
