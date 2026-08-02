@@ -227,3 +227,15 @@ The parent test plan remains the acceptance evidence ledger for all 59 requireme
 ## Implementation Plan
 
 See [implementation-plan.md](implementation-plan.md) for the sequenced workstreams, dependencies, and proposed ADO task breakdown.
+
+## Tasks
+
+| ID | Task | Depends on |
+| ---: | --- | --- |
+| [2216015](task-2216015.md) | Shared executor, authentication coordinator, and interaction policy | None |
+| [2216016](task-2216016.md) | Azure CLI provider and explicit login contract | 2216015 interface alignment |
+| [2216017](task-2216017.md) | Identity binding and atomic auth state | 2216015, 2216016, security decision Q4 |
+| [2216018](task-2216018.md) | Shared chooser and exactly-once continuation | 2216015, 2216017, host decision Q5 |
+| [2216019](task-2216019.md) | Passive/active status, stable errors, and source-local logout | 2216015-2216017 |
+| [2216020](task-2216020.md) | HTTP, SDK bridge, deploy, and batch integration | 2216015-2216019 |
+| [2216021](task-2216021.md) | Release matrix, docs, telemetry, and Skills pilot | 2216015-2216020, rollout/security decisions Q2-Q3 |
