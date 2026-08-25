@@ -103,8 +103,8 @@ All new functionality must include tests:
 # Unit tests
 python3 -m pytest tests/test_core tests/test_utils
 
-# Integration tests (with VCR playback)
-python3 -m pytest tests/test_commands --playback
+# Integration tests (VCR playback is the default; pass --record to re-record)
+python3 -m pytest tests/test_commands
 ```
 
 ### Restricted Areas
