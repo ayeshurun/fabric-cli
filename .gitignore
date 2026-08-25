@@ -6,7 +6,15 @@ tests/test_commands/data/*
 # would silently skip them while pre-commit -- which passes tracked filenames
 # explicitly -- would flag them. That divergence is exactly the kind of silent
 # formatting hole this repo's lint setup exists to prevent.
-!tests/test_commands/data/*.py
+#
+# These are listed individually rather than as `*.py` on purpose: this directory
+# is also a scratch area that tests write generated .py payloads into, and a
+# wildcard negation would make those artefacts show up as untracked in
+# `git status` and get picked up by the formatters. Adding a real module here
+# means adding a line below -- CI's pre-commit/tox cross-check will fail loudly
+# if you forget.
+!tests/test_commands/data/models.py
+!tests/test_commands/data/static_test_data.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
