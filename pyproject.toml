@@ -69,8 +69,9 @@ target-version = ['py310', 'py311', 'py312', 'py313']
 #
 # `force-exclude` rather than `extend-exclude` is required here. `extend-exclude`
 # only applies while walking directories, so it is ignored when a path is passed
-# explicitly -- which is exactly how pre-commit invokes black. `force-exclude`
-# applies in both cases, keeping `tox -e lint` and pre-commit in agreement.
+# explicitly -- which is exactly how an editor invokes black on format-on-save,
+# and how `black path/to/file.py` behaves on the command line. `force-exclude`
+# applies in both cases, so the fixtures survive being opened in VS Code.
 #
 # sample_code/ holds fixtures whose *bytes* are uploaded by tests and recorded
 # into VCR cassettes (see tests/test_commands/recordings/.../test_run_spark_job.yaml).
@@ -83,8 +84,8 @@ force-exclude = '''
 #
 # `known_first_party` and `src_paths` are pinned explicitly so isort produces
 # identical output whether or not fabric_cli is installed in the environment
-# running it (tox uses skip_install, pre-commit runs in an isolated venv).
-# Without them, `fabric_cli` can be misclassified as third-party.
+# running it (tox uses skip_install; an editor may run isort against a bare
+# interpreter). Without them, `fabric_cli` can be misclassified as third-party.
 [tool.isort]
 profile = "black"
 line_length = 88
@@ -98,9 +99,8 @@ src_paths = ["src", "tests"]
 #
 # Skip globs are only honoured for *explicitly passed* files when isort runs with
 # `--filter-files`; without it, `isort tests/.../sample_code/x.py` rewrites the
-# file regardless of this setting. pre-commit's official isort hook injects
-# `--filter-files` automatically, and tox.toml passes it explicitly in both the
-# `lint` and `format` environments.
+# file regardless of this setting. tox.toml passes `--filter-files` explicitly in
+# both the `lint` and `format` environments.
 #
 # `skip_gitignore` keeps isort's directory walk in agreement with black's, which
 # honours .gitignore natively. Without it, untracked artefacts (the test suite

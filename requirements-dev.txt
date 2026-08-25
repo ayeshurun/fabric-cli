@@ -24,10 +24,9 @@ build
 # Pinned exactly: Black's stable style changes between releases, so an unpinned
 # formatter makes two contributors on different versions reformat each other's
 # code indefinitely. These versions MUST match the pins in tox.toml
-# ([env.lint] / [env.format]) and the `rev` values in .pre-commit-config.yaml.
+# ([env.lint] / [env.format]); scripts/check_formatter_pins.py enforces that.
 black==26.5.1
 isort==8.0.1
-pre-commit
 # scripts/check_formatter_pins.py parses tox.toml; tomllib is only in the stdlib
 # from Python 3.11, and this project supports 3.10.
 tomli>=2.0 ; python_version < "3.11"

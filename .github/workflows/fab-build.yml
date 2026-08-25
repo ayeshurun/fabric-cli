@@ -23,7 +23,6 @@ on:
       - '*.py'
       - '**/*.pyi'
       - '.ai-assets/**'
-      - '.pre-commit-config.yaml'
       # .gitignore is formatting-relevant: black honours it while walking
       # directories, so a .gitignore-only change can silently add or remove
       # files from the set that `tox -e lint` checks.
@@ -68,10 +67,8 @@ jobs:
       - name: Install Tox
         run: |
           python -m pip install --upgrade pip
-          # pyyaml is listed explicitly because the pin check imports it directly;
-          # it currently arrives as a pre-commit dependency, which is not a
-          # guarantee. tomllib is in the stdlib on the 3.13 used here.
-          pip install tox pre-commit pyyaml
+          # tomllib, used by the pin check, is in the stdlib on the 3.13 used here.
+          pip install tox
 
       - name: Cache Tox environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -81,35 +78,39 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tox-lint-
 
-      - name: Cache pre-commit environments
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/pre-commit
-          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-
       - name: Run Linting
         run: tox -e lint
 
-      # The black/isort versions are declared in tox.toml, requirements-dev.txt
-      # and .pre-commit-config.yaml. The two runs either side of this step only
-      # catch drift once the versions actually format this codebase differently,
-      # which can lag a release by months, so compare the declared pins directly.
-      - name: Verify formatter pins agree across tox, requirements-dev and pre-commit
+      # The black/isort versions are declared in tox.toml and requirements-dev.txt.
+      # `tox -e lint` only catches drift between them once the versions actually
+      # format this codebase differently, which can lag a release by months, so
+      # compare the declared pins directly.
+      - name: Verify formatter pins agree across tox and requirements-dev
         run: python scripts/check_formatter_pins.py
 
-      # `tox -e lint` and pre-commit resolve their file lists differently: black
-      # honours .gitignore while walking directories, whereas pre-commit passes
-      # tracked filenames explicitly. A file that is tracked but gitignored is
-      # therefore invisible to one and checked by the other. Running both here
-      # means any such divergence fails CI instead of silently letting
-      # unformatted code through -- and it validates .pre-commit-config.yaml,
-      # which nothing else in CI exercises.
+      # black honours .gitignore while walking directories, so a tracked file that
+      # is also gitignored is silently never checked -- `black --check .` reports
+      # success without ever having looked at it. That is not hypothetical: this
+      # repo shipped two unformatted tracked files that way until the negations in
+      # .gitignore were added. Nothing in `tox -e lint` can detect the hole,
+      # because from black's point of view the files do not exist.
       #
-      # On a cache miss this clones the hook repositories from github.com, so it
-      # is bounded to keep a network stall from occupying a runner for six hours.
-      - name: Verify pre-commit hooks agree with tox
-        timeout-minutes: 10
-        run: pre-commit run --all-files --show-diff-on-failure
+      # sample_code/ is the one deliberate exception: those fixtures are uploaded
+      # byte-for-byte by tests, so pyproject.toml force-excludes them from black.
+      - name: Verify no tracked Python file is hidden from black by .gitignore
+        run: |
+          # Assigned before filtering so a git failure trips `set -e` instead of
+          # being swallowed by the `|| true` that grep's no-match exit needs.
+          tracked_ignored=$(git ls-files -c -i --exclude-standard -- '*.py' '*.pyi')
+          hidden=$(printf '%s\n' "$tracked_ignored" \
+            | grep -v '^tests/test_commands/data/sample_code/' || true)
+          if [ -n "$hidden" ]; then
+            echo "::error::Tracked Python files are gitignored, so black skips them:"
+            echo "$hidden"
+            echo "Add a '!' negation for each in .gitignore, then run 'tox -e format'."
+            exit 1
+          fi
+          echo "No tracked Python file is hidden from black."
 
 
   # Type Checking Job

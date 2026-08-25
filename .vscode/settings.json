@@ -20,12 +20,12 @@
     // Use the black/isort installed in the selected interpreter's environment
     // (i.e. the versions pinned in requirements-dev.txt) instead of the copies
     // bundled with the extensions. The bundled versions update on the
-    // extension's own schedule and will drift from the pins used by tox, CI and
-    // pre-commit, producing edit-on-save changes that CI then rejects.
+    // extension's own schedule and will drift from the pins used by tox and CI,
+    // producing edit-on-save changes that CI then rejects.
     "black-formatter.importStrategy": "fromEnvironment",
     "isort.importStrategy": "fromEnvironment"
     // No "isort.args" / "black-formatter.args" here on purpose. Both extensions
     // auto-discover [tool.isort] and [tool.black] from pyproject.toml, which keeps
-    // the editor, tox, pre-commit and CI in agreement. Duplicating the arguments
-    // here creates a second source of truth that silently drifts.
+    // the editor, tox and CI in agreement. Duplicating the arguments here creates
+    // a second source of truth that silently drifts.
 }

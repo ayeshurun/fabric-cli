@@ -42,8 +42,8 @@ commands = [
 # formatting drift accumulate silently. `--check` is what actually fails the build.
 # Versions are pinned because Black's stable style changes between releases; an
 # unpinned formatter means two contributors on different versions reformat each
-# other's code forever. Keep these pins in sync with requirements-dev.txt and
-# .pre-commit-config.yaml.
+# other's code forever. Keep these pins in sync with requirements-dev.txt;
+# scripts/check_formatter_pins.py fails CI if they drift apart.
 #
 # `--filter-files` is required for isort to honour the skip globs in
 # pyproject.toml when a path is passed explicitly (e.g. `tox -e lint -- some/file.py`).

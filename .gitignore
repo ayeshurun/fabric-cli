@@ -3,16 +3,16 @@ tests/test_commands/data/*
 # ...but these two are tracked Python modules, not test artefacts. Without this
 # negation they stay invisible to any tool that honours .gitignore during
 # directory traversal (black does; isort does not), so `black --check .` in CI
-# would silently skip them while pre-commit -- which passes tracked filenames
-# explicitly -- would flag them. That divergence is exactly the kind of silent
-# formatting hole this repo's lint setup exists to prevent.
+# would report success without ever having looked at them. That silent hole is
+# exactly what this repo's lint setup exists to prevent, and it is not
+# hypothetical -- both files were unformatted and undetected until it was fixed.
 #
 # These are listed individually rather than as `*.py` on purpose: this directory
 # is also a scratch area that tests write generated .py payloads into, and a
 # wildcard negation would make those artefacts show up as untracked in
 # `git status` and get picked up by the formatters. Adding a real module here
-# means adding a line below -- CI's pre-commit/tox cross-check will fail loudly
-# if you forget.
+# means adding a line below -- the "no tracked Python file is hidden from black"
+# step in .github/workflows/fab-build.yml will fail loudly if you forget.
 !tests/test_commands/data/models.py
 !tests/test_commands/data/static_test_data.py
 
