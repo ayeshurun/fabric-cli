@@ -15,16 +15,16 @@ from fabric_cli.utils import fab_ui as utils_ui
 def is_metadata_property_query(query: str) -> bool:
     """
     Check if the query is for a metadata property or nested sub-property.
-    
+
     Examples:
         - "properties" -> True (exact match)
         - "properties.connectionString" -> True (nested property)
         - "id" -> True (exact match)
         - "someOtherField" -> False (not a metadata property)
-    
+
     Args:
         query: The query string to check (assumed to be non-empty)
-        
+
     Returns:
         bool: True if query matches a metadata property or its nested properties
     """
@@ -32,7 +32,7 @@ def is_metadata_property_query(query: str) -> bool:
 
     # Extract root property and check if it's a valid metadata property
     # This handles both exact matches and nested properties in one step
-    root_property = query.split('.')[0]
+    root_property = query.split(".")[0]
     return root_property in fab_constant.ITEM_METADATA_PROPERTIES
 
 

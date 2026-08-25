@@ -30,7 +30,7 @@ class VirtualItemContainer(FabricElement):
 
     def __init__(self, name, id, parent: Workspace):
         super().__init__(name, id, FabricElementType.VIRTUAL_ITEM_CONTAINER, parent)
-        (_, _type) = VirtualItemContainer.validate_name(f"{name}")
+        _, _type = VirtualItemContainer.validate_name(f"{name}")
         self._vic_type = _type
         self._item_type = VICMap[_type]
 

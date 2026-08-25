@@ -27,7 +27,7 @@ def _fetch_latest_version_from_pypi() -> Optional[str]:
     try:
         response = requests.get(
             fab_constant.VERSION_CHECK_PYPI_URL,
-            timeout=fab_constant.VERSION_CHECK_TIMEOUT_SECONDS
+            timeout=fab_constant.VERSION_CHECK_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         return response.json()["info"]["version"]

@@ -43,5 +43,5 @@ def exec(vic: VirtualItemContainer, args, show_details):
             data=sorted_spark_pools,
             columns=columns,
             args=args,
-            show_details=show_details
+            show_details=show_details,
         )

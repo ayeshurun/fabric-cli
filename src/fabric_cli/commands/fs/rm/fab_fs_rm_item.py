@@ -5,8 +5,8 @@ from argparse import Namespace
 
 from fabric_cli.client import fab_api_item as item_api
 from fabric_cli.core.hiearchy.fab_hiearchy import Item
-from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_cmd_rm_utils as rm_utils
+from fabric_cli.utils import fab_mem_store as utils_mem_store
 
 
 def exec(item: Item, args: Namespace, force_delete: bool) -> None:

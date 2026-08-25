@@ -27,12 +27,10 @@ def list_item_folders(item: Item, args):
         columns = ["permissions", "lastModified", "name"] if show_details else ["name"]
 
         utils_ls.format_and_print_output(
-            data=paths,
-            columns=columns,
-            args=args,
-            show_details=show_details
+            data=paths, columns=columns, args=args, show_details=show_details
         )
     return None
+
 
 def list_onelake(onelake: OneLakeItem, args):
     show_details = bool(args.long)
@@ -60,12 +58,9 @@ def list_onelake(onelake: OneLakeItem, args):
                     if show_details
                     else ["name"]
                 )
-                
+
                 output_data = paths
-                
+
             utils_ls.format_and_print_output(
-                data=output_data,
-                columns=columns,
-                args=args,
-                show_details=show_details
+                data=output_data, columns=columns, args=args, show_details=show_details
             )

@@ -5,8 +5,8 @@ import base64
 import datetime
 import json
 import os
-import re
 import random
+import re
 import string
 from collections import defaultdict
 from typing import DefaultDict
@@ -14,9 +14,9 @@ from typing import DefaultDict
 from tests.test_commands.api_processors.api_processor_handler import APIProcessorHandler
 from tests.test_commands.data.models import User
 from tests.test_commands.data.static_test_data import (
-    get_static_data,
-    get_mock_data,
     StaticTestData,
+    get_mock_data,
+    get_static_data,
 )
 from tests.test_commands.utils import is_record_mode
 
@@ -209,6 +209,7 @@ def _process_string_data(data: str) -> str:
     updated_data = _replace_labels_ids(updated_data)
     return updated_data
 
+
 def _process_global_strings(data: str) -> str:
     updated_data = data
     updated_data = _replace_email_addresses(updated_data)
@@ -277,6 +278,7 @@ def _replace_user_details(
 
     return updated_data
 
+
 def _replace_email_addresses(data: str) -> str:
     # Mock UPNs that should be excluded from replacement
     mock_user_upn = get_mock_data().user.upn
@@ -292,6 +294,7 @@ def _replace_email_addresses(data: str) -> str:
         return f"{match.group(1)}unknown@mocked_user{match.group(3)}"
 
     return re.sub(email_pattern, replace_email, data)
+
 
 def _replace_subscription(data: str) -> str:
     subscription_id = get_static_data().azure_subscription_id
@@ -388,9 +391,15 @@ def _replace_request_connection_details(data: dict):
     if isinstance(data, dict) and "connectionDetails" in data:
         data["connectionDetails"] = "mock_request_connection_details"
 
+
 def _replace_response_sql_endpoint_properties(data: dict):
-    if isinstance(data, dict) and "connectionString" in data and data["connectionString"] is not None:
+    if (
+        isinstance(data, dict)
+        and "connectionString" in data
+        and data["connectionString"] is not None
+    ):
         data["connectionString"] = "mock_connection_string"
+
 
 def _replace_invitationUrl(data: dict):
     if isinstance(data, dict) and "invitationUrl" in data:

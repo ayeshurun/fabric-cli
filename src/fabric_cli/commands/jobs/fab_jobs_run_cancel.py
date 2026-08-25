@@ -20,10 +20,7 @@ def exec_command(args: Namespace, item: Item) -> None:
     if response.status_code == 202:
         if args.wait:
             utils_job.wait_for_job_completion(
-                args,
-                args.id,
-                response,
-                custom_polling_interval=None
+                args, args.id, response, custom_polling_interval=None
             )
         else:
             fab_ui.print_output_format(

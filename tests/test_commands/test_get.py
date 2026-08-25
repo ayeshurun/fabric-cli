@@ -18,15 +18,15 @@ from fabric_cli.core.fab_types import (
 )
 from fabric_cli.core.hiearchy.fab_onelake_element import OneLakeItem
 from tests.test_commands.commands_parser import CLIExecutor
-from tests.test_commands.conftest import assert_fabric_cli_error
+from tests.test_commands.conftest import (
+    assert_fabric_cli_error,
+    get_item_warning_behavior_success_params,
+    get_item_with_properties_success_params,
+    get_virtual_workspace_success_params,
+    item_type_paramerter,
+)
 from tests.test_commands.data.static_test_data import StaticTestData
 from tests.test_commands.utils import cli_path_join
-from tests.test_commands.conftest import (
-    item_type_paramerter,
-    get_item_with_properties_success_params,
-    get_item_warning_behavior_success_params,
-    get_virtual_workspace_success_params,
-)
 
 
 class TestGet:
@@ -55,8 +55,7 @@ class TestGet:
         self, workspace, assert_fabric_cli_error, cli_executor: CLIExecutor
     ):
         # Execute command
-        cli_executor.exec_command(
-            f"get {workspace.full_path} -q '.nonexistent'")
+        cli_executor.exec_command(f"get {workspace.full_path} -q '.nonexistent'")
 
         # Assert
         assert_fabric_cli_error(
@@ -71,8 +70,7 @@ class TestGet:
         mock_print_warning.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"get {workspace.full_path} --query displayName")
+        cli_executor.exec_command(f"get {workspace.full_path} --query displayName")
 
         # Assert
         mock_questionary_print.assert_called_once()
@@ -84,7 +82,12 @@ class TestGet:
     # region Item
     @item_type_paramerter
     def test_get_item_query_all_success(
-        self, item_factory, cli_executor, mock_questionary_print, mock_print_warning, item_type
+        self,
+        item_factory,
+        cli_executor,
+        mock_questionary_print,
+        mock_print_warning,
+        item_type,
     ):
         # Setup
         item = item_factory(item_type)
@@ -107,7 +110,13 @@ class TestGet:
 
     @get_item_with_properties_success_params
     def test_get_item_with_properties_success(
-        self, item_factory, cli_executor, mock_questionary_print, mock_print_warning, item_type, expected_properties
+        self,
+        item_factory,
+        cli_executor,
+        mock_questionary_print,
+        mock_print_warning,
+        item_type,
+        expected_properties,
     ):
         # Setup
         item = item_factory(item_type)
@@ -129,7 +138,13 @@ class TestGet:
 
     @get_item_warning_behavior_success_params
     def test_get_item_warning_behavior_success(
-        self, item_factory, cli_executor, mock_questionary_print, mock_print_warning, item_type, expects_warning
+        self,
+        item_factory,
+        cli_executor,
+        mock_questionary_print,
+        mock_print_warning,
+        item_type,
+        expects_warning,
     ):
         # Setup
         item = item_factory(item_type)
@@ -209,7 +224,11 @@ class TestGet:
 
     # region Virtual Workspaces
     def test_get_virtual_workspace_capacity_query_all_success(
-        self, cli_executor, mock_questionary_print, test_data: StaticTestData, setup_config_values_for_capacity,
+        self,
+        cli_executor,
+        mock_questionary_print,
+        test_data: StaticTestData,
+        setup_config_values_for_capacity,
     ):
         # Execute command
         cli_executor.exec_command(
@@ -225,19 +244,21 @@ class TestGet:
 
     @get_virtual_workspace_success_params
     def test_get_virtual_workspace_success(
-        self, virtual_workspace_item_factory, cli_executor, mock_questionary_print,
-        virtual_workspace_type, expected_properties
+        self,
+        virtual_workspace_item_factory,
+        cli_executor,
+        mock_questionary_print,
+        virtual_workspace_type,
+        expected_properties,
     ):
         # Setup
-        virtual_workspace = virtual_workspace_item_factory(
-            virtual_workspace_type)
+        virtual_workspace = virtual_workspace_item_factory(virtual_workspace_type)
 
         # Reset mock
         mock_questionary_print.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"get {virtual_workspace.full_path} --query .")
+        cli_executor.exec_command(f"get {virtual_workspace.full_path} --query .")
 
         # Assert
         mock_questionary_print.assert_called_once()
@@ -282,8 +303,7 @@ class TestGet:
         mock_questionary_print.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"get {managed_private_endpoint.full_path} --query .")
+        cli_executor.exec_command(f"get {managed_private_endpoint.full_path} --query .")
 
         # Assert
         mock_questionary_print.assert_called_once()
@@ -312,8 +332,7 @@ class TestGet:
         mock_fab_logger_log_warning.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"get {external_data_share.full_path} --query .")
+        cli_executor.exec_command(f"get {external_data_share.full_path} --query .")
 
         # Assert
         # Verify call to get was made
@@ -378,8 +397,7 @@ class TestGet:
         assert is_metadata_property_query("description") is True
 
         # Test nested properties - the key enhancement
-        assert is_metadata_property_query(
-            "properties.connectionString") is True
+        assert is_metadata_property_query("properties.connectionString") is True
         assert is_metadata_property_query("properties.nested.value") is True
         assert is_metadata_property_query("displayName.localized") is True
 

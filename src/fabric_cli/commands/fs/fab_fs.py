@@ -9,14 +9,14 @@ from argparse import Namespace
 from fabric_cli.client import fab_api_azure as azure_api
 from fabric_cli.client import fab_api_capacity as capacity_api
 from fabric_cli.commands.fs import fab_fs_assign as fs_assign
+from fabric_cli.commands.fs import fab_fs_bulk_export as fs_bulk_export
 from fabric_cli.commands.fs import fab_fs_cd as fs_cd
 from fabric_cli.commands.fs import fab_fs_cp as fs_cp
+from fabric_cli.commands.fs import fab_fs_deploy as fs_deploy
 from fabric_cli.commands.fs import fab_fs_exists as fs_exists
 from fabric_cli.commands.fs import fab_fs_export as fs_export
-from fabric_cli.commands.fs import fab_fs_bulk_export as fs_bulk_export
 from fabric_cli.commands.fs import fab_fs_get as fs_get
 from fabric_cli.commands.fs import fab_fs_import as fs_import
-from fabric_cli.commands.fs import fab_fs_deploy as fs_deploy
 from fabric_cli.commands.fs import fab_fs_ln as fs_ln
 from fabric_cli.commands.fs import fab_fs_ls as fs_ls
 from fabric_cli.commands.fs import fab_fs_mkdir as fs_mkdir

@@ -64,8 +64,8 @@ def test_get_property_from_commands_and_subcommands(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "fabric_cli.core.fab_commands.get_command_support_dict", 
-        mock_get_command_support_dict
+        "fabric_cli.core.fab_commands.get_command_support_dict",
+        mock_get_command_support_dict,
     )
 
     assert _get_property_from_commands_and_subcommands(

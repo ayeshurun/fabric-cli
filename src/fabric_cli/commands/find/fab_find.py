@@ -81,7 +81,9 @@ def _next_page_payload(token: str, current: dict[str, Any]) -> dict[str, Any]:
 def _print_search_summary(count: int, has_more_pages: bool = False) -> None:
     """Print the search result summary line."""
     label = "item" if count == 1 else "items"
-    count_msg = f"{count} {label} found" + (" (more available)" if has_more_pages else "")
+    count_msg = f"{count} {label} found" + (
+        " (more available)" if has_more_pages else ""
+    )
     utils_ui.print_grey("")
     utils_ui.print_grey(count_msg)
     utils_ui.print_grey("")
@@ -124,7 +126,11 @@ def _find_interactive(args: Namespace, payload: dict[str, Any]) -> None:
         items, continuation_token = _fetch_results(args, payload)
         display_items, truncate_cols = _prepare_display_items(args, items)
         total_count = _display_page(
-            args, display_items, truncate_cols, continuation_token is not None, total_count
+            args,
+            display_items,
+            truncate_cols,
+            continuation_token is not None,
+            total_count,
         )
 
     if total_count == 0:

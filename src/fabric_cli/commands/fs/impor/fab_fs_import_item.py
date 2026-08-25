@@ -55,18 +55,15 @@ def import_single_item(item: Item, args: Namespace) -> None:
 
                 _import_update_item(args, payload, item)
 
-                utils_ui.print_output_format(
-                    args, message=f"'{item.name}' imported")
+                utils_ui.print_output_format(args, message=f"'{item.name}' imported")
         else:
             # Create
-            utils_ui.print_grey(
-                f"Importing '{_input_path}' → '{item.path}'...")
+            utils_ui.print_grey(f"Importing '{_input_path}' → '{item.path}'...")
 
             response = _import_create_item(args, payload, item)
 
             if response.status_code in (200, 201):
-                utils_ui.print_output_format(
-                    args, message=f"'{item.name}' imported")
+                utils_ui.print_output_format(args, message=f"'{item.name}' imported")
                 data = json.loads(response.text)
                 item._id = data["id"]
 
@@ -75,9 +72,7 @@ def import_single_item(item: Item, args: Namespace) -> None:
 
 
 # Utils
-def _import_update_item(
-    args: Namespace, payload: dict, item: Item
-) -> None:
+def _import_update_item(args: Namespace, payload: dict, item: Item) -> None:
     """Update an existing item's definition.
 
     For Environment items, implements the two-phase approach:
@@ -106,9 +101,7 @@ def _import_update_item(
         utils_import.wait_for_environment_publish(args)
 
 
-def _import_create_item(
-    args: Namespace, payload: dict, item: Item
-) -> ApiResponse:
+def _import_create_item(args: Namespace, payload: dict, item: Item) -> ApiResponse:
     """Create a new item with definition.
 
     For Environment items, implements the two-phase approach:

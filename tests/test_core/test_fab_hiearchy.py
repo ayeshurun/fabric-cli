@@ -137,8 +137,7 @@ def test_create_virtual_item_success():
     workspace = Workspace(
         name="My workspace", id="workspace_id", parent=tenant, type="Personal"
     )
-    container = VirtualItemContainer(
-        name=".sparkpools", id=None, parent=workspace)
+    container = VirtualItemContainer(name=".sparkpools", id=None, parent=workspace)
     item = VirtualItem(
         name="mySparkPool",
         id="virtual_item_id",
@@ -362,8 +361,7 @@ def test_create_virtual_item_container_success():
     workspace = Workspace(
         name="My workspace", id="workspace_id", parent=tenant, type="Personal"
     )
-    container = VirtualItemContainer(
-        name=".sparkpools", id=None, parent=workspace)
+    container = VirtualItemContainer(name=".sparkpools", id=None, parent=workspace)
     assert container.parent == workspace
     assert container.tenant.id == "0000"
     assert container.tenant.name == "tenant_name.Tenant"
@@ -414,9 +412,13 @@ def test_get_item_payloads_success():
     }
 
     # Check that the payload is correct
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
-        assert get_payload_for_item_type(
-            "dummy", notebook, "ipynb") == _expected_payload
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
+        assert (
+            get_payload_for_item_type("dummy", notebook, "ipynb") == _expected_payload
+        )
 
     # Test Spark Job Definition
     spark_job_def = Item(
@@ -437,9 +439,14 @@ def test_get_item_payloads_success():
     }
 
     # Check that the payload is correct
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
-        assert get_payload_for_item_type("dummy",
-                                         spark_job_def, "SparkJobDefinitionV2") == _expected_payload
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
+        assert (
+            get_payload_for_item_type("dummy", spark_job_def, "SparkJobDefinitionV2")
+            == _expected_payload
+        )
 
     _expected_payload = {
         "type": "SparkJobDefinition",
@@ -452,9 +459,14 @@ def test_get_item_payloads_success():
     }
 
     # Check that the payload is correct
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
-        assert get_payload_for_item_type(
-            "dummy", spark_job_def, "SparkJobDefinitionV1") == _expected_payload
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
+        assert (
+            get_payload_for_item_type("dummy", spark_job_def, "SparkJobDefinitionV1")
+            == _expected_payload
+        )
 
     # Test EventHouse
     event_house = Item(
@@ -472,9 +484,11 @@ def test_get_item_payloads_success():
     }
 
     # Check that the payload is correct
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
-        assert get_payload_for_item_type(
-            "dummy", event_house) == _expected_payload
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
+        assert get_payload_for_item_type("dummy", event_house) == _expected_payload
 
     # Test Report
     report = Item(
@@ -506,9 +520,14 @@ def test_get_item_payloads_success():
         "definition": {"parts": _base_payload["parts"]},
     }
 
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
-        assert get_payload_for_item_type("dummy",
-                                         smenticModel) == _expected_payload_without_format
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
+        assert (
+            get_payload_for_item_type("dummy", smenticModel)
+            == _expected_payload_without_format
+        )
 
     _expected_payload_with_format = {
         "type": "SemanticModel",
@@ -520,14 +539,20 @@ def test_get_item_payloads_success():
         },
     }
 
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
         assert (
             get_payload_for_item_type("dummy", smenticModel, "TMDL")
             == _expected_payload_with_format
         )
 
     # Check that the payload is correct
-    with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+    with patch(
+        "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+        side_effect=_mock_build,
+    ):
         assert get_payload_for_item_type("dummy", report) == _expected_payload
 
 
@@ -583,8 +608,7 @@ def _make_item(item_type: str, parent=None) -> Item:
     """Helper to create an Item with minimal boilerplate."""
     if parent is None:
         tenant = Tenant(name="t", id="tid")
-        parent = Workspace(name="ws", id="wsid",
-                           parent=tenant, type="Workspace")
+        parent = Workspace(name="ws", id="wsid", parent=tenant, type="Workspace")
     return Item(name="item", id="iid", parent=parent, item_type=item_type)
 
 
@@ -618,7 +642,10 @@ class TestBuildPayload:
         def _mock_build(path, resolved_format=""):
             return {"parts": {"key": "value"}}
 
-        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        with patch(
+            "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+            side_effect=_mock_build,
+        ):
             payload = get_payload_for_item_type("dummy", item)
         assert payload["type"] == "Lakehouse"
         assert payload["displayName"] == "item"
@@ -631,7 +658,10 @@ class TestBuildPayload:
         def _mock_build(path, resolved_format=""):
             return {"parts": {"key": "value"}}
 
-        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        with patch(
+            "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+            side_effect=_mock_build,
+        ):
             payload = get_payload_for_item_type("dummy", item)
         assert payload["definition"] == {"parts": {"key": "value"}}
 
@@ -650,7 +680,10 @@ class TestBuildPayload:
                 result["format"] = resolved_format
             return result
 
-        with patch("fabric_cli.utils.fab_cmd_import_utils._build_definition", side_effect=_mock_build):
+        with patch(
+            "fabric_cli.utils.fab_cmd_import_utils._build_definition",
+            side_effect=_mock_build,
+        ):
             payload = get_payload_for_item_type("dummy", item, "ipynb")
         assert payload["folderId"] == "folder123"
         assert payload["definition"]["format"] == "ipynb"

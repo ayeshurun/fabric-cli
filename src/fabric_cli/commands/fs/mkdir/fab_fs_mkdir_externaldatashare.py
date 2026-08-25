@@ -11,10 +11,10 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.utils import fab_cmd_mkdir_utils as mkdir_utils
+from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils import fab_util as utils
-from fabric_cli.utils import fab_item_util as item_utils
 
 
 def exec(external_data_share: VirtualItem, args: Namespace) -> None:
@@ -71,7 +71,12 @@ def exec(external_data_share: VirtualItem, args: Namespace) -> None:
             item.name, external_data_share.id
         )
 
-        utils_ui.print_output_format(args, message=f"'{external_data_share.name}' created", data=data, show_headers=True)
+        utils_ui.print_output_format(
+            args,
+            message=f"'{external_data_share.name}' created",
+            data=data,
+            show_headers=True,
+        )
 
         # Add to mem_store
         utils_mem_store.upsert_external_data_share_to_cache(external_data_share, item)

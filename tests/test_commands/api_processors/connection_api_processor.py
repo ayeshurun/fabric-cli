@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import json
+
 from tests.test_commands.api_processors.base_api_processor import BaseAPIProcessor
 from tests.test_commands.api_processors.utils import (
     load_request_json_body,
@@ -19,7 +20,7 @@ class ConnectionAPIProcessor(BaseAPIProcessor):
     def try_process_request(self, request) -> bool:
         uri = request.uri
         self._mock_gateway_id_in_uri(request)
-        
+
         # Handle connection creation and listing
         if uri.lower() == self.CONNECTIONS_URI.lower():
             method = request.method
@@ -27,11 +28,13 @@ class ConnectionAPIProcessor(BaseAPIProcessor):
                 """https://learn.microsoft.com/en-us/rest/api/fabric/core/connections/create-connection?tabs=HTTP"""
                 self._handle_post_request(request)
             return True
-        
+
         # Handle supported connection types with gateway ID query parameter
-        if uri.lower().startswith(f"{self.CONNECTIONS_URI.lower()}/supportedconnectiontypes"):
+        if uri.lower().startswith(
+            f"{self.CONNECTIONS_URI.lower()}/supportedconnectiontypes"
+        ):
             return True
-        
+
         return False
 
     def try_process_response(self, request, response) -> bool:
@@ -90,11 +93,11 @@ class ConnectionAPIProcessor(BaseAPIProcessor):
         """Mock gateway ID references in connection objects"""
         static_gateway_id = get_static_data().onpremises_gateway_details.id
         mock_gateway_id = get_mock_data().onpremises_gateway_details.id
-        
+
         # Mock direct gatewayId field
         if "gatewayId" in obj and obj["gatewayId"] == static_gateway_id:
             obj["gatewayId"] = f"{mock_gateway_id}"
-        
+
         # Mock gatewayId in credentialDetails.values arrays
         if "credentialDetails" in obj and "values" in obj["credentialDetails"]:
             for cred_value in obj["credentialDetails"]["values"]:
@@ -106,6 +109,6 @@ class ConnectionAPIProcessor(BaseAPIProcessor):
         """Mock gateway IDs in request URIs and query parameters"""
         static_gateway_id = get_static_data().onpremises_gateway_details.id
         mock_gateway_id = get_mock_data().onpremises_gateway_details.id
-        
+
         # Replace gateway ID in URI path and query parameters
         request.uri = request.uri.replace(static_gateway_id, mock_gateway_id)

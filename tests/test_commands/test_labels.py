@@ -4,8 +4,8 @@
 import argparse
 import json
 import os
-from unittest.mock import patch
 import tempfile
+from unittest.mock import patch
 
 import pytest
 

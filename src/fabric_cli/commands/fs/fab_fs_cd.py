@@ -11,7 +11,12 @@ from fabric_cli.utils import fab_ui as utils_ui
 def exec_command(args: Namespace, context: FabricElement) -> None:
     _change_context(context, args)
 
+
 def _change_context(context: FabricElement, args: Namespace) -> None:
     Context().context = context
-    text_message = "Switched to root" if isinstance(context, Tenant) else f"Switched to '{context.name}'"
+    text_message = (
+        "Switched to root"
+        if isinstance(context, Tenant)
+        else f"Switched to '{context.name}'"
+    )
     utils_ui.print_output_format(args, message=text_message)

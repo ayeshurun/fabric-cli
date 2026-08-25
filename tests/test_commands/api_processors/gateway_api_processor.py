@@ -3,6 +3,7 @@
 
 import json
 import re
+
 from tests.test_commands.api_processors.base_api_processor import BaseAPIProcessor
 from tests.test_commands.api_processors.utils import (
     load_request_json_body,
@@ -22,7 +23,7 @@ class GatewayAPIProcessor(BaseAPIProcessor):
         uri = request.uri
         # First, handle URI mocking for gateway IDs
         self._mock_gateway_id_in_uri(request)
-        
+
         # Handle list_gateways
         if uri.lower() == self.GATEWAYS_URI.lower():
             method = request.method
@@ -30,14 +31,16 @@ class GatewayAPIProcessor(BaseAPIProcessor):
                 """https://learn.microsoft.com/en-us/rest/api/fabric/core/gateways/create-gateway?tabs=HTTP"""
                 self._handle_post_request(request)
             return True
-        
+
         # Handle individual gateway requests
-        if re.fullmatch(rf"{re.escape(self.GATEWAYS_URI)}/[0-9a-fA-F-]{{36}}", request.uri):
+        if re.fullmatch(
+            rf"{re.escape(self.GATEWAYS_URI)}/[0-9a-fA-F-]{{36}}", request.uri
+        ):
             method = request.method
             if method in ("GET", "PATCH", "DELETE", "PUT"):
                 self._handle_gateway_request(request)
             return True
-        
+
         return False
 
     def try_process_response(self, request, response) -> bool:
@@ -128,11 +131,11 @@ class GatewayAPIProcessor(BaseAPIProcessor):
         """Mock gateway ID values in gateway objects"""
         static_gateway_id = get_static_data().onpremises_gateway_details.id
         mock_gateway_id = get_mock_data().onpremises_gateway_details.id
-        
+
         # Mock direct id field
         if "id" in obj and obj["id"] == static_gateway_id:
             obj["id"] = mock_gateway_id
-        
+
         # Mock gatewayId field
         if "gatewayId" in obj and obj["gatewayId"] == static_gateway_id:
             obj["gatewayId"] = mock_gateway_id
@@ -141,7 +144,7 @@ class GatewayAPIProcessor(BaseAPIProcessor):
         """Mock gateway IDs in request URIs"""
         static_gateway_id = get_static_data().onpremises_gateway_details.id
         mock_gateway_id = get_mock_data().onpremises_gateway_details.id
-        
+
         # Replace gateway ID in URI path
         request.uri = request.uri.replace(static_gateway_id, mock_gateway_id)
 
@@ -151,6 +154,6 @@ class GatewayAPIProcessor(BaseAPIProcessor):
         if data:
             self._mock_virtual_network_azure_resource(data)
             self._mock_gateway_id(data)
-            
+
             new_body_str = json.dumps(data)
             request.body = new_body_str

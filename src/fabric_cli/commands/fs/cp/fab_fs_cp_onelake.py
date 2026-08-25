@@ -9,9 +9,9 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import OneLakeItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import LocalPath, OneLakeItem
 from fabric_cli.utils import fab_cmd_cp_utils as cp_utils
+from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils import fab_util as utils
-from fabric_cli.utils import fab_item_util as item_utils
 
 
 def copy_onelake_2_onelake(

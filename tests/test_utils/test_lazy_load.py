@@ -29,21 +29,20 @@ class TestLazyLoad:
             assert callable(wrapper)
 
             # Module should not be imported at wrapper creation time
-            assert mod_path not in sys.modules, (
-                "Module should not be imported at wrapper creation time"
-            )
+            assert (
+                mod_path not in sys.modules
+            ), "Module should not be imported at wrapper creation time"
         finally:
             if saved_mod is not None:
                 sys.modules[mod_path] = saved_mod
 
     def test_lazy_command__invokes_target_function(self):
         """Test that lazy_command correctly resolves and calls the target function."""
+        # Create a test module with a mock function
+        import types
         from unittest.mock import MagicMock
 
         from fabric_cli.utils.fab_lazy_load import lazy_command
-
-        # Create a test module with a mock function
-        import types
 
         test_mod = types.ModuleType("_test_lazy_mod")
         test_mod.my_func = MagicMock(return_value=42)
@@ -82,9 +81,7 @@ class TestStartupPerformance:
     def test_main_module_import__under_threshold(self):
         """Test that importing the main module stays under performance threshold."""
         # Remove cached modules to get a fresh import measurement
-        modules_to_remove = [
-            key for key in sys.modules if key.startswith("fabric_cli")
-        ]
+        modules_to_remove = [key for key in sys.modules if key.startswith("fabric_cli")]
         saved_modules = {}
         for mod in modules_to_remove:
             saved_modules[mod] = sys.modules.pop(mod)
@@ -96,9 +93,9 @@ class TestStartupPerformance:
 
             # The import should complete in under 500ms (generous threshold)
             # Before optimization: ~737ms, after: ~54ms
-            assert elapsed_ms < 500, (
-                f"fabric_cli.main import took {elapsed_ms:.0f}ms, expected < 500ms"
-            )
+            assert (
+                elapsed_ms < 500
+            ), f"fabric_cli.main import took {elapsed_ms:.0f}ms, expected < 500ms"
         finally:
             # Restore modules
             for mod_name, mod in saved_modules.items():
@@ -107,9 +104,7 @@ class TestStartupPerformance:
     def test_heavy_modules_not_imported_at_startup(self):
         """Test that heavy dependencies are NOT loaded during main module import."""
         # Remove cached modules
-        modules_to_remove = [
-            key for key in sys.modules if key.startswith("fabric_cli")
-        ]
+        modules_to_remove = [key for key in sys.modules if key.startswith("fabric_cli")]
         saved_modules = {}
         for mod in modules_to_remove:
             saved_modules[mod] = sys.modules.pop(mod)
@@ -127,9 +122,9 @@ class TestStartupPerformance:
 
             # These heavy modules should NOT be imported during startup
             for mod_name in heavy_modules:
-                assert mod_name not in sys.modules, (
-                    f"'{mod_name}' should not be imported at startup"
-                )
+                assert (
+                    mod_name not in sys.modules
+                ), f"'{mod_name}' should not be imported at startup"
         finally:
             # Restore all modules
             for mod_name, mod in saved_modules.items():

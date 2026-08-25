@@ -3,13 +3,18 @@
 
 import json
 
+
 def load_response_json_body(response):
     """
     Utility to extract and decode a JSON body from a response object.
     Handles both bytes and str, and returns None if body is empty/null.
     """
     if _is_text_payload(response):
-        body = response["body"]["string"] if "body" in response and "string" in response["body"] else None
+        body = (
+            response["body"]["string"]
+            if "body" in response and "string" in response["body"]
+            else None
+        )
         if not body:
             return None
         body_str = str(body, "utf-8") if isinstance(body, bytes) else str(body)
@@ -17,7 +22,7 @@ def load_response_json_body(response):
             return None
 
         return json.loads(body_str)
-    
+
     return None
 
 

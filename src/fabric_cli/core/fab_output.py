@@ -15,6 +15,7 @@ class OutputStatus(str, Enum):
     Success = "Success"
     Failure = "Failure"
 
+
 class OutputResult:
 
     def __init__(
@@ -134,6 +135,7 @@ class FabricCLIOutput:
     def to_json(self, indent: int = 4) -> str:
         try:
             from fabric_cli.utils.fab_util import dumps
+
             return dumps(self._to_dict(), indent=indent)
         except (RuntimeError, AttributeError, Exception) as e:
             raise (

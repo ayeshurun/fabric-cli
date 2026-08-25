@@ -27,7 +27,7 @@ def test_validate_and_get_env_variable_valid_hostnames(capsys):
         "dfs.fabric.microsoft.com",
         "api.powerbi.com",
         "management.azure.com",
-        "management.test.hostname"
+        "management.test.hostname",
     ]
 
     for hostname in valid_hostnames:
@@ -35,6 +35,7 @@ def test_validate_and_get_env_variable_valid_hostnames(capsys):
         result = validate_and_get_env_variable("TEST_HOSTNAME", "default.com")
         assert result == hostname
         assert capsys.readouterr().out == ""  # No error output
+
 
 def test_validate_and_get_env_variable_invalid_hostnames(capsys, monkeypatch):
     """Test validation of invalid hostname names exits with error"""
@@ -50,6 +51,7 @@ def test_validate_and_get_env_variable_invalid_hostnames(capsys, monkeypatch):
     def mock_exit(code):
         assert code == 1
         raise SystemExit(code)
+
     monkeypatch.setattr(sys, "exit", mock_exit)
 
     for hostname in invalid_hostnames:
@@ -58,17 +60,21 @@ def test_validate_and_get_env_variable_invalid_hostnames(capsys, monkeypatch):
             validate_and_get_env_variable("TEST_HOSTNAME", "default.com")
 
         # Verify error output
-        assert ex.value.message == ErrorMessages.Common.invalid_hostname("TEST_HOSTNAME")
+        assert ex.value.message == ErrorMessages.Common.invalid_hostname(
+            "TEST_HOSTNAME"
+        )
         assert ex.value.status_code == fab_constant.ERROR_INVALID_HOSTNAME
+
 
 def test_validate_and_get_env_variable_default_value(capsys):
     """Test that default value is used when environment variable is not set"""
     if "TEST_HOSTNAME" in os.environ:
         del os.environ["TEST_HOSTNAME"]
-    
+
     result = validate_and_get_env_variable("TEST_HOSTNAME", "api.fabric.microsoft.com")
     assert result == "api.fabric.microsoft.com"
     assert capsys.readouterr().out == ""  # No error output
+
 
 def test_validate_and_get_env_variable_strips_path(capsys):
     """Test that paths are stripped from hostname values"""
@@ -76,6 +82,7 @@ def test_validate_and_get_env_variable_strips_path(capsys):
     result = validate_and_get_env_variable("TEST_HOSTNAME", "default.com")
     assert result == "api.powerbi.com"
     assert capsys.readouterr().out == ""  # No error output
+
 
 @pytest.fixture(autouse=True)
 def cleanup_env():

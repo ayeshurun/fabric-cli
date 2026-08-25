@@ -40,10 +40,8 @@ def exec_command(
     ):
         fab_item_util.item_sensitivity_label_warnings(args, "moved")
         mv_item.move_item(from_context, to_context, args)
-    elif isinstance(from_context, OneLakeItem) and isinstance(
-            to_context, OneLakeItem
-        ):
-            mv_onelake.move_onelake_file(from_context, to_context, args)
+    elif isinstance(from_context, OneLakeItem) and isinstance(to_context, OneLakeItem):
+        mv_onelake.move_onelake_file(from_context, to_context, args)
     else:
         if from_context.type != to_context.type:
             raise FabricCLIError(

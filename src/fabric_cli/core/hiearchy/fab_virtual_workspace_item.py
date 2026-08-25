@@ -12,7 +12,7 @@ class VirtualWorkspaceItem(_BaseItem):
         return _BaseItem._validate_name(name, VirtualWorkspaceItemType)
 
     def __init__(self, name, id, parent: VirtualWorkspace, item_type: str):
-        (_, _type) = VirtualWorkspaceItem.validate_name(f"{name}.{item_type}")
+        _, _type = VirtualWorkspaceItem.validate_name(f"{name}.{item_type}")
         super().__init__(
             name, id, FabricElementType.VIRTUAL_WORKSPACE_ITEM, parent, _type
         )

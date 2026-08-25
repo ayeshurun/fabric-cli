@@ -14,10 +14,10 @@ from fabric_cli.utils import fab_version_check
 
 def _increment_version(component: str = "major") -> str:
     """Helper to create a newer version by incrementing a component.
-    
+
     Args:
         component: Which version component to increment ("major", "minor", or "patch")
-    
+
     Returns:
         A version string that is newer than __version__
     """
@@ -33,7 +33,7 @@ def _increment_version(component: str = "major") -> str:
 
 def _decrement_version() -> str:
     """Helper to create an older version.
-    
+
     Returns:
         A version string that is older than __version__
     """
@@ -70,7 +70,9 @@ def test_cli_version_fetch_pypi_success(mock_get):
 
 @patch("fabric_cli.core.fab_logger.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
-def test_cli_version_fetch_pypi_network_error_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
+def test_cli_version_fetch_pypi_network_error_failure(
+    mock_get, mock_log_debug, mock_fab_set_state_config
+):
     """Should return None when PyPI request fails (network error)."""
     mock_fab_set_state_config(fab_constant.FAB_DEBUG_ENABLED, "true")
     mock_get.side_effect = requests.ConnectionError("Network error")
@@ -84,7 +86,9 @@ def test_cli_version_fetch_pypi_network_error_failure(mock_get, mock_log_debug, 
 
 @patch("fabric_cli.core.fab_logger.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
-def test_cli_version_fetch_pypi_http_error_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
+def test_cli_version_fetch_pypi_http_error_failure(
+    mock_get, mock_log_debug, mock_fab_set_state_config
+):
     """Should return None when PyPI returns non-200 status code."""
     mock_fab_set_state_config(fab_constant.FAB_DEBUG_ENABLED, "true")
     mock_response = MagicMock()
@@ -101,7 +105,9 @@ def test_cli_version_fetch_pypi_http_error_failure(mock_get, mock_log_debug, moc
 
 @patch("fabric_cli.core.fab_logger.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
-def test_cli_version_fetch_pypi_invalid_json_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
+def test_cli_version_fetch_pypi_invalid_json_failure(
+    mock_get, mock_log_debug, mock_fab_set_state_config
+):
     """Should return None when PyPI returns invalid JSON."""
     mock_fab_set_state_config(fab_constant.FAB_DEBUG_ENABLED, "true")
     mock_response = MagicMock()
@@ -119,7 +125,9 @@ def test_cli_version_fetch_pypi_invalid_json_failure(mock_get, mock_log_debug, m
 
 @patch("fabric_cli.core.fab_logger.log_debug")
 @patch("fabric_cli.utils.fab_version_check.requests.get")
-def test_cli_version_fetch_pypi_missing_keys_failure(mock_get, mock_log_debug, mock_fab_set_state_config):
+def test_cli_version_fetch_pypi_missing_keys_failure(
+    mock_get, mock_log_debug, mock_fab_set_state_config
+):
     """Should return None when PyPI response is missing expected keys."""
     mock_fab_set_state_config(fab_constant.FAB_DEBUG_ENABLED, "true")
     mock_response = MagicMock()

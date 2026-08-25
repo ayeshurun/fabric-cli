@@ -13,9 +13,7 @@ from fabric_cli.utils import fab_mem_store as utils_mem_store
 from fabric_cli.utils import fab_util as utils
 
 
-def exec(
-    virtual_item: VirtualItem, args: Namespace, verbose: bool = True
-) -> dict:
+def exec(virtual_item: VirtualItem, args: Namespace, verbose: bool = True) -> dict:
     item_name = item_utils.get_item_name_from_eds_name(virtual_item.name)
     args.item_id = utils_mem_store.get_item_id(virtual_item.workspace, item_name)
 

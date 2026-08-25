@@ -17,6 +17,7 @@ class TestEnum(str, Enum):
     B = "b"
     C = "c"
 
+
 def test_output_result_json_success():
     """Test OutputResult successfully handles properties and json conversion."""
     # Test 1: With all fields
@@ -57,6 +58,7 @@ def test_output_result_json_success():
     )
     assert set(result.get_data_keys()) == {"key1", "key2"}
 
+
 def test_fabric_cli_output_json_success():
     """Test output successfully converts to JSON with different fields."""
     # Test 1: With data and hidden_data, without message
@@ -80,6 +82,7 @@ def test_fabric_cli_output_json_success():
     assert json_output["result"]["message"] == "test message"
     assert "data" not in json_output["result"]
     assert "hidden_data" not in json_output["result"]
+
 
 def test_fabric_cli_output_json_failure():
     """Test output to JSON fails with invalid data."""
@@ -116,6 +119,7 @@ def test_output_result_success():
     )
     assert result.hidden_data == ["a", "b", "c"]
 
+
 def test_fabric_cli_output_show_headers():
     """Test show_headers property is handled correctly."""
     # Test with show_headers True
@@ -125,6 +129,7 @@ def test_fabric_cli_output_show_headers():
     # Test with show_headers False (default)
     output = FabricCLIOutput(data={"test": "data"})
     assert output.show_headers is False
+
 
 def test_fabric_cli_output_format_type_success():
     """Test output_format_type property is handled successfully."""

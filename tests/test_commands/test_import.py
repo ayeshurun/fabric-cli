@@ -15,13 +15,13 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_types import ItemType
 from tests.test_commands.commands_parser import CLIExecutor
-from tests.test_commands.utils import cli_path_join
 from tests.test_commands.conftest import (
-    import_update_existing_item_success_params,
-    import_create_new_item_success_params,
     import_create_new_item_fail_params,
+    import_create_new_item_success_params,
     import_item_wrong_format_fail_params,
+    import_update_existing_item_success_params,
 )
+from tests.test_commands.utils import cli_path_join
 
 new_name_index = 1
 
@@ -318,8 +318,7 @@ def _import_create_new_item_fail(
     new_item_path = cli_path_join(workspace.full_path, item_name)
 
     # Execute command
-    cli_executor.exec_command(
-        f"import {new_item_path} --input {str(tmp_path)} --force")
+    cli_executor.exec_command(f"import {new_item_path} --input {str(tmp_path)} --force")
 
     # Assert
     assert_fabric_cli_error(fab_constant.ERROR_UNSUPPORTED_COMMAND)

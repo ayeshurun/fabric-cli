@@ -103,7 +103,9 @@ def export_single_item(
         args.ws_id, args.id, args.item_type = workspace_id, item_id, str(item_type)
 
         export_format_param = getattr(args, "format", None)
-        args.format = fab_item_util.resolve_definition_format(item_type, export_format_param)
+        args.format = fab_item_util.resolve_definition_format(
+            item_type, export_format_param
+        )
 
         item_def = item_api.get_item_withdefinition(args, item_uri)
 

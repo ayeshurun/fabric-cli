@@ -10,9 +10,7 @@ from fabric_cli.core.hiearchy.fab_hiearchy import VirtualItem
 from fabric_cli.utils import fab_cmd_get_utils as utils_get
 
 
-def exec(
-    virtual_item: VirtualItem, args: Namespace, verbose: bool = True
-) -> dict:
+def exec(virtual_item: VirtualItem, args: Namespace, verbose: bool = True) -> dict:
     args.ws_id = virtual_item.workspace.id
     args.id = virtual_item.id
 

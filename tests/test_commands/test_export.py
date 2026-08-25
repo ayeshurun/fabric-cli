@@ -133,7 +133,12 @@ class TestExport:
 
     @export_item_types_parameters
     def test_export_item_invalid_output_path_failure(
-        self, item_factory, cli_executor, mock_print_done, assert_fabric_cli_error, item_type
+        self,
+        item_factory,
+        cli_executor,
+        mock_print_done,
+        assert_fabric_cli_error,
+        item_type,
     ):
         # Setup
         item = item_factory(item_type)
@@ -196,8 +201,7 @@ class TestExport:
             )
 
             # Assert notebook
-            notebook_export_path = tmp_path / \
-                f"{notebook.display_name}.Notebook"
+            notebook_export_path = tmp_path / f"{notebook.display_name}.Notebook"
             assert notebook_export_path.is_dir()
             files = list(notebook_export_path.iterdir())
             assert len(files) == 2
@@ -206,8 +210,7 @@ class TestExport:
 
             # Assert spark job definition
             sjd_export_path = (
-                tmp_path /
-                f"{spark_job_definition.display_name}.SparkJobDefinition"
+                tmp_path / f"{spark_job_definition.display_name}.SparkJobDefinition"
             )
             assert sjd_export_path.is_dir()
             files = list(sjd_export_path.iterdir())
@@ -242,8 +245,15 @@ class TestExport:
 
     @export_item_format_parameters
     def test_export_item_format_success(
-        self, item_factory, cli_executor, mock_print_done, tmp_path,
-        item_type, export_format, expected_file_extensions, expected_folders
+        self,
+        item_factory,
+        cli_executor,
+        mock_print_done,
+        tmp_path,
+        item_type,
+        export_format,
+        expected_file_extensions,
+        expected_folders,
     ):
         # Setup
         item = item_factory(item_type)
@@ -261,8 +271,7 @@ class TestExport:
         assert export_path.is_dir()
         files = list(export_path.iterdir())
         # +1 for .platform file
-        assert len(files) == len(expected_file_extensions) + \
-            len(expected_folders) + 1
+        assert len(files) == len(expected_file_extensions) + len(expected_folders) + 1
         for ext in expected_file_extensions:
             assert any(file.suffix == ext for file in files)
         assert any(file.name == ".platform" for file in files)
@@ -270,8 +279,13 @@ class TestExport:
 
     @export_item_default_format_parameters
     def test_export_item_default_format_success(
-        self, item_factory, cli_executor, mock_print_done, tmp_path,
-        item_type, expected_file_count
+        self,
+        item_factory,
+        cli_executor,
+        mock_print_done,
+        tmp_path,
+        item_type,
+        expected_file_count,
     ):
         # Setup
         item = item_factory(item_type)
@@ -326,12 +340,11 @@ class TestExport:
             ItemType.USER_DATA_FUNCTION: "Invalid format. No formats are supported",
             ItemType.GRAPH_QUERY_SET: "Invalid format. No formats are supported",
             ItemType.DIGITAL_TWIN_BUILDER: "Invalid format. No formats are supported",
-            ItemType.LAKEHOUSE: "Invalid format. No formats are supported"
+            ItemType.LAKEHOUSE: "Invalid format. No formats are supported",
         }
 
         # Assert
-        assert_fabric_cli_error(
-            constant.ERROR_INVALID_INPUT, error_messages[item_type])
+        assert_fabric_cli_error(constant.ERROR_INVALID_INPUT, error_messages[item_type])
 
     def test_export_report_no_format_support_failure(
         self,
@@ -354,4 +367,5 @@ class TestExport:
 
         # Assert - should fail with error indicating no formats are supported
         assert_fabric_cli_error(
-            constant.ERROR_INVALID_INPUT, "No formats are supported")
+            constant.ERROR_INVALID_INPUT, "No formats are supported"
+        )

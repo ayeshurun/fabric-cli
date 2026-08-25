@@ -4,6 +4,7 @@
 """
 Hostname validation utilities for Microsoft Fabric CLI endpoints.
 """
+
 import os
 import re
 import sys
@@ -16,6 +17,7 @@ from fabric_cli.errors import ErrorMessages
 VALID_HOSTNAME_REGEX = re.compile(
     r"^([\w-]+\.)?(fabric\.microsoft\.com|dfs\.fabric\.microsoft\.com|powerbi\.com|management\.[\w-]+\.[\w-]+)$"
 )
+
 
 def validate_and_get_env_variable(env_var_name: str, default_value: str) -> str:
     """

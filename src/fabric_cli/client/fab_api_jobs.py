@@ -90,6 +90,7 @@ def list_item_runs(args: Namespace) -> ApiResponse:
 
     return fabric_api.do_request(args)
 
+
 def remove_item_schedule(args: Namespace) -> ApiResponse:
     """https://learn.microsoft.com/en-us/rest/api/fabric/core/job-scheduler/delete-item-schedule?tabs=HTTP"""
     args.uri = f"workspaces/{args.ws_id}/items/{args.item_id}/jobs/{args.jobType}/schedules/{args.schedule_id}"
