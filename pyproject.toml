@@ -61,10 +61,23 @@ package-data = { "fabric_cli.core.fab_config" = [
 [tool.black]
 line-length = 88
 target-version = ['py310', 'py311', 'py312', 'py313']
-# No `exclude` is set on purpose. Black's built-in excludes already cover
-# .git/.tox/.venv/_build/build/dist/__pycache__ and friends, and setting `exclude`
-# would *replace* those defaults rather than extend them. Use `extend-exclude` if a
-# project-specific directory ever needs skipping.
+# No `exclude` is set on purpose. Black's built-in DEFAULT_EXCLUDES already cover
+# .git/.tox/.venv/_build/build/dist and friends, and setting `exclude` would
+# *replace* those defaults rather than extend them. (__pycache__ is not in
+# DEFAULT_EXCLUDES; it is skipped because black honours .gitignore during
+# directory traversal.)
+#
+# `force-exclude` rather than `extend-exclude` is required here. `extend-exclude`
+# only applies while walking directories, so it is ignored when a path is passed
+# explicitly -- which is exactly how pre-commit invokes black. `force-exclude`
+# applies in both cases, keeping `tox -e lint` and pre-commit in agreement.
+#
+# sample_code/ holds fixtures whose *bytes* are uploaded by tests and recorded
+# into VCR cassettes (see tests/test_commands/recordings/.../test_run_spark_job.yaml).
+# Reformatting them would change the recorded request bodies.
+force-exclude = '''
+/tests/test_commands/data/sample_code/
+'''
 
 # Import sorting configuration.
 #
@@ -80,6 +93,10 @@ lines_between_types = 0
 remove_redundant_aliases = true
 known_first_party = ["fabric_cli"]
 src_paths = ["src", "tests"]
+# Mirrors black's force-exclude above: VCR-recorded payload fixtures must keep
+# their exact bytes. Unlike black, isort applies skip globs to explicitly passed
+# files as well, so no separate "force" variant is needed.
+extend_skip_glob = ["tests/test_commands/data/sample_code/*"]
 
 [tool.mypy]
 

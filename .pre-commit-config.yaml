@@ -10,14 +10,19 @@
 # stay in sync with the pins in tox.toml ([env.lint] / [env.format]) and
 # requirements-dev.txt -- if they diverge, pre-commit and CI will disagree about
 # what "formatted" means.
+#
+# Revisions are full commit SHAs rather than tags, matching how this repo pins
+# GitHub Actions: a tag can be moved by the upstream maintainer, a SHA cannot.
+# The `# frozen:` comments are pre-commit's own convention and are preserved by
+# `pre-commit autoupdate --freeze`, which is how these should be bumped.
 ---
 repos:
   - repo: https://github.com/PyCQA/isort
-    rev: 8.0.1
+    rev: a333737ed43df02b18e6c95477ea1b285b3de15a # frozen: 8.0.1
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 26.5.1
+    rev: 87928e6d6761a4a6d22250e1fee5601b3998086e # frozen: 26.5.1
     hooks:
       - id: black

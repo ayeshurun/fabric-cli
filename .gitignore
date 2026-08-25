@@ -1,5 +1,12 @@
 # Specific ignores
 tests/test_commands/data/*
+# ...but these two are tracked Python modules, not test artefacts. Without this
+# negation they stay invisible to any tool that honours .gitignore during
+# directory traversal (black does; isort does not), so `black --check .` in CI
+# would silently skip them while pre-commit -- which passes tracked filenames
+# explicitly -- would flag them. That divergence is exactly the kind of silent
+# formatting hole this repo's lint setup exists to prevent.
+!tests/test_commands/data/*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

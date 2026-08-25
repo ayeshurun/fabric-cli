@@ -40,7 +40,7 @@ jobs:
       - name: Install Tox
         run: |
           python -m pip install --upgrade pip
-          pip install tox
+          pip install tox pre-commit
 
       - name: Cache Tox environments
         uses: actions/cache@v3
@@ -50,8 +50,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tox-lint-
 
+      - name: Cache pre-commit environments
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Run Linting
         run: tox -e lint
+
+      # `tox -e lint` and pre-commit resolve their file lists differently: black
+      # honours .gitignore while walking directories, whereas pre-commit passes
+      # tracked filenames explicitly. A file that is tracked but gitignored is
+      # therefore invisible to one and checked by the other. Running both here
+      # means any such divergence fails CI instead of silently letting
+      # unformatted code through -- and it validates .pre-commit-config.yaml,
+      # which nothing else in CI exercises.
+      - name: Verify pre-commit hooks agree with tox
+        run: pre-commit run --all-files --show-diff-on-failure
 
 
   # Type Checking Job
