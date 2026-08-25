@@ -11,17 +11,31 @@ on:
       - 'tox.toml'
       - 'requirements*.txt'
       - '.github/workflows/fab-build.yml'
-      # Formatting config and the Python files outside src/ and tests/ that
-      # `tox -e lint` also checks. Without these, a PR touching only
-      # .ai-assets/**/*.py or the formatter config would skip the lint job.
+      # Every tracked Python file is linted, wherever it lives, so match on the
+      # extension instead of enumerating directories -- .ai-assets/ and scripts/
+      # each had to be added retroactively after being missed. .ai-assets/ stays
+      # listed explicitly because glob implementations vary on whether a leading
+      # dot is matched by a wildcard.
+      - '**/*.py'
+      - '*.py'
+      - '**/*.pyi'
       - '.ai-assets/**'
       - '.pre-commit-config.yaml'
       # .gitignore is formatting-relevant: black honours it while walking
       # directories, so a .gitignore-only change can silently add or remove
       # files from the set that `tox -e lint` checks.
       - '.gitignore'
-      # scripts/ holds tracked .py that `tox -e lint` checks, including the
-      # formatter-pin consistency check the lint job runs.
+      # Config files that can redefine linting without touching the ones above.
+      # isort searches ('.isort.cfg', 'pyproject.toml', 'setup.cfg', 'tox.ini',
+      # '.editorconfig') and stops at the first hit, so adding a root .isort.cfg
+      # silently overrides pyproject.toml. tox likewise accepts tox.ini/setup.cfg
+      # alongside tox.toml.
+      - '.isort.cfg'
+      - 'setup.cfg'
+      - 'tox.ini'
+      - '.editorconfig'
+      # scripts/ holds the formatter-pin consistency check the lint job runs, as
+      # well as any non-.py helper it may grow.
       - 'scripts/**'
 
 permissions:
