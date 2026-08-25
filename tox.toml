@@ -44,6 +44,12 @@ commands = [
 # unpinned formatter means two contributors on different versions reformat each
 # other's code forever. Keep these pins in sync with requirements-dev.txt and
 # .pre-commit-config.yaml.
+#
+# `--filter-files` is required for isort to honour the skip globs in
+# pyproject.toml when a path is passed explicitly (e.g. `tox -e lint -- some/file.py`).
+# Without it those globs only apply while walking directories, and the excluded
+# VCR fixtures under tests/test_commands/data/sample_code/ would be reported --
+# and, in the `format` env below, actually rewritten.
 [env.lint]
 description = "Check formatting and import order (read-only, fails on drift)"
 skip_install = true
@@ -51,6 +57,7 @@ deps = ["black==26.5.1", "isort==8.0.1"]
 commands = [
     [
         "isort",
+        "--filter-files",
         "--check-only",
         "--diff",
         { replace = "posargs", default = [
@@ -79,6 +86,7 @@ deps = ["black==26.5.1", "isort==8.0.1"]
 commands = [
     [
         "isort",
+        "--filter-files",
         { replace = "posargs", default = [
             ".",
         ], extend = true },

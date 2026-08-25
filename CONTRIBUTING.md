@@ -119,15 +119,21 @@ about what "formatted" means:
 
 #### `git blame` and the formatting commit
 
-This repository was reformatted wholesale in a single commit. That commit is listed
-in `.git-blame-ignore-revs` so it does not obscure real authorship. Configure git to
-skip it:
+This repository was reformatted wholesale in a single commit. `.git-blame-ignore-revs`
+exists so such commits do not obscure real authorship. Configure git to use it:
 
 ```bash
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 GitHub's blame view applies this file automatically.
+
+> **Maintainers:** pull requests here are squash-merged, so the SHA of a formatting
+> commit inside a PR never reaches `main`. After merging a purely mechanical
+> reformatting PR, take the squashed SHA from `main` and append it to
+> `.git-blame-ignore-revs`. Git silently ignores entries that do not resolve to a
+> real commit, so a wrong or placeholder SHA fails **open** — blame keeps pointing
+> at the formatting commit with no warning that the entry is dead.
 
 ### Documenting Changes with Changie
 

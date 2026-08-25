@@ -94,9 +94,20 @@ remove_redundant_aliases = true
 known_first_party = ["fabric_cli"]
 src_paths = ["src", "tests"]
 # Mirrors black's force-exclude above: VCR-recorded payload fixtures must keep
-# their exact bytes. Unlike black, isort applies skip globs to explicitly passed
-# files as well, so no separate "force" variant is needed.
+# their exact bytes.
+#
+# Skip globs are only honoured for *explicitly passed* files when isort runs with
+# `--filter-files`; without it, `isort tests/.../sample_code/x.py` rewrites the
+# file regardless of this setting. pre-commit's official isort hook injects
+# `--filter-files` automatically, and tox.toml passes it explicitly in both the
+# `lint` and `format` environments.
+#
+# `skip_gitignore` keeps isort's directory walk in agreement with black's, which
+# honours .gitignore natively. Without it, untracked artefacts (the test suite
+# writes generated .py files into tests/test_commands/data/) fail `isort --check-only .`
+# while `black --check .` passes -- a confusing, spurious lint failure.
 extend_skip_glob = ["tests/test_commands/data/sample_code/*"]
+skip_gitignore = true
 
 [tool.mypy]
 

@@ -16,6 +16,10 @@ on:
       # .ai-assets/**/*.py or the formatter config would skip the lint job.
       - '.ai-assets/**'
       - '.pre-commit-config.yaml'
+      # .gitignore is formatting-relevant: black honours it while walking
+      # directories, so a .gitignore-only change can silently add or remove
+      # files from the set that `tox -e lint` checks.
+      - '.gitignore'
 
 permissions:
     contents: read
