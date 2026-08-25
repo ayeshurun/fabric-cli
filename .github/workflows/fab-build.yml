@@ -49,10 +49,6 @@ jobs:
     name: Lint Code
     runs-on: ubuntu-latest
     steps:
-      # Actions touched by this job are pinned to the same full-length SHAs that
-      # upstream microsoft/fabric-cli adopted in #271. A tag can be repointed by
-      # its maintainer; a SHA cannot. The other jobs in this file still use tags
-      # because this branch predates that upstream change and does not touch them.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.13
@@ -118,10 +114,10 @@ jobs:
     name: Type Check Code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"  # Use any stable Python version for type checking
 
@@ -131,7 +127,7 @@ jobs:
           pip install tox
 
       - name: Cache Tox environments
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .tox
           key: ${{ runner.os }}-tox-type-${{ hashFiles('**/tox.toml') }}
@@ -157,10 +153,10 @@ jobs:
           - python-version: "3.13"
             tox-env: "py313"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -170,7 +166,7 @@ jobs:
           pip install tox
 
       - name: Cache Tox environments
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ matrix.tox-env }}-${{ hashFiles('**/tox.toml') }}
@@ -183,7 +179,7 @@ jobs:
 
       # Upload the coverage report as an artifact
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-html-report-${{ matrix.python-version }}
           path: coverage_html
@@ -195,10 +191,10 @@ jobs:
     needs:
       - test  # Ensure all test jobs complete successfully
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 

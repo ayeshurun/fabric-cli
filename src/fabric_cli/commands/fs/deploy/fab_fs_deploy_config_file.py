@@ -9,6 +9,7 @@ from fabric_cicd import (  # type: ignore
     configure_external_file_logging,
     deploy_with_config,
     disable_file_logging,
+    remove_feature_flag,
 )
 
 from fabric_cli.core import fab_constant, fab_logger, fab_state_config
@@ -45,6 +46,11 @@ def deploy_with_config_file(args: Namespace) -> None:
                 except json.JSONDecodeError:
                     # If it's not a valid JSON string, keep it as is
                     pass
+
+        deploy_parameters["host_app"] = (
+            f"{fab_constant.API_USER_AGENT}/{fab_constant.FAB_VERSION}"
+        )
+
         result = deploy_with_config(
             config_file_path=deploy_config_file,
             environment=args.target_env,
@@ -59,6 +65,10 @@ def deploy_with_config_file(args: Namespace) -> None:
         raise FabricCLIError(
             f"Deployment failed: {str(e)}", fab_constant.ERROR_IN_DEPLOYMENT
         )
+    finally:
+        bulk_publish_enabled = getattr(args, "bulk_publish", False)
+        if bulk_publish_enabled:
+            _remove_bulk_publish_feature_flags()
 
 
 def _apply_bulk_publish_feature_flags(args: Namespace) -> None:
@@ -79,3 +89,9 @@ def _apply_bulk_publish_feature_flags(args: Namespace) -> None:
             "fabric-cicd and may change or fail; omit the '--bulk_publish' flag "
             "to use standard per-item publish."
         )
+
+
+def _remove_bulk_publish_feature_flags() -> None:
+    """Remove command-scoped bulk publish flags from fabric-cicd global state."""
+    remove_feature_flag("enable_experimental_features")
+    remove_feature_flag("enable_bulk_publish")
