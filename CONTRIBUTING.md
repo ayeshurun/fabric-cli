@@ -119,8 +119,14 @@ about what "formatted" means:
 
 CI enforces this with `python scripts/check_formatter_pins.py`, which reads the
 declared version out of all three files and fails if they disagree. Run it locally
-after bumping a pin. In `.pre-commit-config.yaml` the version is read from the
-`# frozen: <version>` annotation next to each `rev`, so bump those hooks with
+after bumping a pin (it needs the dev requirements installed, since it parses TOML
+and YAML with real parsers rather than guessing with regular expressions). It also
+rejects a pin that is declared more than once, is not an exact `==`, or whose
+pre-commit `rev` is a tag rather than a full SHA, and it checks that the pre-commit
+entry still enables the `black` and `isort` hooks -- otherwise a renamed hook `id`
+would disable the formatter while every version string still matched. In
+`.pre-commit-config.yaml` the version is read from the `# frozen: <version>`
+annotation next to each `rev`, so bump those hooks with
 `pre-commit autoupdate --freeze` to keep the annotation in sync with the SHA.
 
 #### `git blame` and the formatting commit
