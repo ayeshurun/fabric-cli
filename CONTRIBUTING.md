@@ -72,8 +72,62 @@ Before submitting the pull request please verify that:
 - The PR is focused on the related task
 - Tests coverage is kept and all tests pass
 - Your code is aligned with the code conventions of this project
+- Your code is formatted (see [Code formatting](#code-formatting) below)
 
 Before your PR can be merged, make sure to address and resolve all review comments. PR will be labeled as "need author feedback" when there are comments to resolve. Approved PRs will be merged by the Fabric CLI team.
+
+### Code formatting
+
+This project uses [Black](https://black.readthedocs.io/) for code formatting and
+[isort](https://pycqa.github.io/isort/) for import ordering. Both are configured in
+`pyproject.toml`, which is the single source of truth — your editor, `tox`,
+pre-commit and CI all read that same configuration.
+
+Format your changes before pushing:
+
+```bash
+tox -e format
+```
+
+Check without modifying anything (this is what CI runs):
+
+```bash
+tox -e lint
+```
+
+The `lint` job is a required check and **fails** if any file is unformatted, so
+running `tox -e format` before you commit will save you a round-trip.
+
+#### Automating it (recommended)
+
+Install the git hook once and formatting is applied automatically on every commit:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+#### Version pinning
+
+Black's output changes between releases, so the versions are pinned exactly. If you
+upgrade one, you must upgrade **all three** together or the tools will disagree
+about what "formatted" means:
+
+- `tox.toml` — `[env.lint]` and `[env.format]`
+- `requirements-dev.txt`
+- `.pre-commit-config.yaml` — the `rev` fields
+
+#### `git blame` and the formatting commit
+
+This repository was reformatted wholesale in a single commit. That commit is listed
+in `.git-blame-ignore-revs` so it does not obscure real authorship. Configure git to
+skip it:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+GitHub's blame view applies this file automatically.
 
 ### Documenting Changes with Changie
 

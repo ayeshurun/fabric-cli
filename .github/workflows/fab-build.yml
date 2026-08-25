@@ -11,6 +11,11 @@ on:
       - 'tox.toml'
       - 'requirements*.txt'
       - '.github/workflows/fab-build.yml'
+      # Formatting config and the Python files outside src/ and tests/ that
+      # `tox -e lint` also checks. Without these, a PR touching only
+      # .ai-assets/**/*.py or the formatter config would skip the lint job.
+      - '.ai-assets/**'
+      - '.pre-commit-config.yaml'
 
 permissions:
     contents: read
@@ -23,10 +28,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"  # Use any stable Python version for linting
+          # Must be >= the highest target-version in [tool.black]. Black verifies
+          # its output by re-parsing the AST, and that check is skipped with a
+          # warning when the running interpreter is older than the target (a 3.12
+          # interpreter cannot parse code formatted for py313).
+          python-version: "3.13"
 
       - name: Install Tox
         run: |

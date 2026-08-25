@@ -53,6 +53,34 @@ package-data = { "fabric_cli.core.fab_config" = [
     "type_supported.yaml",
 ] }
 
+# Formatting configuration.
+#
+# This block MUST live in pyproject.toml: Black only auto-discovers configuration
+# from pyproject.toml, so a [tool.black] table placed anywhere else (e.g. tox.toml)
+# is silently ignored.
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312', 'py313']
+# No `exclude` is set on purpose. Black's built-in excludes already cover
+# .git/.tox/.venv/_build/build/dist/__pycache__ and friends, and setting `exclude`
+# would *replace* those defaults rather than extend them. Use `extend-exclude` if a
+# project-specific directory ever needs skipping.
+
+# Import sorting configuration.
+#
+# `known_first_party` and `src_paths` are pinned explicitly so isort produces
+# identical output whether or not fabric_cli is installed in the environment
+# running it (tox uses skip_install, pre-commit runs in an isolated venv).
+# Without them, `fabric_cli` can be misclassified as third-party.
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+lines_between_types = 0
+remove_redundant_aliases = true
+known_first_party = ["fabric_cli"]
+src_paths = ["src", "tests"]
+
 [tool.mypy]
 
 # Module-specific overrides

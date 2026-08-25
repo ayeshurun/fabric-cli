@@ -1,0 +1,23 @@
+# Pre-commit hooks for the Microsoft Fabric CLI.
+#
+# These catch formatting drift locally, before it reaches CI. Install once with:
+#
+#     pip install pre-commit
+#     pre-commit install
+#
+# Both hooks read their configuration from [tool.black] / [tool.isort] in
+# pyproject.toml, so there is a single source of truth. The `rev` pins below MUST
+# stay in sync with the pins in tox.toml ([env.lint] / [env.format]) and
+# requirements-dev.txt -- if they diverge, pre-commit and CI will disagree about
+# what "formatted" means.
+---
+repos:
+  - repo: https://github.com/PyCQA/isort
+    rev: 8.0.1
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+      - id: black

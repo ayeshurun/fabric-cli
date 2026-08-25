@@ -1,0 +1,8 @@
+kind: optimization
+body: Enforces consistent code formatting across contributors by fixing Black/isort
+    configuration discovery, pinning formatter versions, and making the CI lint check
+    actually fail on unformatted code
+time: 2026-07-14T12:00:00.000000+03:00
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun

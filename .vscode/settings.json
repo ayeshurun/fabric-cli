@@ -9,17 +9,16 @@
         "*.coveragerc": "ini"
     },
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.codeActionsOnSave": {
         "source.organizeImports": "explicit"
     },
-    "isort.args": [
-        "--profile",
-        "black",
-        "--multi-line",
-        "3",
-        "--lines-between-types",
-        "0",
-        "--remove-redundant-aliases"
-    ]
+    // Scoped to Python: the Black formatter cannot format JSON/YAML/Markdown, so
+    // setting it as the global default formatter breaks format-on-save elsewhere.
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    }
+    // No "isort.args" / "black-formatter.args" here on purpose. Both extensions
+    // auto-discover [tool.isort] and [tool.black] from pyproject.toml, which keeps
+    // the editor, tox, pre-commit and CI in agreement. Duplicating the arguments
+    // here creates a second source of truth that silently drifts.
 }

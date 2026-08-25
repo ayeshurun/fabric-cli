@@ -36,11 +36,60 @@ commands = [
 ]
 
 # Linting Environment
+#
+# Read-only. This env MUST NOT mutate files: `black .` (mutating mode) exits 0
+# even when it reformats, which makes the CI job unconditionally green and lets
+# formatting drift accumulate silently. `--check` is what actually fails the build.
+# Versions are pinned because Black's stable style changes between releases; an
+# unpinned formatter means two contributors on different versions reformat each
+# other's code forever. Keep these pins in sync with requirements-dev.txt and
+# .pre-commit-config.yaml.
 [env.lint]
-description = "Run linters"
+description = "Check formatting and import order (read-only, fails on drift)"
 skip_install = true
-deps = ["black"]
-commands = [["black", { replace = "posargs", default = ["."], extend = true }]]
+deps = ["black==26.5.1", "isort==8.0.1"]
+commands = [
+    [
+        "isort",
+        "--check-only",
+        "--diff",
+        { replace = "posargs", default = [
+            ".",
+        ], extend = true },
+    ],
+    [
+        "black",
+        "--check",
+        "--diff",
+        { replace = "posargs", default = [
+            ".",
+        ], extend = true },
+    ],
+]
+
+# Formatting Environment
+#
+# The mutating counterpart to `lint`, for local use: `tox -e format`.
+# Deliberately excluded from env_list so it never runs as part of the default
+# `tox` invocation or in CI.
+[env.format]
+description = "Apply formatting and import sorting in place"
+skip_install = true
+deps = ["black==26.5.1", "isort==8.0.1"]
+commands = [
+    [
+        "isort",
+        { replace = "posargs", default = [
+            ".",
+        ], extend = true },
+    ],
+    [
+        "black",
+        { replace = "posargs", default = [
+            ".",
+        ], extend = true },
+    ],
+]
 
 # Type Checking Environment
 [env.type]
@@ -64,9 +113,3 @@ commands = [
         ], extend = true },
     ],
 ]
-
-# Black Configuration
-[tool.black]
-line-length = 88
-target-version = ['py310', 'py311', 'py312', 'py313']
-exclude = '/(\.git|\.tox|\.venv|_build|dist)/'
