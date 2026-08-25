@@ -106,6 +106,15 @@ src_paths = ["src", "tests"]
 # honours .gitignore natively. Without it, untracked artefacts (the test suite
 # writes generated .py files into tests/test_commands/data/) fail `isort --check-only .`
 # while `black --check .` passes -- a confusing, spurious lint failure.
+#
+# Caveat: isort implements this by shelling out to git, whereas black parses
+# .gitignore directly. In a tree with no .git directory (an sdist, or a container
+# built with the checkout excluded) isort prints "fatal: not a git repository" per
+# file and stops honouring .gitignore, so it checks files black skips. That fails
+# in the safe direction -- a spurious failure, never missed drift -- and the git
+# checkout that CI and contributors use is unaffected. It is kept because the
+# alternative, an `extend_skip_glob` over tests/test_commands/data/, would also
+# skip models.py and static_test_data.py, which are tracked and must stay checked.
 extend_skip_glob = ["tests/test_commands/data/sample_code/*"]
 skip_gitignore = true
 

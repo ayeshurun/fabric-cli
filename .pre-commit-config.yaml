@@ -11,10 +11,15 @@
 # requirements-dev.txt -- if they diverge, pre-commit and CI will disagree about
 # what "formatted" means.
 #
-# Revisions are full commit SHAs rather than tags, matching how this repo pins
-# GitHub Actions: a tag can be moved by the upstream maintainer, a SHA cannot.
+# Revisions are full commit SHAs rather than tags: a tag can be repointed by the
+# hook repository's maintainer, so a tag is not a reproducible pin and a SHA is.
+# This matches the convention upstream microsoft/fabric-cli adopted for its
+# GitHub Actions in #271.
+#
 # The `# frozen:` comments are pre-commit's own convention and are preserved by
-# `pre-commit autoupdate --freeze`, which is how these should be bumped.
+# `pre-commit autoupdate --freeze`, which is how these should be bumped. Keep
+# them: scripts/check_formatter_pins.py reads the version from that annotation to
+# compare it against tox.toml and requirements-dev.txt, and fails if it is absent.
 ---
 repos:
   - repo: https://github.com/PyCQA/isort

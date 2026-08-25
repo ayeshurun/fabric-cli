@@ -95,8 +95,8 @@ Check without modifying anything (this is what CI runs):
 tox -e lint
 ```
 
-The `lint` job is a required check and **fails** if any file is unformatted, so
-running `tox -e format` before you commit will save you a round-trip.
+CI runs `tox -e lint`, which **fails** if any file is unformatted, so running
+`tox -e format` before you commit will save you a round-trip.
 
 #### Automating it (recommended)
 
@@ -116,6 +116,12 @@ about what "formatted" means:
 - `tox.toml` — `[env.lint]` and `[env.format]`
 - `requirements-dev.txt`
 - `.pre-commit-config.yaml` — the `rev` fields
+
+CI enforces this with `python scripts/check_formatter_pins.py`, which reads the
+declared version out of all three files and fails if they disagree. Run it locally
+after bumping a pin. In `.pre-commit-config.yaml` the version is read from the
+`# frozen: <version>` annotation next to each `rev`, so bump those hooks with
+`pre-commit autoupdate --freeze` to keep the annotation in sync with the SHA.
 
 #### `git blame` and the formatting commit
 

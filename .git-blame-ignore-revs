@@ -9,26 +9,13 @@
 #
 # GitHub applies this file automatically in its blame view.
 #
-# ---------------------------------------------------------------------------
-# ACTION REQUIRED AFTER MERGING THE REPO-WIDE FORMATTING PR
-# ---------------------------------------------------------------------------
-# This repository merges pull requests with *squash* only (merge commits and
-# rebase merges are disabled). Squashing rewrites every commit in a PR into a
-# single new commit, so the per-commit SHA of the "apply isort + black across
-# the repository" commit does not exist on `main` and cannot be listed here in
-# advance.
-#
-# Git silently ignores entries in this file that do not resolve to a real
-# commit, so a stale placeholder SHA would fail open: blame would keep showing
-# the formatting commit as the last author of every reformatted line, with no
-# error to indicate the entry was dead.
-#
-# So, immediately after this PR is squash-merged, a maintainer must:
-#   1. Copy the squashed commit SHA from `main` (`git log -1 --format=%H`).
-#   2. Append it below with a one-line description.
-#   3. Push that one-line change directly to `main` (or via a follow-up PR).
-#
-# Until that is done, `git blame` on the reformatted lines will attribute them
-# to the formatting commit rather than to their original authors.
+# MAINTAINERS: this repository squash-merges, so the SHA of a formatting commit
+# inside a pull request never reaches `main` and cannot be listed here in advance.
+# After squash-merging a purely mechanical reformatting PR, append the squashed
+# SHA (`git log -1 --format=%H` on `main`) below with a one-line description.
+# Git silently ignores entries that do not resolve to a real commit, so an
+# unfilled placeholder fails *open*: blame keeps attributing reformatted lines to
+# the formatting commit, with nothing to indicate the entry is dead.
+# See CONTRIBUTING.md ("`git blame` and the formatting commit") for context.
 
 # <SHA>  style: apply isort + black across the repository
