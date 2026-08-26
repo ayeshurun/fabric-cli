@@ -121,6 +121,17 @@ if [ "$match_count" -ne 1 ]; then
 fi
 (cd "$changie_tmp" && printf '%s\n' "$checksum_line" | sha256sum -c -)
 
-tar -xzf "${changie_tmp}/${changie_archive}" -C "$changie_tmp" changie
+# Extract the member's contents rather than materialising the archive entry. A
+# malformed or substituted archive could ship `changie` as a symlink or hard
+# link, and `install` running under sudo would follow it and copy an arbitrary
+# root-readable file into world-readable /usr/local/bin. `tar -O` emits nothing
+# for link entries, and the redirect always creates a regular file inside the
+# 0700 temp directory, so this path fails closed.
+tar -xzOf "${changie_tmp}/${changie_archive}" changie > "${changie_tmp}/changie.bin"
+if [ ! -s "${changie_tmp}/changie.bin" ]; then
+    echo "Extracted changie is empty; refusing to install." >&2
+    exit 1
+fi
+
 # /usr/local/bin is on PATH for the remote user; ~/.local/bin is not.
-"${sudo_cmd[@]}" install -m 0755 "${changie_tmp}/changie" /usr/local/bin/changie
+"${sudo_cmd[@]}" install -m 0755 "${changie_tmp}/changie.bin" /usr/local/bin/changie
