@@ -5,32 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Fabric CLI Debug (Integrated Console)",
+            // Default (F5): starts the REPL without prompting for arguments.
+            "name": "Fabric CLI Debug (Interactive)",
             "type": "debugpy",
             "request": "launch",
             "python": "${command:python.interpreterPath}",
-            "program": "${workspaceRoot}/src/fabric_cli/main.py",
-            "cwd": "${workspaceRoot}/src",
+            "module": "fabric_cli.main",
+            "cwd": "${workspaceFolder}/src",
             "env": {
-                "PYTHONPATH": "${workspaceRoot}/src"
+                "PYTHONPATH": "${workspaceFolder}/src"
             },
-            "args": "${command:pickArgs}",
+            "args": [],
+            // Interactive mode needs a TTY; the Debug Console does not provide one.
             "console": "integratedTerminal",
             "justMyCode": false
         },
         {
-            "name": "Fabric CLI Debug (External Console)",
+            // Prompts for arguments, e.g. "ls /" or "--version".
+            // Leave the prompt empty to start the REPL instead.
+            "name": "Fabric CLI Debug (Prompt for args)",
             "type": "debugpy",
             "request": "launch",
-            "stopOnEntry": true,
             "python": "${command:python.interpreterPath}",
-            "program": "${workspaceRoot}/src/fabric_cli/main.py",
-            "cwd": "${workspaceRoot}/src",
+            "module": "fabric_cli.main",
+            "cwd": "${workspaceFolder}/src",
             "env": {
-                "PYTHONPATH": "${workspaceRoot}/src"
+                "PYTHONPATH": "${workspaceFolder}/src"
             },
             "args": "${command:pickArgs}",
-            "console": "externalTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

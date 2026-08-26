@@ -227,26 +227,57 @@ class TestInteractiveCLI:
         assert ctrl_c_message_found, "Should show Ctrl+C handling message"
 
     def test_start_interactive_eof_error_failure(self, interactive_cli, mock_print_ui):
-        """Test EOFError handling in start_interactive."""
-        # Configure session mock to raise EOFError once, then quit
+        """Test EOFError (Ctrl+D) exits the session with the goodbye message."""
+        # Configure session mock to raise EOFError; the second value must not be used
+        interactive_cli.session.prompt.reset_mock()
         interactive_cli.session.prompt.side_effect = [EOFError(), "quit"]
 
         # Mock handle_command to return True for quit
         def mock_handle_command(cmd):
             return cmd == "quit"
 
-        with patch.object(
-            interactive_cli, "handle_command", side_effect=mock_handle_command
+        with (
+            patch.object(
+                interactive_cli, "handle_command", side_effect=mock_handle_command
+            ),
+            patch("fabric_cli.core.fab_interactive.sys.stdin") as mock_stdin,
         ):
+            mock_stdin.isatty.return_value = True
             interactive_cli.start_interactive()
 
-        # Verify that EOF error message is shown
-        calls = mock_print_ui.call_args_list
-        error_message_found = any(
-            "Error in interactive session:" in str(call) or "Session will continue" in str(call)
-            for call in calls
-        )
-        assert error_message_found, "Should show EOF error handling message"
+        printed = " ".join(str(call) for call in mock_print_ui.call_args_list)
+        # EOF ends the session instead of being reported as an unnamed error
+        assert fab_constant.INTERACTIVE_EXIT_MESSAGE in printed
+        assert "Error in interactive session:" not in printed
+        # The prompt is not reissued after EOF
+        assert interactive_cli.session.prompt.call_count == 1
+
+    def test_start_interactive_non_terminal_stdin_failure(
+        self, interactive_cli, mock_print_ui
+    ):
+        """Test a non-terminal stdin explains why interactive mode cannot start."""
+        interactive_cli.session.prompt.side_effect = EOFError()
+
+        with patch("fabric_cli.core.fab_interactive.sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = False
+            interactive_cli.start_interactive()
+
+        printed = " ".join(str(call) for call in mock_print_ui.call_args_list)
+        assert "standard input is not one" in printed
+        assert "integratedTerminal" in printed
+
+    def test_start_interactive_terminal_stdin_success(
+        self, interactive_cli, mock_print_ui
+    ):
+        """Test a terminal stdin does not emit the non-terminal explanation."""
+        interactive_cli.session.prompt.side_effect = EOFError()
+
+        with patch("fabric_cli.core.fab_interactive.sys.stdin") as mock_stdin:
+            mock_stdin.isatty.return_value = True
+            interactive_cli.start_interactive()
+
+        printed = " ".join(str(call) for call in mock_print_ui.call_args_list)
+        assert "standard input is not one" not in printed
 
     def test_start_interactive_context_display_success(
         self, interactive_cli, mock_html_escape, mock_context
