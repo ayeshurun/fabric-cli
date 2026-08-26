@@ -1,0 +1,6 @@
+kind: fixed
+body: Fix dev container creation by removing the unused Node.js toolchain, installing changie from its upstream release, dropping the stale Yarn apt source that broke apt-get update, and reporting package installation failures instead of skipping them silently
+time: 2026-08-26T11:24:32+03:00
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun
