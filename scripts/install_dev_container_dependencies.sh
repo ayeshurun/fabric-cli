@@ -9,7 +9,9 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 # so the script behaves identically under either user. sudo resets the
 # environment by default, so proxy variables are preserved explicitly for apt.
 if [ "$(id -u)" -eq 0 ]; then
-    sudo_cmd=()
+    # `env` is a no-op prefix. An empty array would be equivalent on bash >= 4.4,
+    # but expanding one under `set -u` is an error on older bash.
+    sudo_cmd=(env)
 else
     if ! command -v sudo >/dev/null 2>&1; then
         echo "Not running as root and sudo is unavailable; cannot install packages." >&2
@@ -19,7 +21,8 @@ else
         echo "sudo requires a password; expected passwordless sudo in the dev container." >&2
         exit 1
     fi
-    sudo_cmd=(sudo -n --preserve-env=http_proxy,https_proxy,no_proxy)
+    # Quoted because the commas belong to sudo's --preserve-env list, not to the array.
+    sudo_cmd=(sudo -n "--preserve-env=http_proxy,https_proxy,no_proxy")
 fi
 
 # Optional local overrides for restricted networks, e.g. pointing PIP_INDEX_URL at
