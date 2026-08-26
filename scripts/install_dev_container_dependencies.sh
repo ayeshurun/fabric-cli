@@ -124,9 +124,14 @@ fi
 # Extract the member's contents rather than materialising the archive entry. A
 # malformed or substituted archive could ship `changie` as a symlink or hard
 # link, and `install` running under sudo would follow it and copy an arbitrary
-# root-readable file into world-readable /usr/local/bin. `tar -O` emits nothing
-# for link entries, and the redirect always creates a regular file inside the
-# 0700 temp directory, so this path fails closed.
+# root-readable file into world-readable /usr/local/bin. `tar -O` emits no
+# content for link entries, so the empty check below rejects them, and the
+# redirect always writes a regular file inside the 0700 temp directory.
+#
+# This bounds the outcome to bytes carried by the archive itself. A substituted
+# archive can still stream a directory child or concatenated duplicate members
+# through this path, which is no worse than it shipping a malicious regular
+# member; what it cannot do is make the privileged install read a host path.
 tar -xzOf "${changie_tmp}/${changie_archive}" changie > "${changie_tmp}/changie.bin"
 if [ ! -s "${changie_tmp}/changie.bin" ]; then
     echo "Extracted changie is empty; refusing to install." >&2
