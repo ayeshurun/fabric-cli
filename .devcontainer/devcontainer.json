@@ -4,16 +4,27 @@
 	"name": "Python 3",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	// Node.js is intentionally not installed: nothing in this repository is JavaScript, and the
+	// node feature installs pnpm from the public npm registry, which fails on networks that
+	// enforce an internal package feed proxy. changie is installed from its GitHub release in
+	// scripts/install_dev_container_dependencies.sh instead.
 	"features": {
-		"ghcr.io/devcontainers/features/azure-cli:1": {},
-		"ghcr.io/devcontainers/features/node:2": {}
+		"ghcr.io/devcontainers/features/azure-cli:1": {}
 	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "bash scripts/install_dev_container_dependencies.sh"
+	"postCreateCommand": "bash scripts/install_dev_container_dependencies.sh",
+	// Forward the host's package index settings into the container. Container builds do not
+	// inherit the host's pip configuration, so developers on networks that require an internal
+	// mirror or proxy feed would otherwise fail to reach the public PyPI CDN. These resolve to an
+	// empty value when unset on the host, which leaves pip on its default index.
+	"remoteEnv": {
+		"PIP_INDEX_URL": "${localEnv:PIP_INDEX_URL}",
+		"PIP_EXTRA_INDEX_URL": "${localEnv:PIP_EXTRA_INDEX_URL}"
+	}
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
