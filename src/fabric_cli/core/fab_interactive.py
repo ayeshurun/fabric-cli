@@ -3,6 +3,7 @@
 
 import html
 import shlex
+import sys
 
 from prompt_toolkit import HTML, PromptSession
 from prompt_toolkit.cursor_shapes import CursorShape
@@ -135,12 +136,27 @@ class InteractiveCLI:
                     # Handle Ctrl+C gracefully during command input
                     utils_ui.print("\nUse 'quit' or 'exit' to leave interactive mode.")
                     continue
+                except EOFError:
+                    # Ctrl+D, or stdin closed. Re-raise so the outer handler prints
+                    # the exit message; the generic handler below would swallow it
+                    # and report an empty string, since str(EOFError()) is "".
+                    raise
                 except Exception as e:
                     # Handle unexpected errors during prompt processing
                     utils_ui.print(f"Error in interactive session: {str(e)}")
                     break
 
-        except (EOFError, KeyboardInterrupt):
+        except EOFError:
+            # prompt_toolkit raises EOFError on Ctrl+D, and also immediately at the
+            # first prompt when stdin is not a terminal (for example the VS Code
+            # Debug Console), which otherwise looks like an unexplained exit.
+            if not (sys.stdin and sys.stdin.isatty()):
+                utils_ui.print(
+                    "\nInteractive mode needs a terminal, but standard input is not one. "
+                    'In VS Code, use a debug configuration with "console": "integratedTerminal".'
+                )
+            utils_ui.print(f"\n{fab_constant.INTERACTIVE_EXIT_MESSAGE}")
+        except KeyboardInterrupt:
             utils_ui.print(f"\n{fab_constant.INTERACTIVE_EXIT_MESSAGE}")
         except Exception as e:
             # Handle critical errors that would terminate the session
