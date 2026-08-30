@@ -62,6 +62,18 @@ All PRs must be linked with a "help wanted" issue. To avoid rework after investi
 
 Please review [engineering guidelines](https://github.com/microsoft/fabric-cli/wiki) for coding guidelines and common flows to help you with your task. 
 
+### Development environment
+
+The repository ships a [dev container](https://containers.dev). Opening the project in it installs the build dependencies, the Python requirements, and `changie`.
+
+On a restricted network that blocks public package registries, point the setup script at an internal mirror instead:
+
+```bash
+cp .devcontainer/local.env.example .devcontainer/local.env
+```
+
+Then uncomment and edit the entries you need, and rebuild the container. `.devcontainer/local.env` is git-ignored, so mirror URLs stay out of the repository. See the comments in the example file for the supported keys.
+
 ### Pull request process
 
 Please use a descriptive title and provide a clear summary of your changes.
