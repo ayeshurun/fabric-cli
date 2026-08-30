@@ -28,7 +28,7 @@ def exec(folder: Folder, args: Namespace) -> str | None:
     payload = {
         "displayName": foldername,
     }
-    if hasattr(args, 'params') and args.params.get("description"):
+    if hasattr(args, "params") and args.params.get("description"):
         payload["description"] = args.params["description"]
 
     if parent_folder_id:
@@ -39,7 +39,9 @@ def exec(folder: Folder, args: Namespace) -> str | None:
     response = folder_api.create_folder(args, json_payload)
     if response.status_code in (200, 201):
         data = json.loads(response.text)
-        utils_ui.print_output_format(args, message=f"'{folder.name}' created", data=data, show_headers=True)
+        utils_ui.print_output_format(
+            args, message=f"'{folder.name}' created", data=data, show_headers=True
+        )
         if data is not None and data.get("id"):
             _folder_id = data["id"]
             folder._id = _folder_id

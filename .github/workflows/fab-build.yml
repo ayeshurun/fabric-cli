@@ -9,8 +9,36 @@ on:
       - 'tests/**'
       - 'pyproject.toml'
       - 'tox.toml'
+      # MANIFEST.in decides what the build-dist job ships in the sdist, so a
+      # change to it alone still needs the build to run.
+      - 'MANIFEST.in'
       - 'requirements*.txt'
       - '.github/workflows/fab-build.yml'
+      # Every tracked Python file is linted, wherever it lives, so match on the
+      # extension instead of enumerating directories -- .ai-assets/ and scripts/
+      # each had to be added retroactively after being missed. .ai-assets/ stays
+      # listed explicitly because glob implementations vary on whether a leading
+      # dot is matched by a wildcard.
+      - '**/*.py'
+      - '*.py'
+      - '**/*.pyi'
+      - '.ai-assets/**'
+      # .gitignore is formatting-relevant: black honours it while walking
+      # directories, so a .gitignore-only change can silently add or remove
+      # files from the set that `tox -e lint` checks.
+      - '.gitignore'
+      # Config files that can redefine linting without touching the ones above.
+      # isort searches ('.isort.cfg', 'pyproject.toml', 'setup.cfg', 'tox.ini',
+      # '.editorconfig') and stops at the first hit, so adding a root .isort.cfg
+      # silently overrides pyproject.toml. tox likewise accepts tox.ini/setup.cfg
+      # alongside tox.toml.
+      - '.isort.cfg'
+      - 'setup.cfg'
+      - 'tox.ini'
+      - '.editorconfig'
+      # scripts/ holds the formatter-pin consistency check the lint job runs, as
+      # well as any non-.py helper it may grow.
+      - 'scripts/**'
 
 permissions:
     contents: read
@@ -21,20 +49,25 @@ jobs:
     name: Lint Code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.12"  # Use any stable Python version for linting
+          # Must be >= the highest target-version in [tool.black]. Black verifies
+          # its output by re-parsing the AST, and that check is skipped with a
+          # warning when the running interpreter is older than the target (a 3.12
+          # interpreter cannot parse code formatted for py313).
+          python-version: "3.13"
 
       - name: Install Tox
         run: |
           python -m pip install --upgrade pip
+          # tomllib, used by the pin check, is in the stdlib on the 3.13 used here.
           pip install tox
 
       - name: Cache Tox environments
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .tox
           key: ${{ runner.os }}-tox-lint-${{ hashFiles('**/tox.toml') }}
@@ -44,16 +77,47 @@ jobs:
       - name: Run Linting
         run: tox -e lint
 
+      # The black/isort versions are declared in tox.toml and requirements-dev.txt.
+      # `tox -e lint` only catches drift between them once the versions actually
+      # format this codebase differently, which can lag a release by months, so
+      # compare the declared pins directly.
+      - name: Verify formatter pins agree across tox and requirements-dev
+        run: python scripts/check_formatter_pins.py
+
+      # black honours .gitignore while walking directories, so a tracked file that
+      # is also gitignored is silently never checked -- `black --check .` reports
+      # success without ever having looked at it. That is not hypothetical: this
+      # repo shipped two unformatted tracked files that way until the negations in
+      # .gitignore were added. Nothing in `tox -e lint` can detect the hole,
+      # because from black's point of view the files do not exist.
+      #
+      # sample_code/ is the one deliberate exception: those fixtures are uploaded
+      # byte-for-byte by tests, so pyproject.toml force-excludes them from black.
+      - name: Verify no tracked Python file is hidden from black by .gitignore
+        run: |
+          # Assigned before filtering so a git failure trips `set -e` instead of
+          # being swallowed by the `|| true` that grep's no-match exit needs.
+          tracked_ignored=$(git ls-files -c -i --exclude-standard -- '*.py' '*.pyi')
+          hidden=$(printf '%s\n' "$tracked_ignored" \
+            | grep -v '^tests/test_commands/data/sample_code/' || true)
+          if [ -n "$hidden" ]; then
+            echo "::error::Tracked Python files are gitignored, so black skips them:"
+            echo "$hidden"
+            echo "Add a '!' negation for each in .gitignore, then run 'tox -e format'."
+            exit 1
+          fi
+          echo "No tracked Python file is hidden from black."
+
 
   # Type Checking Job
   type-check:
     name: Type Check Code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"  # Use any stable Python version for type checking
 
@@ -63,7 +127,7 @@ jobs:
           pip install tox
 
       - name: Cache Tox environments
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .tox
           key: ${{ runner.os }}-tox-type-${{ hashFiles('**/tox.toml') }}
@@ -89,10 +153,10 @@ jobs:
           - python-version: "3.13"
             tox-env: "py313"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -102,7 +166,7 @@ jobs:
           pip install tox
 
       - name: Cache Tox environments
-        uses: actions/cache@v3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ matrix.tox-env }}-${{ hashFiles('**/tox.toml') }}
@@ -115,7 +179,7 @@ jobs:
 
       # Upload the coverage report as an artifact
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-html-report-${{ matrix.python-version }}
           path: coverage_html
@@ -127,10 +191,10 @@ jobs:
     needs:
       - test  # Ensure all test jobs complete successfully
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 

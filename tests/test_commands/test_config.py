@@ -208,10 +208,13 @@ class TestConfigModeDeprecated:
         mock_print_warning.assert_called_once_with(DEPRECATION_WARNING_INTERACTIVE)
         mock_repl.assert_called_once()
 
-    @pytest.mark.parametrize("mode_value", [
-        constant.FAB_MODE_COMMANDLINE,
-        "bogus_value",
-    ])
+    @pytest.mark.parametrize(
+        "mode_value",
+        [
+            constant.FAB_MODE_COMMANDLINE,
+            "bogus_value",
+        ],
+    )
     def test_config_set_mode_non_interactive_warns_without_repl_success(
         self, mode_value, mock_print_warning, mock_repl, cli_executor: CLIExecutor
     ):

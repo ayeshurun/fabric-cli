@@ -3,7 +3,8 @@
 
 import os
 import platform
-from unittest.mock import patch
+from argparse import Namespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -30,20 +31,19 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.NOTEBOOK]
+            target_env="dev", item_types=[ItemType.NOTEBOOK]
         )
 
         mock_print_done.reset_mock()
 
         # Execute command
         cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)} --target_env dev --force")
+            f"deploy --config {str(deploy_config_path)} --target_env dev --force"
+        )
 
         # Assert
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
 
     def test_deploy_multiple_items_success(
         self,
@@ -58,20 +58,23 @@ class TestDeploy:
         # Setup
         deploy_config_path = deploy_setup_factory(
             target_env="dev",
-            item_types=[ItemType.DATA_PIPELINE,
-                        ItemType.NOTEBOOK, ItemType.VARIABLE_LIBRARY]
+            item_types=[
+                ItemType.DATA_PIPELINE,
+                ItemType.NOTEBOOK,
+                ItemType.VARIABLE_LIBRARY,
+            ],
         )
 
         mock_print_done.reset_mock()
 
         # Execute command
         cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)} --target_env dev --force")
+            f"deploy --config {str(deploy_config_path)} --target_env dev --force"
+        )
 
         # Assert
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
 
     def test_deploy_multiple_items_bulk_publish_enabled_success(
         self,
@@ -92,22 +95,23 @@ class TestDeploy:
         # Setup
         deploy_config_path = deploy_setup_factory(
             target_env="dev",
-            item_types=[ItemType.DATA_PIPELINE,
-                        ItemType.NOTEBOOK, ItemType.VARIABLE_LIBRARY]
+            item_types=[
+                ItemType.DATA_PIPELINE,
+                ItemType.NOTEBOOK,
+                ItemType.VARIABLE_LIBRARY,
+            ],
         )
 
         mock_print_done.reset_mock()
 
-        with (
-            patch.object(deploy_mod, "append_feature_flag") as mock_flag,
-        ):
+        with (patch.object(deploy_mod, "append_feature_flag") as mock_flag,):
             cli_executor.exec_command(
-                f"deploy --config {str(deploy_config_path)} --target_env dev --force --bulk_publish")
+                f"deploy --config {str(deploy_config_path)} --target_env dev --force --bulk_publish"
+            )
 
         # Assert deployment completed and the bulk publish flags were applied
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
         appended = [call.args[0] for call in mock_flag.call_args_list]
         assert "disable_print_identity" in appended
         assert "enable_experimental_features" in appended
@@ -125,23 +129,22 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env=None,
-            item_types=[ItemType.NOTEBOOK]
+            target_env=None, item_types=[ItemType.NOTEBOOK]
         )
 
         mock_print_done.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"deploy --config {deploy_config_path}")
+        cli_executor.exec_command(f"deploy --config {deploy_config_path}")
 
         # Assert
         mock_questionary_confirm.assert_called_once()
-        assert "Are you sure you want to deploy without a target environment using the specified configuration file?" in str(
-            mock_questionary_confirm.call_args)
+        assert (
+            "Are you sure you want to deploy without a target environment using the specified configuration file?"
+            in str(mock_questionary_confirm.call_args)
+        )
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
 
     def test_deploy_config_with_tenv_without_force_prompt_success(
         self,
@@ -155,8 +158,7 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.VARIABLE_LIBRARY]
+            target_env="dev", item_types=[ItemType.VARIABLE_LIBRARY]
         )
 
         # Reset mock
@@ -164,15 +166,17 @@ class TestDeploy:
 
         # Execute command
         cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)} --target_env dev")
+            f"deploy --config {str(deploy_config_path)} --target_env dev"
+        )
 
         # Assert
         mock_questionary_confirm.assert_called_once()
-        assert "Are you sure you want to deploy to target environment 'dev' using the specified configuration file?" in str(
-            mock_questionary_confirm.call_args)
+        assert (
+            "Are you sure you want to deploy to target environment 'dev' using the specified configuration file?"
+            in str(mock_questionary_confirm.call_args)
+        )
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
 
     def test_deploy_config_missing_tenv_failure(
         self,
@@ -180,15 +184,14 @@ class TestDeploy:
         cli_executor: CLIExecutor,
         mock_fab_ui_print_error,
         mock_print_done,
-        mock_questionary_confirm
+        mock_questionary_confirm,
     ):
         """
         Test deployment failure when config is missing target environment and user cancels prompt.
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.NOTEBOOK]
+            target_env="dev", item_types=[ItemType.NOTEBOOK]
         )
 
         # Reset mock
@@ -196,18 +199,20 @@ class TestDeploy:
         mock_print_done.reset_mock()
 
         # Execute command (without --target_env flag)
-        cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)}")
+        cli_executor.exec_command(f"deploy --config {str(deploy_config_path)}")
 
         # Assert
         mock_questionary_confirm.assert_called_once()
-        assert 'Are you sure you want to deploy without a target environment using the specified configuration file?' in str(
-            mock_questionary_confirm.call_args)
+        assert (
+            "Are you sure you want to deploy without a target environment using the specified configuration file?"
+            in str(mock_questionary_confirm.call_args)
+        )
         mock_fab_ui_print_error.assert_called_once()
-        assert "Deployment failed" in str(
-            mock_fab_ui_print_error.call_args)
-        assert "Configuration contains environment mappings but no environment was provided. Please specify an environment or remove environment mappings" in str(
-            mock_fab_ui_print_error.call_args)
+        assert "Deployment failed" in str(mock_fab_ui_print_error.call_args)
+        assert (
+            "Configuration contains environment mappings but no environment was provided. Please specify an environment or remove environment mappings"
+            in str(mock_fab_ui_print_error.call_args)
+        )
         mock_print_done.assert_not_called()
 
     def test_deploy_config_without_tenv_cancel_success(
@@ -222,8 +227,7 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.NOTEBOOK]
+            target_env="dev", item_types=[ItemType.NOTEBOOK]
         )
 
         # Reset mock
@@ -233,8 +237,7 @@ class TestDeploy:
         with patch("questionary.confirm") as mock_confirm:
             mock_confirm.return_value.ask.return_value = False
             # Execute command (without --target_env flag)
-            cli_executor.exec_command(
-                f"deploy --config {str(deploy_config_path)}")
+            cli_executor.exec_command(f"deploy --config {str(deploy_config_path)}")
 
         # Assert
         mock_confirm.assert_called()
@@ -254,8 +257,7 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.DATA_PIPELINE]
+            target_env="dev", item_types=[ItemType.DATA_PIPELINE]
         )
 
         mock_print_done.reset_mock()
@@ -263,12 +265,12 @@ class TestDeploy:
         # Execute command
         config_override = '{"core": {"item_types_in_scope": ["Notebook"]}, "publish": {"skip": {"dev": false}}}'
         cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)} --target_env dev -P config_override='{config_override}' --force")
+            f"deploy --config {str(deploy_config_path)} --target_env dev -P config_override='{config_override}' --force"
+        )
 
         # Assert
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
 
     def test_deploy_invalid_config_file_path_failure(
         self,
@@ -277,8 +279,8 @@ class TestDeploy:
         tmp_path,
     ):
         """
-            Test deployment failure when config file path is invalid/doesn't exist.
-            """
+        Test deployment failure when config file path is invalid/doesn't exist.
+        """
         # Create a non-existent config path
         invalid_config_path = tmp_path / "non_existent_config.yml"
 
@@ -286,13 +288,14 @@ class TestDeploy:
         mock_fab_ui_print_error.reset_mock()
 
         # Execute command with invalid config path
-        cli_executor.exec_command(
-            f"deploy --config {str(invalid_config_path)} --force")
+        cli_executor.exec_command(f"deploy --config {str(invalid_config_path)} --force")
 
         # Assert that error is printed
         mock_fab_ui_print_error.assert_called()
-        assert "Configuration validation failed with 1 error(s):\n  - Configuration file not found" in mock_fab_ui_print_error.call_args[
-            0][0].message
+        assert (
+            "Configuration validation failed with 1 error(s):\n  - Configuration file not found"
+            in mock_fab_ui_print_error.call_args[0][0].message
+        )
 
     def test_deploy_invalid_config_file_failure(
         self,
@@ -305,19 +308,22 @@ class TestDeploy:
         """
         # Setup
         deploy_config_path = deploy_setup_factory(
-            target_env="dev",
-            item_types=[ItemType.DATA_PIPELINE]
+            target_env="dev", item_types=[ItemType.DATA_PIPELINE]
         )
 
         mock_fab_ui_print_error.reset_mock()
 
         # Execute command
         cli_executor.exec_command(
-            f"deploy --config {str(deploy_config_path)} --target_env test --force")
+            f"deploy --config {str(deploy_config_path)} --target_env test --force"
+        )
 
         # Assert
         mock_fab_ui_print_error.assert_called()
-        assert "Environment 'test' not found in 'core.workspace' mappings. Available: ['dev']" in mock_fab_ui_print_error.call_args[0][0].message
+        assert (
+            "Environment 'test' not found in 'core.workspace' mappings. Available: ['dev']"
+            in mock_fab_ui_print_error.call_args[0][0].message
+        )
 
     def test_deploy_with_home_directory_path_success(
         self,
@@ -325,7 +331,7 @@ class TestDeploy:
         mock_print_done,
         tmp_path,
         monkeypatch,
-        deploy_setup_factory
+        deploy_setup_factory,
     ):
         """
         Test deployment success when repository path contains ~ (home directory).
@@ -341,16 +347,77 @@ class TestDeploy:
         deploy_config_path = deploy_setup_factory(
             target_env="dev",
             item_types=[ItemType.DATA_PIPELINE],
-            path_override=str(home_dir)
+            path_override=str(home_dir),
         )
 
         mock_print_done.reset_mock()
 
         # Execute command
         cli_executor.exec_command(
-            f"deploy --config {deploy_config_path} --target_env dev --force")
+            f"deploy --config {deploy_config_path} --target_env dev --force"
+        )
 
         # Assert
         mock_print_done.assert_called()
-        assert "Deployment completed successfully" in str(
-            mock_print_done.call_args)
+        assert "Deployment completed successfully" in str(mock_print_done.call_args)
+
+    def _run_deploy_with_config_file(self, deploy_with_config, params=None):
+        """Invoke deploy_with_config_file with fabric-cicd symbols patched (no network)."""
+        from fabric_cli.commands.fs.deploy import (
+            fab_fs_deploy_config_file as deploy_mod,
+        )
+
+        args = Namespace(
+            config="config.yml",
+            target_env="dev",
+            command_path="deploy",
+            params=params if params is not None else [],
+        )
+
+        with (
+            patch.object(deploy_mod, "deploy_with_config", deploy_with_config),
+            patch.object(deploy_mod, "create_fabric_token_credential", MagicMock()),
+            patch.object(deploy_mod, "append_feature_flag", MagicMock()),
+            patch.object(deploy_mod, "disable_file_logging", MagicMock()),
+            patch.object(deploy_mod, "configure_external_file_logging", MagicMock()),
+            patch.object(
+                deploy_mod.fab_state_config, "get_config", return_value="false"
+            ),
+            patch.object(deploy_mod.fab_ui, "print_output_format", MagicMock()),
+        ):
+            deploy_mod.deploy_with_config_file(args)
+
+    def _capture_deploy_host_app(self, params=None):
+        """Run deploy_with_config_file and return the host_app passed to fabric-cicd."""
+        captured = {}
+
+        def fake_deploy_with_config(
+            *,
+            config_file_path,
+            token_credential,
+            environment="N/A",
+            config_override=None,
+            host_app=None,
+        ):
+            captured["host_app"] = host_app
+            return MagicMock(message="Deployment completed successfully")
+
+        self._run_deploy_with_config_file(fake_deploy_with_config, params=params)
+
+        return captured["host_app"]
+
+    def test_deploy_passes_host_app_success(self):
+        """CLI passes host_app as 'ms-fabric-cli/<version>'."""
+        from fabric_cli.core import fab_constant
+
+        host_app = self._capture_deploy_host_app()
+
+        assert host_app == f"{fab_constant.API_USER_AGENT}/{fab_constant.FAB_VERSION}"
+
+    def test_deploy_host_app_cannot_be_spoofed_via_params_success(self):
+        """A user-supplied host_app (via -P) is overridden by the CLI-controlled value."""
+        from fabric_cli.core import fab_constant
+
+        host_app = self._capture_deploy_host_app(params=["host_app=spoofed"])
+
+        assert host_app == f"{fab_constant.API_USER_AGENT}/{fab_constant.FAB_VERSION}"

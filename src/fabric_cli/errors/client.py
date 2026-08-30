@@ -12,5 +12,7 @@ class ClientErrors:
         return f"An unexpected error occurred with status code: {http_status_code} and message: {message}"
 
     @staticmethod
-    def resource_type_not_found_in_provider(resource_type: str, provider_namespace: str) -> str:
+    def resource_type_not_found_in_provider(
+        resource_type: str, provider_namespace: str
+    ) -> str:
         return f"Resource type '{resource_type}' not found in provider '{provider_namespace}'"

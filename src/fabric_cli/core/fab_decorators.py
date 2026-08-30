@@ -21,7 +21,7 @@ def singleton(class_):
         if class_ not in instances:
             instances[class_] = class_(*args, **kwargs)
         return instances[class_]
-    
+
     return getinstance
 
 
@@ -64,6 +64,7 @@ def set_command_context():
         def wrapper(*args, **kwargs):
             # Import Context locally to avoid circular import
             from fabric_cli.core.fab_context import Context
+
             Context().command = args[0].command_path
             return func(*args, **kwargs)
 

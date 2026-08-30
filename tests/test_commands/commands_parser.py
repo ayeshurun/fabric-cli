@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import platform
+
 from prompt_toolkit.input import DummyInput
 from prompt_toolkit.output import DummyOutput
 
@@ -12,6 +13,7 @@ from fabric_cli.parsers.fab_api_parser import register_parser as register_api_pa
 from fabric_cli.parsers.fab_config_parser import (
     register_parser as register_config_parser,
 )
+from fabric_cli.parsers.fab_find_parser import register_parser as register_find_parser
 from fabric_cli.parsers.fab_fs_parser import (
     register_assign_parser,
     register_bulk_export_parser,
@@ -32,9 +34,6 @@ from fabric_cli.parsers.fab_fs_parser import (
     register_start_parser,
     register_stop_parser,
     register_unassign_parser,
-)
-from fabric_cli.parsers.fab_find_parser import (
-    register_parser as register_find_parser,
 )
 from fabric_cli.parsers.fab_jobs_parser import register_parser as register_jobs_parser
 from fabric_cli.parsers.fab_labels_parser import (

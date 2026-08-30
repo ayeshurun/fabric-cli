@@ -1,0 +1,27 @@
+# Revisions listed here are skipped by `git blame`.
+#
+# Only add commits that are purely mechanical (formatters, licence headers,
+# whitespace) and provably contain no behavioural change. Never add a commit
+# that mixes formatting with real edits -- blame would then hide real authorship.
+#
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub applies this file automatically in its blame view.
+#
+# MAINTAINERS: this repository squash-merges, so the SHA of a formatting commit
+# inside a pull request never reaches `main` and cannot be listed here in advance.
+# A squash also collapses every commit in a PR into one, so the SHA is only safe
+# to list if that PR contained *nothing but* the reformat. A PR that mixes the
+# reformat with configuration or documentation changes produces a squash commit
+# that is not purely mechanical, and listing it would hide real authorship.
+#
+# So the reformat has to land as its own pull request. After squash-merging it,
+# append the squashed SHA (`git log -1 --format=%H` on `main`) below with a
+# one-line description. Git silently ignores entries that do not resolve to a
+# real commit, so an unfilled placeholder fails *open*: blame keeps attributing
+# reformatted lines to the formatting commit, with nothing to indicate the entry
+# is dead.
+# See CONTRIBUTING.md ("`git blame` and the formatting commit") for context.
+
+# <SHA>  style: apply isort + black across the repository

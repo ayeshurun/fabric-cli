@@ -75,4 +75,4 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     api_parser.usage = f"{utils_error_parser.get_usage_prog(api_parser)}"
-    api_parser.set_defaults(func=lazy_command(_api_module_path, 'request_command'))
+    api_parser.set_defaults(func=lazy_command(_api_module_path, "request_command"))

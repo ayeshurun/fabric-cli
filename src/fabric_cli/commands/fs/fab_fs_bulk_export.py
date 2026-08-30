@@ -15,8 +15,7 @@ from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.hiearchy.fab_folder import Folder
 from fabric_cli.core.hiearchy.fab_hiearchy import FabricElement, Workspace
 from fabric_cli.errors.bulk_export import BulkExportErrors
-from fabric_cli.utils import fab_storage
-from fabric_cli.utils import fab_ui, fab_util
+from fabric_cli.utils import fab_storage, fab_ui, fab_util
 
 
 def exec_command(args: Namespace, context: FabricElement) -> None:

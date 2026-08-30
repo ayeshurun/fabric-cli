@@ -44,4 +44,3 @@ def search(args: Namespace, payload: dict) -> ApiResponse:
     # raw_response=True so we handle pagination ourselves in fab_find
     args.raw_response = True
     return fabric_api.do_request(args, json=payload)
-

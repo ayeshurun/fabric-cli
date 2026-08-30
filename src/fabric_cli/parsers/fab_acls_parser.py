@@ -13,7 +13,9 @@ _acls_module_path = "fabric_cli.commands.acls.fab_acls"
 
 commands = {
     "Commands": {
-        get_os_specific_command("ls"): "List ACLs for a workspace, item, or OneLake resource.",
+        get_os_specific_command(
+            "ls"
+        ): "List ACLs for a workspace, item, or OneLake resource.",
         get_os_specific_command(
             "rm"
         ): "Remove an ACL from a workspace, gateway, or connection.",
@@ -62,7 +64,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     ls_parser.usage = f"{utils_error_parser.get_usage_prog(ls_parser)}"
-    ls_parser.set_defaults(func=lazy_command(_acls_module_path, 'ls_command'))
+    ls_parser.set_defaults(func=lazy_command(_acls_module_path, "ls_command"))
 
     # Subcommand for 'rm'
     rm_aliases = ["del"]
@@ -90,7 +92,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     rm_parser.add_argument("-f", "--force", action="store_true", help="Force. Optional")
 
     rm_parser.usage = f"{utils_error_parser.get_usage_prog(rm_parser)}"
-    rm_parser.set_defaults(func=lazy_command(_acls_module_path, 'rm_command'))
+    rm_parser.set_defaults(func=lazy_command(_acls_module_path, "rm_command"))
 
     # Subcommand for 'get'
     get_examples = [
@@ -124,7 +126,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     get_parser.usage = f"{utils_error_parser.get_usage_prog(get_parser)}"
-    get_parser.set_defaults(func=lazy_command(_acls_module_path, 'get_command'))
+    get_parser.set_defaults(func=lazy_command(_acls_module_path, "get_command"))
 
     # Subcommand for 'set'
     set_examples = [
@@ -158,7 +160,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     set_parser.usage = f"{utils_error_parser.get_usage_prog(set_parser)}"
-    set_parser.set_defaults(func=lazy_command(_acls_module_path, 'set_command'))
+    set_parser.set_defaults(func=lazy_command(_acls_module_path, "set_command"))
 
 
 def show_help(args: Namespace) -> None:

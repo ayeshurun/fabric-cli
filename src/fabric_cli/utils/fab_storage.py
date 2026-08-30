@@ -150,7 +150,8 @@ def get_export_path(output_path: str) -> dict:
                 return {"type": "local", "path": expanded_path}
             else:
                 raise FabricCLIError(
-                    ErrorMessages.Common.no_such_file_or_directory(), fab_constant.ERROR_INVALID_PATH
+                    ErrorMessages.Common.no_such_file_or_directory(),
+                    fab_constant.ERROR_INVALID_PATH,
                 )
 
     # Validate Fabric path if exists
@@ -191,7 +192,8 @@ def get_import_path(input_path: str) -> dict:
             return {"type": "local", "path": expanded_path}
         else:
             raise FabricCLIError(
-                ErrorMessages.Common.no_such_file_or_directory(), fab_constant.ERROR_INVALID_PATH
+                ErrorMessages.Common.no_such_file_or_directory(),
+                fab_constant.ERROR_INVALID_PATH,
             )
 
     # Validate Fabric path if exists

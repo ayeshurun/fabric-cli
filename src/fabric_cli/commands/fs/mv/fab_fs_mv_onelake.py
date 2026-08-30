@@ -9,9 +9,9 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType
 from fabric_cli.core.hiearchy.fab_hiearchy import Item, OneLakeItem
+from fabric_cli.utils import fab_item_util as item_utils
 from fabric_cli.utils import fab_ui as utils_ui
 from fabric_cli.utils import fab_util as utils
-from fabric_cli.utils import fab_item_util as item_utils
 
 
 def move_onelake_file(
@@ -46,7 +46,8 @@ def move_onelake_file(
 
             response = onelake_api.move_rename(args)
             if response.status_code in (200, 201):
-                utils_ui.print_output_format(args, message="Move onelake file completed succesfully"
+                utils_ui.print_output_format(
+                    args, message="Move onelake file completed succesfully"
                 )
     else:
         raise FabricCLIError(

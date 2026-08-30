@@ -64,7 +64,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     start_parser.usage = f"{utils_error_parser.get_usage_prog(start_parser)}"
-    start_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_command'))
+    start_parser.set_defaults(func=lazy_command(_jobs_module_path, "run_command"))
 
     # Subcommand for 'run'
     run_examples = [
@@ -114,7 +114,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     run_parser.usage = f"{utils_error_parser.get_usage_prog(run_parser)}"
-    run_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_command'))
+    run_parser.set_defaults(func=lazy_command(_jobs_module_path, "run_command"))
 
     # Subcommand for 'run_list'
     list_examples = [
@@ -140,7 +140,9 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     run_list_parser.usage = f"{utils_error_parser.get_usage_prog(run_list_parser)}"
-    run_list_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_list_command'))
+    run_list_parser.set_defaults(
+        func=lazy_command(_jobs_module_path, "run_list_command")
+    )
 
     # Subcommand for 'run_cancel'
     cancel_examples = [
@@ -169,7 +171,9 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
 
     run_cancel_parser.usage = f"{utils_error_parser.get_usage_prog(run_cancel_parser)}"
-    run_cancel_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_cancel_command'))
+    run_cancel_parser.set_defaults(
+        func=lazy_command(_jobs_module_path, "run_cancel_command")
+    )
 
     # Subcommand for 'run_sch'
     sch_examples = [
@@ -216,7 +220,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     )
     run_sch_parser.add_argument("--days", metavar="", help="Days of the week. Optional")
     run_sch_parser.usage = f"{utils_error_parser.get_usage_prog(run_sch_parser)}"
-    run_sch_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_sch_command'))
+    run_sch_parser.set_defaults(func=lazy_command(_jobs_module_path, "run_sch_command"))
 
     # Subcommand for 'run_update'
     update_examples = [
@@ -276,7 +280,9 @@ def register_parser(subparsers: _SubParsersAction) -> None:
     run_update_parser.add_argument(
         "--days", metavar="", help="Days of the week. Optional"
     )
-    run_update_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_update_command'))
+    run_update_parser.set_defaults(
+        func=lazy_command(_jobs_module_path, "run_update_command")
+    )
 
     # Subcommand for 'run_rm'
     rm_examples = [
@@ -313,7 +319,7 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         help="Force delete the schedule without confirmation. Optional",
     )
     run_rm_parser.usage = f"{utils_error_parser.get_usage_prog(run_rm_parser)}"
-    run_rm_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_rm_command'))
+    run_rm_parser.set_defaults(func=lazy_command(_jobs_module_path, "run_rm_command"))
 
     # Subcommand for 'run_status'
     status_examples = [
@@ -341,7 +347,9 @@ def register_parser(subparsers: _SubParsersAction) -> None:
         "--schedule", action="store_true", help="Schedule runs. Optional"
     )
     run_status_parser.usage = f"{utils_error_parser.get_usage_prog(run_status_parser)}"
-    run_status_parser.set_defaults(func=lazy_command(_jobs_module_path, 'run_status_command'))
+    run_status_parser.set_defaults(
+        func=lazy_command(_jobs_module_path, "run_status_command")
+    )
 
 
 def show_help(args: Namespace) -> None:

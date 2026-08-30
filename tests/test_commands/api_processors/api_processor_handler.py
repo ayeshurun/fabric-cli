@@ -2,23 +2,24 @@
 # Licensed under the MIT License.
 
 from typing import List
+
 from tests.test_commands.api_processors.base_api_processor import BaseAPIProcessor
 from tests.test_commands.api_processors.capacities_api_processor import (
     CapacitiesAPIProcessor,
 )
+from tests.test_commands.api_processors.catalog_search_api_processor import (
+    CatalogSearchAPIProcessor,
+)
+from tests.test_commands.api_processors.connection_api_processor import (
+    ConnectionAPIProcessor,
+)
+from tests.test_commands.api_processors.domains_api_processor import DomainsAPIProcessor
 from tests.test_commands.api_processors.gateway_api_processor import GatewayAPIProcessor
 from tests.test_commands.api_processors.subscriptions_api_processor import (
     SubscriptionsAPIProcessor,
 )
 from tests.test_commands.api_processors.workspace_api_processor import (
     WorkspaceAPIProcessor,
-)
-from tests.test_commands.api_processors.domains_api_processor import DomainsAPIProcessor
-from tests.test_commands.api_processors.catalog_search_api_processor import (
-    CatalogSearchAPIProcessor,
-)
-from tests.test_commands.api_processors.connection_api_processor import (
-    ConnectionAPIProcessor,
 )
 
 

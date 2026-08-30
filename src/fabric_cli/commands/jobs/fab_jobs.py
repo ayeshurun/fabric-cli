@@ -6,10 +6,10 @@ from argparse import Namespace
 from fabric_cli.commands.jobs import fab_jobs_run as jobs_run
 from fabric_cli.commands.jobs import fab_jobs_run_cancel as jobs_run_cancel
 from fabric_cli.commands.jobs import fab_jobs_run_list as jobs_run_list
+from fabric_cli.commands.jobs import fab_jobs_run_rm as jobs_run_rm
 from fabric_cli.commands.jobs import fab_jobs_run_sch as jobs_run_sch
 from fabric_cli.commands.jobs import fab_jobs_run_status as jobs_run_status
 from fabric_cli.commands.jobs import fab_jobs_run_update as jobs_run_update
-from fabric_cli.commands.jobs import fab_jobs_run_rm as jobs_run_rm
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
@@ -22,7 +22,7 @@ from fabric_cli.utils import fab_ui
 @set_command_context()
 def run_command(args: Namespace) -> None:
     utils_job.validate_timeout_polling_interval(args)
-    
+
     context = handle_context.get_command_context(args.path)
     context.check_command_support(Command.JOB_RUN)
     assert isinstance(context, Item)

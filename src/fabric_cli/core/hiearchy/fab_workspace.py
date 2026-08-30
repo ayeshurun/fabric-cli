@@ -59,7 +59,7 @@ class Workspace(_BaseWorkspace):
         super().__init__(name, id, FabricElementType.WORKSPACE, parent)
         # Old workspaces do not comply with the new naming convention
         if id is None:
-            (_, _type) = Workspace.validate_name(f"{name}.{type}")
+            _, _type = Workspace.validate_name(f"{name}.{type}")
         else:
             _type = WorkspaceType.from_string(str(type))
         self._ws_type = _type
@@ -94,7 +94,7 @@ class VirtualWorkspace(_BaseWorkspace):
 
     def __init__(self, name, id, parent: Tenant):
         super().__init__(name, id, FabricElementType.VIRTUAL_WORKSPACE, parent)
-        (_, _type) = VirtualWorkspace.validate_name(f"{name}")
+        _, _type = VirtualWorkspace.validate_name(f"{name}")
         self._vws_type = _type
         self._item_type = VWIMap[_type]
 

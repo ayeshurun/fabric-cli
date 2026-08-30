@@ -80,5 +80,6 @@ def exec(workspace: Workspace, args: Namespace) -> None:
         # Add to mem_store
         utils_mem_store.upsert_workspace_to_cache(workspace)
 
-        utils_ui.print_output_format(args, message=f"'{workspace.name}' created", data=data, show_headers=True)
-
+        utils_ui.print_output_format(
+            args, message=f"'{workspace.name}' created", data=data, show_headers=True
+        )

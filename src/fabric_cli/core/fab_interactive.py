@@ -13,9 +13,10 @@ from fabric_cli.core import fab_constant, fab_logger
 from fabric_cli.core.fab_commands import Command
 from fabric_cli.core.fab_context import Context
 from fabric_cli.core.fab_decorators import singleton
+from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
 from fabric_cli.utils import fab_commands
 from fabric_cli.utils import fab_ui as utils_ui
-from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
+
 
 @singleton
 class InteractiveCLI:
@@ -96,7 +97,9 @@ class InteractiveCLI:
                     # Catch SystemExit raised by ArgumentParser and prevent exiting
                     return
             else:
-                self.parser.error(f"invalid choice: '{command.strip()}'. Type 'help' for available commands.")
+                self.parser.error(
+                    f"invalid choice: '{command.strip()}'. Type 'help' for available commands."
+                )
 
         return False
 

@@ -5,8 +5,8 @@ import pytest
 
 from fabric_cli.core import fab_constant as constant
 from fabric_cli.core.fab_types import ItemType
+from tests.test_commands.conftest import exists_onelake_parameters, item_type_paramerter
 from tests.test_commands.data.static_test_data import StaticTestData
-from tests.test_commands.conftest import item_type_paramerter, exists_onelake_parameters
 
 
 class TestExists:
@@ -52,12 +52,17 @@ class TestExists:
 
     @exists_onelake_parameters
     def test_exists_onelake_exists_success(
-        self, item_factory, mock_print_done, cli_executor, item_type, folder_name, created_by_default
+        self,
+        item_factory,
+        mock_print_done,
+        cli_executor,
+        item_type,
+        folder_name,
+        created_by_default,
     ):
         # Skip combinations where folder is not created by default
         if not created_by_default:
-            pytest.skip(
-                f"{folder_name} folder not created by default for {item_type}")
+            pytest.skip(f"{folder_name} folder not created by default for {item_type}")
 
         # Setup
         item = item_factory(item_type)
@@ -84,8 +89,7 @@ class TestExists:
 
         # Execute command
         item_extension = f".{item_type.value}"
-        path = item.full_path.replace(
-            item_extension, f"random{item_extension}")
+        path = item.full_path.replace(item_extension, f"random{item_extension}")
         cli_executor.exec_command(f"exists {path}")
 
         # Assert
@@ -94,7 +98,13 @@ class TestExists:
 
     @exists_onelake_parameters
     def test_exists_onelake_doesnt_exist_success(
-        self, item_factory, mock_print_done, cli_executor, item_type, folder_name, created_by_default
+        self,
+        item_factory,
+        mock_print_done,
+        cli_executor,
+        item_type,
+        folder_name,
+        created_by_default,
     ):
         # Setup
         item = item_factory(item_type)
@@ -153,8 +163,7 @@ class TestExists:
         mock_print_done.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"exists {workspace.full_path}/random_folder.Folder")
+        cli_executor.exec_command(f"exists {workspace.full_path}/random_folder.Folder")
 
         # Assert
         mock_print_done.assert_called_once()

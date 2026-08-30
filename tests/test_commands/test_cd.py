@@ -31,7 +31,9 @@ class TestCD:
         assert Context().context.name == workspace.name
 
     @basic_item_parametrize
-    def test_cd_item_all_types_success(self, item_type, item_factory, mock_print_done, cli_executor):
+    def test_cd_item_all_types_success(
+        self, item_type, item_factory, mock_print_done, cli_executor
+    ):
         # Setup
         item = item_factory(item_type)
         mock_print_done.reset_mock()

@@ -21,15 +21,15 @@ from fabric_cli.core import fab_constant as constant
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_types import ItemType, VirtualItemContainerType
-from tests.test_commands.data.models import EntityMetadata
-from tests.test_commands.data.static_test_data import StaticTestData
-from tests.test_commands.processors import generate_random_string
-from tests.test_commands.utils import cli_path_join
 from tests.test_commands.conftest import (
     item_type_paramerter,
     rm_item_without_force_cancel_operation_success_params,
     unsupported_item_failure_params,
 )
+from tests.test_commands.data.models import EntityMetadata
+from tests.test_commands.data.static_test_data import StaticTestData
+from tests.test_commands.processors import generate_random_string
+from tests.test_commands.utils import cli_path_join
 
 
 class TestRM:
@@ -194,10 +194,10 @@ class TestRM:
         mock_print_done.assert_called_once()
 
         # Check for hard delete warnings
-        warning_calls = [str(call)
-                         for call in mock_print_warning.call_args_list]
-        assert any("hard delete" in call.lower() for call in warning_calls), \
-            f"Expected hard delete warning in: {warning_calls}"
+        warning_calls = [str(call) for call in mock_print_warning.call_args_list]
+        assert any(
+            "hard delete" in call.lower() for call in warning_calls
+        ), f"Expected hard delete warning in: {warning_calls}"
 
         _assert_strings_in_mock_calls(
             [item.display_name], True, mock_questionary_print.mock_calls
@@ -261,8 +261,7 @@ class TestRM:
         test_data: StaticTestData,
     ):
         # Setup
-        workspace = set_entity_metadata(
-            vcr_instance, cassette_name, "Workspace", "/")
+        workspace = set_entity_metadata(vcr_instance, cassette_name, "Workspace", "/")
         mkdir(
             workspace.full_path,
             params=[f"capacityName={test_data.capacity.name}"],
@@ -309,8 +308,7 @@ class TestRM:
         test_data: StaticTestData,
     ):
         # Setup
-        workspace = set_entity_metadata(
-            vcr_instance, cassette_name, "Workspace", "/")
+        workspace = set_entity_metadata(vcr_instance, cassette_name, "Workspace", "/")
         mkdir(
             workspace.full_path,
             params=[f"capacityName={test_data.capacity.name}"],
@@ -414,8 +412,7 @@ class TestRM:
         test_data: StaticTestData,
     ):
         # Setup
-        workspace = set_entity_metadata(
-            vcr_instance, cassette_name, "Workspace", "/")
+        workspace = set_entity_metadata(vcr_instance, cassette_name, "Workspace", "/")
         mkdir(
             workspace.full_path,
             params=[f"capacityName={test_data.capacity.name}"],
@@ -449,8 +446,7 @@ class TestRM:
         cassette_name,
     ):
         # Setup
-        sparkpool_display_name = generate_random_string(
-            vcr_instance, cassette_name)
+        sparkpool_display_name = generate_random_string(vcr_instance, cassette_name)
         sparkpool_name = f"{sparkpool_display_name}.SparkPool"
         sparkpool_full_path = cli_path_join(
             workspace.full_path, ".sparkpools", sparkpool_name
@@ -538,8 +534,7 @@ class TestRM:
         mock_print_done.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"rm {managed_private_endpoint.full_path} --force")
+        cli_executor.exec_command(f"rm {managed_private_endpoint.full_path} --force")
 
         # Assert
         mock_print_warning.assert_called()
@@ -579,8 +574,7 @@ class TestRM:
         mock_print_done.reset_mock()
 
         # Execute command
-        cli_executor.exec_command(
-            f"rm {external_data_share.full_path} --force")
+        cli_executor.exec_command(f"rm {external_data_share.full_path} --force")
 
         # Assert
         mock_print_warning.assert_called()
@@ -646,8 +640,7 @@ class TestRM:
         cassette_name,
     ):
         # Setup
-        domain = set_entity_metadata(
-            vcr_instance, cassette_name, "Domain", ".domains")
+        domain = set_entity_metadata(vcr_instance, cassette_name, "Domain", ".domains")
         mkdir(domain.full_path)
 
         mock_print_done.reset_mock()
@@ -809,8 +802,7 @@ class TestRM:
         cli_executor.exec_command(f"rm {folder.full_path} --force")
 
         # Assert
-        assert_fabric_cli_error(
-            "FolderNotEmpty", "The requested folder was not empty")
+        assert_fabric_cli_error("FolderNotEmpty", "The requested folder was not empty")
 
         # Cleanup
         rm(lakehouse.full_path, force=True)

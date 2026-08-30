@@ -272,7 +272,10 @@ class TestACLs:
         # Test 1: Array projection for single field
         cli_executor.exec_command(f"acl ls {workspace.full_path} -q [*].identity")
         mock_questionary_print.assert_called()
-        assert any(test_data.admin.upn in call.args[0] for call in mock_questionary_print.mock_calls)
+        assert any(
+            test_data.admin.upn in call.args[0]
+            for call in mock_questionary_print.mock_calls
+        )
 
         mock_questionary_print.reset_mock()
 
@@ -293,7 +296,7 @@ class TestACLs:
         assert "principalInfo" in call_args and "accessLevel" in call_args
 
         # Cleanup test ACL entry
-        _cleanup_acl(cli_executor, workspace.full_path,  test_data.service_principal.id)
+        _cleanup_acl(cli_executor, workspace.full_path, test_data.service_principal.id)
 
     def test_acls_ls_workspace_long_success(
         self,

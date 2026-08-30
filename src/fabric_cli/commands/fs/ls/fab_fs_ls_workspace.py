@@ -42,5 +42,5 @@ def exec(tenant: Tenant, args):
         columns=columns,
         args=args,
         show_details=show_details,
-        hidden_data=VirtualWorkspaceType if show_hidden else None
+        hidden_data=VirtualWorkspaceType if show_hidden else None,
     )

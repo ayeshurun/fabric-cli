@@ -11,6 +11,7 @@ API_VERSION_PROVIDER = "2021-04-01"
 API_VERSION_SUBSCRIPTIONS = "2022-12-01"
 API_VERSION_VNETS = "2024-05-01"
 
+
 def get_provider_azure(args: Namespace) -> ApiResponse:
     """https://learn.microsoft.com/en-us/rest/api/resources/providers/get?view=rest-resources-2021-04-01&tabs=HTTP"""
     subscription_id = args.subscription_id
@@ -21,6 +22,7 @@ def get_provider_azure(args: Namespace) -> ApiResponse:
 
     return fabric_api.do_request(args)
 
+
 def list_subscriptions_azure(args: Namespace) -> ApiResponse:
     """https://learn.microsoft.com/en-us/rest/api/resources/subscriptions/list?view=rest-resources-2022-12-01&tabs=HTTP"""
     args.audience = "azure"
@@ -28,6 +30,7 @@ def list_subscriptions_azure(args: Namespace) -> ApiResponse:
     args.method = "get"
 
     return fabric_api.do_request(args)
+
 
 def list_vnets_azure(args: Namespace) -> ApiResponse:
     """https://learn.microsoft.com/en-us/rest/api/virtualnetwork/virtual-networks/list-all?view=rest-virtualnetwork-2024-05-01&tabs=HTTP"""

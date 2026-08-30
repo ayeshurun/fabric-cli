@@ -6,7 +6,7 @@ class HierarchyErrors:
     @staticmethod
     def invalid_parent_type(parent_type: str) -> str:
         return f"The parent type '{parent_type}' is invalid"
-    
+
     @staticmethod
     def invalid_type(name: str) -> str:
         return f"Invalid type '{name}'"

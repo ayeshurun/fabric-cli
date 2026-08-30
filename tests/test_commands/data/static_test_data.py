@@ -100,7 +100,7 @@ class StaticTestData:
             self._onpremises_gateway_details = OnPremisesGatewayDetails(
                 {
                     "id": "00000000-0000-0000-0000-000000000007",
-                    "encrypted_credentials": "******************************"
+                    "encrypted_credentials": "******************************",
                 }
             )
 
@@ -231,7 +231,7 @@ class StaticTestData:
     @property
     def credential_details(self):
         return self._credential_details
-    
+
     @property
     def onpremises_gateway_details(self):
         return self._onpremises_gateway_details

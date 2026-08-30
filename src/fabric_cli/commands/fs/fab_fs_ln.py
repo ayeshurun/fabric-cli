@@ -107,4 +107,6 @@ def _create_shortcut_from_json(args: Namespace, target_json: dict) -> None:
     if response.status_code in (200, 201):
         data = json.loads(response.text)
         shortcut_name = data.get("name")
-        utils_ui.print_output_format(args, message=f"'{shortcut_name}.Shortcut' created")
+        utils_ui.print_output_format(
+            args, message=f"'{shortcut_name}.Shortcut' created"
+        )

@@ -26,7 +26,7 @@ class Item(_BaseItem):
 
     def __init__(self, name, id, parent: Workspace | Folder, item_type: str):
         if id is None:
-            (_, _type) = Item.validate_name(f"{name}.{item_type}")
+            _, _type = Item.validate_name(f"{name}.{item_type}")
         else:
             _type = ItemType.from_string(str(item_type))
 

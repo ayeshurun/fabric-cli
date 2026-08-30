@@ -72,8 +72,79 @@ Before submitting the pull request please verify that:
 - The PR is focused on the related task
 - Tests coverage is kept and all tests pass
 - Your code is aligned with the code conventions of this project
+- Your code is formatted (see [Code formatting](#code-formatting) below)
 
 Before your PR can be merged, make sure to address and resolve all review comments. PR will be labeled as "need author feedback" when there are comments to resolve. Approved PRs will be merged by the Fabric CLI team.
+
+### Code formatting
+
+This project uses [Black](https://black.readthedocs.io/) for code formatting and
+[isort](https://pycqa.github.io/isort/) for import ordering. Both are configured in
+`pyproject.toml`, which is the single source of truth — your editor, `tox` and CI
+all read that same configuration.
+
+Format your changes before pushing:
+
+```bash
+tox -e format
+```
+
+Check without modifying anything (this is what CI runs):
+
+```bash
+tox -e lint
+```
+
+CI runs `tox -e lint`, which **fails** if any file is unformatted, so running
+`tox -e format` before you commit will save you a round-trip.
+
+#### Automating it (recommended)
+
+If you use VS Code, this is already set up: `.vscode/settings.json` enables
+format-on-save and import sorting, and points both extensions at the versions
+installed in your environment, so saving a file formats it the same way CI will.
+
+There is no committed git hook. If you want one, the repository does not manage it
+for you — the CI check is the enforcement point.
+
+#### Version pinning
+
+Black's output changes between releases, so the versions are pinned exactly. If you
+upgrade one, you must upgrade **both** together or the tools will disagree about
+what "formatted" means:
+
+- `tox.toml` — `[env.lint]` and `[env.format]`
+- `requirements-dev.txt`
+
+CI enforces this with `python scripts/check_formatter_pins.py`, which reads the
+declared version out of both files and fails if they disagree. Run it locally after
+bumping a pin (on Python 3.10 it needs `tomli` from the dev requirements, since it
+parses `tox.toml` with a real TOML parser rather than guessing with regular
+expressions). It also rejects a pin that is declared more than once in a file, that
+is not an exact `==`, or that is missing from either tox environment — the mutating
+`format` environment drifting away from the checking `lint` one would mean
+`tox -e format` produced output that `tox -e lint` rejects.
+
+#### `git blame` and the formatting commit
+
+This repository was reformatted wholesale in a single commit. `.git-blame-ignore-revs`
+exists so such commits do not obscure real authorship. Configure git to use it:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+GitHub's blame view applies this file automatically.
+
+> **Maintainers:** pull requests here are squash-merged, so the SHA of a formatting
+> commit inside a PR never reaches `main`, and a squash collapses every commit in a
+> PR into one. That means the reformat must land as a PR containing **nothing but**
+> the reformat — otherwise the squash commit also carries real changes, and listing
+> it would hide their authorship. After merging such a PR, take the squashed SHA
+> from `main` and append it to `.git-blame-ignore-revs`. Git silently ignores
+> entries that do not resolve to a real commit, so a wrong or placeholder SHA fails
+> **open** — blame keeps pointing at the formatting commit with no warning that the
+> entry is dead.
 
 ### Documenting Changes with Changie
 

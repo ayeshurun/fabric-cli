@@ -59,9 +59,7 @@ class Label:
 
 
 class EntityMetadata:
-    def __init__(
-        self, display_name: str, name: str, full_path: str, type: Any = None
-    ):
+    def __init__(self, display_name: str, name: str, full_path: str, type: Any = None):
         self._display_name = display_name
         self._name = name
         self._full_path = full_path
@@ -134,8 +132,7 @@ class OnPremisesGatewayDetails:
     def __init__(self, gateway_data: dict[str, str]):
         # Expecting keys: "id", "encrypted_credentials"
         self._id = gateway_data.get("id") or ""
-        self._encrypted_credentials = gateway_data.get(
-            "encrypted_credentials") or ""
+        self._encrypted_credentials = gateway_data.get("encrypted_credentials") or ""
 
     @property
     def id(self) -> str:

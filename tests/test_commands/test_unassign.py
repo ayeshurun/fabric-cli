@@ -12,8 +12,8 @@ from fabric_cli.commands.fs import fab_fs_get
 from fabric_cli.core import fab_constant as constant
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core.fab_types import ItemType, VirtualWorkspaceType
-from tests.test_commands.data.static_test_data import StaticTestData
 from tests.test_commands.conftest import unassign_failure_params
+from tests.test_commands.data.static_test_data import StaticTestData
 
 
 class TestUnassign:

@@ -7,7 +7,9 @@ from fabric_cli.commands.fs import fab_fs_cd as fs_cd
 from fabric_cli.commands.fs.rm import fab_fs_rm_capacity as rm_capacity
 from fabric_cli.commands.fs.rm import fab_fs_rm_connection as rm_connection
 from fabric_cli.commands.fs.rm import fab_fs_rm_domain as rm_domain
-from fabric_cli.commands.fs.rm import fab_fs_rm_externaldatashare as rm_externaldatashare
+from fabric_cli.commands.fs.rm import (
+    fab_fs_rm_externaldatashare as rm_externaldatashare,
+)
 from fabric_cli.commands.fs.rm import fab_fs_rm_folder as rm_folder
 from fabric_cli.commands.fs.rm import fab_fs_rm_gateway as rm_gateway
 from fabric_cli.commands.fs.rm import fab_fs_rm_item as rm_item

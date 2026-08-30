@@ -31,8 +31,5 @@ def exec(vws: VirtualWorkspace, args, show_details):
     columns = _base_cols + _details_cols if show_details else ["name"]
 
     utils_ls.format_and_print_output(
-        data=sorted_gateways,
-        columns=columns,
-        args=args,
-        show_details=show_details
+        data=sorted_gateways, columns=columns, args=args, show_details=show_details
     )

@@ -440,6 +440,7 @@ def mock_get_command_context():
 
 # region Runtime Mode
 
+
 class TestRuntimeMode:
     """Verify Context.set_runtime_mode / get_runtime_mode behaviour after mode-setting removal."""
 
@@ -472,7 +473,9 @@ class TestRuntimeMode:
     def test_runtime_mode_not_module_level_success(self):
         """Runtime mode must live on Context, not as module-level functions."""
         from fabric_cli.core import fab_context as ctx_module
+
         assert not hasattr(ctx_module, "set_runtime_mode")
         assert not hasattr(ctx_module, "get_runtime_mode")
+
 
 # endregion

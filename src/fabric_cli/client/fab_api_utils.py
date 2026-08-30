@@ -24,7 +24,7 @@ def delete_resource(
 
     if not bypass_confirmation:
         if hard:
-            resource_name = getattr(args, 'name', 'resource')
+            resource_name = getattr(args, "name", "resource")
             confirm_message = f"'{resource_name}' will be deleted forever. Are you sure you want to proceed?"
         else:
             confirm_message = "Are you sure?"
@@ -35,9 +35,7 @@ def delete_resource(
             return _do_delete_resource(args, verbose=verbose, operation=operation)
         else:
             if verbose:
-                utils_ui.print_warning(
-                    f"Resource {operation or 'operation'} cancelled"
-                )
+                utils_ui.print_warning(f"Resource {operation or 'operation'} cancelled")
             return False
     else:
         if verbose:
@@ -144,7 +142,8 @@ def get_api_version(resource_uri: str) -> Any:
 
     raise FabricCLIError(
         ErrorMessages.Client.resource_type_not_found_in_provider(
-            args.resource_type, args.provider_namespace),
+            args.resource_type, args.provider_namespace
+        ),
         status_code=constant.ERROR_NOT_SUPPORTED,
     )
 
@@ -155,8 +154,7 @@ def _do_delete_resource(
 ) -> bool:
     if verbose:
         if operation is not None:
-            utils_ui.print_grey(
-                f"{_to_gerund_capitalized(operation)} '{args.name}'...")
+            utils_ui.print_grey(f"{_to_gerund_capitalized(operation)} '{args.name}'...")
     response = fabric_api.do_request(args)
 
     return _validate_success_and_print_on_verbose(
@@ -184,9 +182,7 @@ def _do_stop_resource(args: Namespace, verbose: bool = True) -> bool:
     )
 
 
-def _do_assign_resource(
-    args: Namespace, payload: str, verbose: bool = True
-) -> bool:
+def _do_assign_resource(args: Namespace, payload: str, verbose: bool = True) -> bool:
     if verbose:
         utils_ui.print_grey(f"Assigning '{args.name}'...")
     response = fabric_api.do_request(args, data=payload)
@@ -221,8 +217,7 @@ def _validate_success_and_print_on_verbose(
 ) -> bool:
     if status_code in [200, 201]:
         if verbose:
-            utils_ui.print_output_format(
-                args, message=f"'{args.name}' {action}")
+            utils_ui.print_output_format(args, message=f"'{args.name}' {action}")
         return True
     if status_code == 202:
         if verbose:

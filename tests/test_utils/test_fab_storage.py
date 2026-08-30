@@ -78,23 +78,26 @@ def test_get_export_path_success():
     os.remove(test_file)
 
 
-@patch('os.path.exists')
-@patch('os.path.expanduser')
-@patch('fabric_cli.utils.fab_storage.handle_context.get_command_context')
-def test_get_export_path_with_home_dir_success(mock_get_command_context, mock_expanduser, mock_exists):
+@patch("os.path.exists")
+@patch("os.path.expanduser")
+@patch("fabric_cli.utils.fab_storage.handle_context.get_command_context")
+def test_get_export_path_with_home_dir_success(
+    mock_get_command_context, mock_expanduser, mock_exists
+):
     """Test get_export_path with ~/path"""
     # Setup mocks
     mock_expanduser.return_value = "/home/user/test.txt"
     mock_exists.return_value = True
     # Mock the get_command_context to raise an exception
     mock_get_command_context.side_effect = Exception("Not a valid Fabric context")
-    
+
     # Test with path containing ~/
     result = get_export_path("~/test.txt")
-    
+
     # Verify
     mock_expanduser.assert_called_once_with("~/test.txt")
     assert result == {"type": "local", "path": "/home/user/test.txt"}
+
 
 def test_get_export_path_failure():
     """Test get_export_path with non-existent path"""
@@ -103,23 +106,26 @@ def test_get_export_path_failure():
     assert "No such file or directory" in str(exc.value)
 
 
-@patch('os.path.exists')
-@patch('os.path.expanduser')
-@patch('fabric_cli.utils.fab_storage.handle_context.get_command_context')
-def test_get_import_path_with_home_dir_success(mock_get_command_context, mock_expanduser, mock_exists):
+@patch("os.path.exists")
+@patch("os.path.expanduser")
+@patch("fabric_cli.utils.fab_storage.handle_context.get_command_context")
+def test_get_import_path_with_home_dir_success(
+    mock_get_command_context, mock_expanduser, mock_exists
+):
     """Test get_import_path with ~/path"""
     # Setup mocks
     mock_expanduser.return_value = "/home/user/test.txt"
     mock_exists.return_value = True
     # Mock the get_command_context to raise an exception
     mock_get_command_context.side_effect = Exception("Not a valid Fabric context")
-    
+
     # Test with path containing ~/
     result = get_import_path("~/test.txt")
-    
+
     # Verify
     mock_expanduser.assert_called_once_with("~/test.txt")
     assert result == {"type": "local", "path": "/home/user/test.txt"}
+
 
 def test_get_import_path_success():
     """Test get_import_path with valid local path"""

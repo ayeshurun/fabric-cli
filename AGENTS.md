@@ -70,10 +70,10 @@ When reviewing or generating code, ensure:
 | Requirement | Details |
 |-------------|---------|
 | **Type hints** | All functions must have proper type annotations |
-| **Formatting** | Must pass `black src/ tests/` |
+| **Formatting** | Must pass `tox -e lint` (Black `--check` + isort `--check-only`). Run `tox -e format` to fix. |
 | **Type checking** | Must pass `mypy src/ tests/ --ignore-missing-imports` |
 | **Naming** | `snake_case` for functions/variables, `PascalCase` for classes |
-| **Imports** | Grouped: stdlib → third-party → local |
+| **Imports** | Grouped stdlib → third-party → local, sorted by isort (`profile = "black"`). Never hand-order imports — run `tox -e format`. |
 | **Copyright** | All new files need Microsoft copyright header |
 | **Docstrings** | Required for public functions |
 
@@ -103,8 +103,8 @@ All new functionality must include tests:
 # Unit tests
 python3 -m pytest tests/test_core tests/test_utils
 
-# Integration tests (with VCR playback)
-python3 -m pytest tests/test_commands --playback
+# Integration tests (VCR playback is the default; pass --record to re-record)
+python3 -m pytest tests/test_commands
 ```
 
 ### Restricted Areas

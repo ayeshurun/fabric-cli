@@ -75,9 +75,11 @@ def get_command_context(
         # Special cases for root and parent are handled here to avoid unnecessary API calls
         if path == "/" or path == "/..":
             from fabric_cli.core.fab_context import Context
+
             local_context: FabricElement = Context().get_tenant()
         elif path_type == "relative":
             from fabric_cli.core.fab_context import Context
+
             local_context = process_relative_path(Context().context, path, raise_error)
         else:
             local_context = process_absolute_path(path, raise_error)
@@ -192,6 +194,7 @@ def process_absolute_path(path: str, raise_error=True) -> FabricElement:
     path_parts = deque(x.replace("\\", "").strip() for x in re.split(r"(?<!\\)/", path))
     context_stack: deque[FabricElement] = deque(maxlen=len(path_parts))
     from fabric_cli.core.fab_context import Context
+
     context_stack.append(Context().get_tenant())
 
     local_context = process_path_part(path_parts, context_stack, raise_error)
@@ -234,9 +237,11 @@ def get_personal_workspace_name() -> str:
     """Get the personal workspace name."""
     # Personal workspace name is only available in interactive mode
     from fabric_cli.core.fab_auth import FabAuth
+
     if FabAuth().get_identity_type() == "user":
         # Personal workspace is the only workspace that is not in the format <name>.Workspace but <name>.Personal
         from fabric_cli.core.fab_context import Context
+
         _workspaces = mem_store.get_workspaces(Context().get_tenant())
         for ws in _workspaces:
             if ws.ws_type == WorkspaceType.PERSONAL:
@@ -448,14 +453,14 @@ def _handle_path_in_tenant(
         elem = None
     match elem:
         case FabricElementType.WORKSPACE:
-            (ws_name, ws_type) = Workspace.validate_name(path_part)
+            ws_name, ws_type = Workspace.validate_name(path_part)
             full_ws_name = f"{ws_name}.{ws_type.value}"
             ws_id = _get_workspace_id(tenant, full_ws_name, raise_error)
             workspace = Workspace(ws_name, ws_id, tenant, ws_type.value)
             context.append(workspace)
             return process_path_part(path_parts, context, raise_error)
         case FabricElementType.VIRTUAL_WORKSPACE:
-            (vws_name, type) = VirtualWorkspace.validate_name(path_part)
+            vws_name, type = VirtualWorkspace.validate_name(path_part)
             if type not in [
                 VirtualWorkspaceType.CAPACITY,
                 VirtualWorkspaceType.CONNECTION,
@@ -502,14 +507,14 @@ def _handle_path_in_ws(
         elem = None
     match elem:
         case FabricElementType.ITEM:
-            (item_name, item_type) = Item.validate_name(path_part)
+            item_name, item_type = Item.validate_name(path_part)
             item_full_name = f"{item_name}.{item_type.value}"
             _item_id = _get_item_id(workspace, item_full_name, raise_error)
             item = Item(item_name, _item_id, workspace, str(item_type))
             context.append(item)
             return process_path_part(path_parts, context, raise_error)
         case FabricElementType.VIRTUAL_ITEM_CONTAINER:
-            (vic_name, vic_type) = VirtualItemContainer.validate_name(path_part)
+            vic_name, vic_type = VirtualItemContainer.validate_name(path_part)
             if vic_type not in [
                 VirtualItemContainerType.SPARK_POOL,
                 VirtualItemContainerType.MANAGED_IDENTITY,
@@ -525,7 +530,7 @@ def _handle_path_in_ws(
 
             return process_path_part(path_parts, context, raise_error)
         case FabricElementType.FOLDER:
-            (folder_name, folder_type) = Folder.validate_name(path_part)
+            folder_name, folder_type = Folder.validate_name(path_part)
             folder_full_name = f"{folder_name}.{folder_type}"
             _folder_id = _get_folder_id(workspace, folder_full_name, raise_error)
             folder = Folder(folder_name, _folder_id, workspace)
@@ -555,14 +560,14 @@ def _handle_path_in_folder(
         elem = None
     match elem:
         case FabricElementType.ITEM:
-            (item_name, item_type) = Item.validate_name(path_part)
+            item_name, item_type = Item.validate_name(path_part)
             item_full_name = f"{item_name}.{item_type.value}"
             _item_id = _get_item_id(folder.workspace, item_full_name, raise_error)
             item = Item(item_name, _item_id, folder, str(item_type))
             context.append(item)
             return process_path_part(path_parts, context, raise_error)
         case FabricElementType.FOLDER:
-            (folder_name, folder_type) = Folder.validate_name(path_part)
+            folder_name, folder_type = Folder.validate_name(path_part)
             folder_full_name = f"{folder_name}.{folder_type}"
             _folder_id = _get_nested_folder_id(folder, folder_full_name, raise_error)
             folder = Folder(folder_name, _folder_id, folder)
@@ -676,7 +681,7 @@ def _handle_path_in_vws(
     context: deque[FabricElement],
     raise_error,
 ) -> FabricElement:
-    (item_name, item_type) = VirtualWorkspaceItem.validate_name(path_part)
+    item_name, item_type = VirtualWorkspaceItem.validate_name(path_part)
 
     if cur_ctxt.item_type != item_type:
         raise FabricCLIError(
@@ -737,7 +742,7 @@ def _handle_path_in_vic(
     context: deque[FabricElement],
     raise_error,
 ) -> FabricElement:
-    (item_name, item_type) = VirtualItem.validate_name(path_part)
+    item_name, item_type = VirtualItem.validate_name(path_part)
 
     if cur_ctxt.item_type != item_type:
         raise FabricCLIError(

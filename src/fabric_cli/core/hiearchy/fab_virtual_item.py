@@ -13,7 +13,7 @@ class VirtualItem(_BaseItem):
         return _BaseItem._validate_name(name, VirtualItemType)
 
     def __init__(self, name, id, parent: VirtualItemContainer, item_type: str):
-        (_, _type) = VirtualItem.validate_name(f"{name}.{item_type}")
+        _, _type = VirtualItem.validate_name(f"{name}.{item_type}")
         super().__init__(name, id, FabricElementType.VIRTUAL_ITEM, parent, _type)
 
     @property

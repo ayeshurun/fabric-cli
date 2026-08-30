@@ -7,8 +7,8 @@ from argparse import Namespace
 from xml.sax.saxutils import escape
 
 from fabric_cli.core import fab_constant
-from fabric_cli.errors import ErrorMessages
 from fabric_cli.core.fab_exceptions import FabricCLIError
+from fabric_cli.errors import ErrorMessages
 
 
 def parse_json(args: Namespace) -> None:

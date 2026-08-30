@@ -31,4 +31,9 @@ def exec(managed_identity: VirtualItem, args: Namespace) -> None:
 
         # Add to mem_store
         utils_mem_store.upsert_managed_identity_to_cache(managed_identity)
-        utils_ui.print_output_format(args, message=f"'{managed_identity.name}' created", data=data, show_headers=True)
+        utils_ui.print_output_format(
+            args,
+            message=f"'{managed_identity.name}' created",
+            data=data,
+            show_headers=True,
+        )

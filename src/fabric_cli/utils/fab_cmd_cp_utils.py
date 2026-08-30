@@ -98,7 +98,9 @@ def check_onelake_destination(to_context: OneLakeItem) -> None:
 
     if root_folder not in supported_folders:
         raise FabricCLIError(
-            ErrorMessages.Common.cannot_write_in_folder(root_folder, str(item_type), str(supported_folders)),
+            ErrorMessages.Common.cannot_write_in_folder(
+                root_folder, str(item_type), str(supported_folders)
+            ),
             fab_constant.ERROR_NOT_SUPPORTED,
         )
 

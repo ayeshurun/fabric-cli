@@ -37,26 +37,26 @@ class ConfigErrors:
     def azure_subscription_id_not_set() -> str:
         return ConfigErrors.config_not_set(
             "Azure subscription ID",
-            "Pass it with -P subscriptionId=<subscription_id> or set it with 'config set default_az_subscription_id <subscription_id>'"
+            "Pass it with -P subscriptionId=<subscription_id> or set it with 'config set default_az_subscription_id <subscription_id>'",
         )
 
     @staticmethod
     def azure_resource_group_not_set() -> str:
         return ConfigErrors.config_not_set(
             "Azure resource group",
-            "Pass it with -P resourceGroup=<resource_group> or set it with 'config set default_az_resource_group <resource_group>'"
+            "Pass it with -P resourceGroup=<resource_group> or set it with 'config set default_az_resource_group <resource_group>'",
         )
 
     @staticmethod
     def azure_location_not_set() -> str:
         return ConfigErrors.config_not_set(
             "Azure default location",
-            "Pass it with -P location=<location> or set it with 'config set default_az_location <location>'"
+            "Pass it with -P location=<location> or set it with 'config set default_az_location <location>'",
         )
 
     @staticmethod
     def azure_admin_not_set() -> str:
         return ConfigErrors.config_not_set(
             "Azure default admin",
-            "Pass it with -P admin=<admin> or set it with 'config set default_az_admin <admin>'"
+            "Pass it with -P admin=<admin> or set it with 'config set default_az_admin <admin>'",
         )

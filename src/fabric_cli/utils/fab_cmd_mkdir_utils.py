@@ -794,7 +794,7 @@ def lowercase_keys(data):
 def _build_sql_database_creation_payload_if_exists(params: dict) -> dict:
     """Build the optional creationPayload for SQLDatabase creation.
 
-    The payload is built based on the creation mode (params["creationMode"]) and the provided parameters. 
+    The payload is built based on the creation mode (params["creationMode"]) and the provided parameters.
     The supported modes are:
     - New: creationMode, backupRetentionDays, collation
     - Restore: creationMode, restorePointInTime, sourceDatabaseReference
@@ -820,7 +820,6 @@ def _build_sql_database_creation_payload_if_exists(params: dict) -> dict:
 
     if mode_lower == fab_constant.SQL_DATABASE_CREATION_MODE_RESTORE_DELETED.lower():
         return _build_sql_database_restore_deleted_payload(params)
-
 
     raise FabricCLIError(
         ErrorMessages.Mkdir.unsupported_creation_mode(mode),

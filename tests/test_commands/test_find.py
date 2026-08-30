@@ -381,7 +381,9 @@ class TestFindTruncation:
             self.LONG_NAME in str(call)
             for call in mock_questionary_print.call_args_list
         )
-        assert not full_name_found, "Full 256-char name should be truncated in text output"
+        assert (
+            not full_name_found
+        ), "Full 256-char name should be truncated in text output"
         _assert_strings_in_mock_calls(
             ["…"],
             should_exist=True,
@@ -486,9 +488,7 @@ class TestFindPagination:
             "builtins.input", lambda *a: (_ for _ in ()).throw(EOFError)
         )
 
-        cli_executor.exec_command(
-            """find 'jmespathempty' -q "[?type=='Lakehouse']" """
-        )
+        cli_executor.exec_command("""find 'jmespathempty' -q "[?type=='Lakehouse']" """)
 
         grey_output = " ".join(str(c) for c in mock_print_grey.call_args_list)
         assert "No items found" in grey_output
@@ -509,9 +509,7 @@ class TestFindPagination:
 
         monkeypatch.setattr("builtins.input", _count_prompt)
 
-        cli_executor.exec_command(
-            """find 'jmespathskip' -q "[?type=='Notebook']" """
-        )
+        cli_executor.exec_command("""find 'jmespathskip' -q "[?type=='Notebook']" """)
 
         # Prompt shown once (after page 1 with items), NOT after page 2 (empty)
         assert prompt_count == 1, f"Expected 1 prompt, got {prompt_count}"

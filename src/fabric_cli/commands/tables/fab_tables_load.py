@@ -85,4 +85,6 @@ def exec_command(args: Namespace, context: OneLakeItem) -> None:
     if response.status_code == 202:
         utils_ui.print_output_format(args, message="Load table operation started")
     elif response.status_code in [200, 201]:
-        utils_ui.print_output_format(args, message=f"Table '{args.table_name}' loaded successfully")
+        utils_ui.print_output_format(
+            args, message=f"Table '{args.table_name}' loaded successfully"
+        )

@@ -64,5 +64,5 @@ def exec(vic: VirtualItemContainer, args, show_details):
             data=sorted_external_data_shares,
             columns=columns,
             args=args,
-            show_details=show_details
+            show_details=show_details,
         )

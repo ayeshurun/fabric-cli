@@ -11,7 +11,7 @@ def add_global_flags(parser) -> None:
     """
     # Add help flag
     parser.add_argument("-help", action="help")
-    
+
     # Add format flag to override output format
     parser.add_argument(
         "--output_format",

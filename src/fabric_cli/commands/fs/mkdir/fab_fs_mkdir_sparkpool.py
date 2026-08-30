@@ -88,4 +88,6 @@ def exec(spark_pool: VirtualItem, args: Namespace) -> None:
 
         # Add to mem_store
         utils_mem_store.upsert_spark_pool_to_cache(spark_pool)
-        utils_ui.print_output_format(args, message=f"'{spark_pool.name}' created", data=data, show_headers=True)
+        utils_ui.print_output_format(
+            args, message=f"'{spark_pool.name}' created", data=data, show_headers=True
+        )
