@@ -51,6 +51,7 @@ class FabAuth:
         # Reset the auth info
         self.app: msal.ClientApplication = None
         self._azure_cli_credential: Optional[AzureCliCredential] = None
+        self._azure_cli_token_identity: Optional[tuple[Any, Any, Any]] = None
         self._auth_info = {}
 
         # Load the auth info and environment variables
@@ -274,24 +275,24 @@ class FabAuth:
 
     def _get_access_token_from_env_vars_if_exist(self, scope):
         if "FAB_TOKEN" in os.environ and "FAB_TOKEN_ONELAKE" in os.environ:
+            token_settings = [
+                ("FAB_TOKEN", con.FABRIC_TOKEN_AUDIENCE),
+                ("FAB_TOKEN_ONELAKE", con.ONELAKE_TOKEN_AUDIENCE),
+                ("FAB_TOKEN_AZURE", con.AZURE_TOKEN_AUDIENCE),
+            ]
+            claims = [
+                self._decode_jwt_token(os.environ[token_name], expected_audience)
+                for token_name, expected_audience in token_settings
+                if token_name in os.environ
+            ]
+            self._validate_matching_token_identities(claims)
+
             match scope:
                 case con.SCOPE_FABRIC_DEFAULT:
-                    # this call will validate the token we got from the env var
-                    self._decode_jwt_token(
-                        os.environ["FAB_TOKEN"], con.FABRIC_TOKEN_AUDIENCE
-                    )
                     return os.environ["FAB_TOKEN"]
                 case con.SCOPE_ONELAKE_DEFAULT:
-                    # this call will validate the token we got from the env var
-                    self._decode_jwt_token(
-                        os.environ["FAB_TOKEN_ONELAKE"], con.ONELAKE_TOKEN_AUDIENCE
-                    )
                     return os.environ["FAB_TOKEN_ONELAKE"]
                 case con.SCOPE_AZURE_DEFAULT:
-                    # this call will validate the token we got from the env var
-                    self._decode_jwt_token(
-                        os.environ["FAB_TOKEN_AZURE"], con.AZURE_TOKEN_AUDIENCE
-                    )
                     if "FAB_TOKEN_AZURE" in os.environ:
                         return os.environ["FAB_TOKEN_AZURE"]
                     else:
@@ -441,7 +442,20 @@ class FabAuth:
             azure_token = self._azure_cli_credential.get_token(scope[0])
 
             # Keep tenant-scoped context and caches aligned with Azure CLI
-            claims = self._decode_jwt_token(azure_token.token)
+            claims = self._decode_jwt_token(
+                azure_token.token, self._get_expected_token_audience(scope)
+            )
+            token_identity = self._get_token_identity(claims)
+            if (
+                self._azure_cli_token_identity is not None
+                and token_identity != self._azure_cli_token_identity
+            ):
+                raise FabricCLIError(
+                    ErrorMessages.Auth.token_identity_claims_mismatch(),
+                    status_code=con.ERROR_AUTHENTICATION_FAILED,
+                )
+            self._azure_cli_token_identity = token_identity
+
             tid = claims.get("tid")
             if tid and tid != self.get_tenant_id():
                 self._synchronize_azure_cli_tenant(tid)
@@ -618,6 +632,7 @@ class FabAuth:
 
         # Clear Azure CLI state
         self._azure_cli_credential = None
+        self._azure_cli_token_identity = None
 
         if os.path.exists(self.cache_file):
             os.remove(self.cache_file)
@@ -711,6 +726,38 @@ class FabAuth:
         # Cache the new key for future use
         self.aad_public_key = key
         return payload
+
+    @staticmethod
+    def _get_expected_token_audience(scope: list[str]) -> list[str]:
+        match scope:
+            case con.SCOPE_FABRIC_DEFAULT:
+                return con.FABRIC_TOKEN_AUDIENCE
+            case con.SCOPE_ONELAKE_DEFAULT:
+                return con.ONELAKE_TOKEN_AUDIENCE
+            case con.SCOPE_AZURE_DEFAULT:
+                return con.AZURE_TOKEN_AUDIENCE
+            case _:
+                raise FabricCLIError(
+                    ErrorMessages.Auth.invalid_scope(scope),
+                    status_code=con.ERROR_AUTHENTICATION_FAILED,
+                )
+
+    @staticmethod
+    def _get_token_identity(claims: dict[str, Any]) -> tuple[Any, Any, Any]:
+        return (claims.get("idtyp"), claims.get("tid"), claims.get("oid"))
+
+    def _validate_matching_token_identities(
+        self, token_claims: list[dict[str, Any]]
+    ) -> None:
+        expected_identity = self._get_token_identity(token_claims[0])
+        if any(
+            self._get_token_identity(claims) != expected_identity
+            for claims in token_claims[1:]
+        ):
+            raise FabricCLIError(
+                ErrorMessages.Auth.token_identity_claims_mismatch(),
+                status_code=con.ERROR_AUTHENTICATION_FAILED,
+            )
 
     def _get_claims_from_token(self, token, claim_names) -> Optional[dict[str, str]]:
         """Get multiple claims from the token with a single decode operation"""

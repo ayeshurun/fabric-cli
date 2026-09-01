@@ -56,10 +56,10 @@ class TestAzureCliIdentityType:
         assert auth.get_tenant_id() == "discovered-tenant"
 
     @patch("fabric_cli.core.fab_auth.AzureCliCredential")
-    def test_tenant_updated_on_subsequent_calls_success(
+    def test_identity_change_on_subsequent_calls_failure(
         self, mock_credential_class, azure_cli_auth_fixture
     ):
-        """A changed Azure CLI tenant should reset context and cached resources."""
+        """A changed Azure CLI identity should be rejected."""
         mock_credential, _ = _mock_credential(mock_credential_class)
         auth = FabAuth()
         auth.set_access_mode("azure_cli")
@@ -67,19 +67,27 @@ class TestAzureCliIdentityType:
         with patch.object(
             auth,
             "_decode_jwt_token",
-            side_effect=[{"tid": "original-tenant"}, {"tid": "new-tenant"}],
+            side_effect=[
+                {"idtyp": "user", "tid": "original-tenant", "oid": "principal"},
+                {"idtyp": "user", "tid": "new-tenant", "oid": "principal"},
+            ],
         ):
             auth._acquire_token_from_azure_cli(con.SCOPE_FABRIC_DEFAULT)
             fab_mem_store._get_workspaces_from_cache.cache.update({"key": "value"})
             fab_mem_store._get_workspace_folders_from_cache.cache.update(
                 {"key": "value"}
             )
-            auth._acquire_token_from_azure_cli(con.SCOPE_FABRIC_DEFAULT)
-        assert auth.get_tenant_id() == "new-tenant"
+            with pytest.raises(FabricCLIError) as exc_info:
+                auth._acquire_token_from_azure_cli(con.SCOPE_FABRIC_DEFAULT)
+        assert (
+            exc_info.value.message
+            == ErrorMessages.Auth.token_identity_claims_mismatch()
+        )
+        assert auth.get_tenant_id() == "original-tenant"
         assert auth.get_identity_type() == "azure_cli"
-        assert Context().get_tenant_id() == "new-tenant"
-        assert fab_mem_store._get_workspaces_from_cache.cache.currsize == 0
-        assert fab_mem_store._get_workspace_folders_from_cache.cache.currsize == 0
+        assert Context().get_tenant_id() == "original-tenant"
+        assert fab_mem_store._get_workspaces_from_cache.cache.currsize == 1
+        assert fab_mem_store._get_workspace_folders_from_cache.cache.currsize == 1
         mock_credential_class.assert_called_once()
         assert mock_credential.get_token.call_count == 2
 
@@ -296,6 +304,63 @@ class TestAzureCliScopeHandling:
         mock_credential.get_token.assert_called_once_with(
             "https://management.azure.com/.default"
         )
+
+    @pytest.mark.parametrize(
+        ("scope", "expected_audience"),
+        [
+            (con.SCOPE_FABRIC_DEFAULT, con.FABRIC_TOKEN_AUDIENCE),
+            (con.SCOPE_ONELAKE_DEFAULT, con.ONELAKE_TOKEN_AUDIENCE),
+            (con.SCOPE_AZURE_DEFAULT, con.AZURE_TOKEN_AUDIENCE),
+        ],
+    )
+    @patch("fabric_cli.core.fab_auth.AzureCliCredential")
+    def test_token_audience_validated_success(
+        self,
+        mock_credential_class,
+        scope,
+        expected_audience,
+        azure_cli_auth_fixture,
+    ):
+        """Each Azure CLI token should be validated against its expected audience."""
+        _mock_credential(mock_credential_class)
+        auth = FabAuth()
+        auth.set_access_mode("azure_cli")
+        decode = MagicMock(
+            return_value={"idtyp": "user", "tid": "tenant", "oid": "principal"}
+        )
+
+        with patch.object(auth, "_decode_jwt_token", decode):
+            auth._acquire_token_from_azure_cli(scope)
+
+        decode.assert_called_once_with("test string", expected_audience)
+
+
+@pytest.mark.parametrize("claim_name", ["idtyp", "tid", "oid"])
+@patch("fabric_cli.core.fab_auth.AzureCliCredential")
+def test_azure_cli_rejects_identity_mismatch_failure(
+    mock_credential_class, claim_name, azure_cli_auth_fixture
+):
+    """Azure CLI tokens should belong to the same identity."""
+    _mock_credential(mock_credential_class)
+    auth = FabAuth()
+    auth.set_access_mode("azure_cli")
+    fabric_claims = {"idtyp": "user", "tid": "tenant", "oid": "principal"}
+    onelake_claims = fabric_claims | {claim_name: "different"}
+
+    with patch.object(
+        auth,
+        "_decode_jwt_token",
+        side_effect=[fabric_claims, onelake_claims],
+    ):
+        auth._acquire_token_from_azure_cli(con.SCOPE_FABRIC_DEFAULT)
+        with pytest.raises(FabricCLIError) as exc_info:
+            auth._acquire_token_from_azure_cli(con.SCOPE_ONELAKE_DEFAULT)
+
+    assert (
+        exc_info.value.message
+        == ErrorMessages.Auth.token_identity_claims_mismatch()
+    )
+    assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
 
 
 class TestAzureCliLoginLogoutLifecycle:

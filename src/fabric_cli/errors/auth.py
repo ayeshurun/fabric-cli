@@ -97,6 +97,12 @@ class AuthErrors:
         return "Failed to decode JWT token"
 
     @staticmethod
+    def token_identity_claims_mismatch() -> str:
+        return (
+            "The idtyp, tid, and oid claims must match across all authentication tokens"
+        )
+
+    @staticmethod
     def invalid_cert_path(parameter_name: str) -> str:
         return f"The parameter '{parameter_name}' must be a valid path to a certificate file"
 

@@ -96,6 +96,7 @@ def azure_cli_auth_fixture(monkeypatch, tmp_path):
     """Isolate Azure CLI authentication state and files for a test."""
     from fabric_cli.core.fab_auth import FabAuth
     from fabric_cli.core.fab_context import Context
+    from fabric_cli.utils import fab_mem_store
 
     monkeypatch.setattr(
         "fabric_cli.core.fab_state_config.config_location", lambda: str(tmp_path)
@@ -117,10 +118,16 @@ def azure_cli_auth_fixture(monkeypatch, tmp_path):
     auth = FabAuth()
     monkeypatch.setattr(auth, "auth_file", str(tmp_path / "auth.json"))
     monkeypatch.setattr(auth, "cache_file", str(tmp_path / "cache.bin"))
-    monkeypatch.setattr(auth, "_decode_jwt_token", lambda _: {"tid": "test-tenant"})
+    monkeypatch.setattr(
+        auth,
+        "_decode_jwt_token",
+        lambda _, expected_audience=None: {"tid": "test-tenant"},
+    )
     auth._azure_cli_credential = None
+    auth._azure_cli_token_identity = None
     auth._auth_info = {}
     auth.app = None
+    fab_mem_store.clear_caches()
 
     context = Context()
     context._context = None

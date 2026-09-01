@@ -7,7 +7,7 @@ import os
 import stat
 import tempfile
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
 import jwt
 import pytest
@@ -813,6 +813,56 @@ def test_get_access_token_env_var(monkeypatch):
     )
     token = auth.get_access_token(["dummy_scope"])
     assert token == "env_token"
+
+
+def test_get_access_token_env_vars_validates_all_tokens(monkeypatch):
+    auth = FabAuth()
+    tokens = {
+        "FAB_TOKEN": "fabric-token",
+        "FAB_TOKEN_ONELAKE": "onelake-token",
+        "FAB_TOKEN_AZURE": "azure-token",
+    }
+    for name, token in tokens.items():
+        monkeypatch.setenv(name, token)
+
+    claims = {"idtyp": "user", "tid": "tenant", "oid": "principal"}
+    decode = MagicMock(return_value=claims)
+    monkeypatch.setattr(auth, "_decode_jwt_token", decode)
+
+    token = auth._get_access_token_from_env_vars_if_exist(con.SCOPE_FABRIC_DEFAULT)
+
+    assert token == tokens["FAB_TOKEN"]
+    assert decode.call_args_list == [
+        call(tokens["FAB_TOKEN"], con.FABRIC_TOKEN_AUDIENCE),
+        call(tokens["FAB_TOKEN_ONELAKE"], con.ONELAKE_TOKEN_AUDIENCE),
+        call(tokens["FAB_TOKEN_AZURE"], con.AZURE_TOKEN_AUDIENCE),
+    ]
+
+
+@pytest.mark.parametrize("claim_name", ["idtyp", "tid", "oid"])
+def test_get_access_token_env_vars_rejects_identity_mismatch(
+    monkeypatch, claim_name
+):
+    auth = FabAuth()
+    monkeypatch.setenv("FAB_TOKEN", "fabric-token")
+    monkeypatch.setenv("FAB_TOKEN_ONELAKE", "onelake-token")
+
+    fabric_claims = {"idtyp": "user", "tid": "tenant", "oid": "principal"}
+    onelake_claims = fabric_claims | {claim_name: "different"}
+    monkeypatch.setattr(
+        auth,
+        "_decode_jwt_token",
+        MagicMock(side_effect=[fabric_claims, onelake_claims]),
+    )
+
+    with pytest.raises(FabricCLIError) as exc_info:
+        auth._get_access_token_from_env_vars_if_exist(con.SCOPE_FABRIC_DEFAULT)
+
+    assert (
+        exc_info.value.message
+        == ErrorMessages.Auth.token_identity_claims_mismatch()
+    )
+    assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
 
 
 # -----------------------------
