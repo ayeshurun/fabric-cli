@@ -356,10 +356,7 @@ def test_azure_cli_rejects_identity_mismatch_failure(
         with pytest.raises(FabricCLIError) as exc_info:
             auth._acquire_token_from_azure_cli(con.SCOPE_ONELAKE_DEFAULT)
 
-    assert (
-        exc_info.value.message
-        == ErrorMessages.Auth.token_identity_claims_mismatch()
-    )
+    assert exc_info.value.message == ErrorMessages.Auth.token_identity_claims_mismatch()
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
 
 
@@ -414,6 +411,7 @@ class TestAzureCliLoginLogoutLifecycle:
         # Re-login — set_access_mode("azure_cli") when already azure_cli does NOT logout
         auth.set_access_mode("azure_cli")
         assert auth.get_tenant_id() == "tenant-A"
+        assert auth._azure_cli_token_identity is None
 
 
 class TestNonAzureCliIsolation:

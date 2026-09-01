@@ -840,9 +840,7 @@ def test_get_access_token_env_vars_validates_all_tokens(monkeypatch):
 
 
 @pytest.mark.parametrize("claim_name", ["idtyp", "tid", "oid"])
-def test_get_access_token_env_vars_rejects_identity_mismatch(
-    monkeypatch, claim_name
-):
+def test_get_access_token_env_vars_rejects_identity_mismatch(monkeypatch, claim_name):
     auth = FabAuth()
     monkeypatch.setenv("FAB_TOKEN", "fabric-token")
     monkeypatch.setenv("FAB_TOKEN_ONELAKE", "onelake-token")
@@ -858,10 +856,7 @@ def test_get_access_token_env_vars_rejects_identity_mismatch(
     with pytest.raises(FabricCLIError) as exc_info:
         auth._get_access_token_from_env_vars_if_exist(con.SCOPE_FABRIC_DEFAULT)
 
-    assert (
-        exc_info.value.message
-        == ErrorMessages.Auth.token_identity_claims_mismatch()
-    )
+    assert exc_info.value.message == ErrorMessages.Auth.token_identity_claims_mismatch()
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
 
 

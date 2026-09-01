@@ -339,6 +339,8 @@ class FabAuth:
             )
         if mode != self.get_identity_type():
             self.logout()
+        if mode == "azure_cli":
+            self._azure_cli_token_identity = None
         if tenant_id and self.get_tenant_id() != tenant_id:
             self.set_tenant(tenant_id)
         self._set_auth_property(con.IDENTITY_TYPE, mode)
@@ -738,7 +740,7 @@ class FabAuth:
                 return con.AZURE_TOKEN_AUDIENCE
             case _:
                 raise FabricCLIError(
-                    ErrorMessages.Auth.invalid_scope(scope),
+                    ErrorMessages.Auth.invalid_scope(str(scope)),
                     status_code=con.ERROR_AUTHENTICATION_FAILED,
                 )
 
