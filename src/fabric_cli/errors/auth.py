@@ -98,9 +98,7 @@ class AuthErrors:
 
     @staticmethod
     def token_identity_claims_mismatch() -> str:
-        return (
-            "The idtyp, tid, and oid claims must match across all authentication tokens"
-        )
+        return "The identity across all auth tokens does not match"
 
     @staticmethod
     def invalid_cert_path(parameter_name: str) -> str:
