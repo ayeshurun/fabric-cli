@@ -856,9 +856,7 @@ def test_get_access_token_env_vars_rejects_identity_mismatch(monkeypatch, claim_
     with pytest.raises(FabricCLIError) as exc_info:
         auth._get_access_token_from_env_vars_if_exist(con.SCOPE_FABRIC_DEFAULT)
 
-    assert (
-        exc_info.value.message == "The identity across all auth tokens does not match"
-    )
+    assert exc_info.value.message == ErrorMessages.Auth.token_identity_claims_mismatch()
     assert exc_info.value.status_code == con.ERROR_AUTHENTICATION_FAILED
 
 
