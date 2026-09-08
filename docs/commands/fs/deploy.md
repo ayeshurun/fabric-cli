@@ -15,7 +15,7 @@ You can deploy:
 **Usage:**
 
 ```bash
-fab deploy --config <config_file> [--target_env <environment>] [--params <parameters>] [--force]
+fab deploy --config <config_file> [--target_env <environment>] [--params <parameters>] [--force] [--bulk_publish]
 ```
 
 **Parameters:**
@@ -24,6 +24,7 @@ fab deploy --config <config_file> [--target_env <environment>] [--params <parame
 - `--target_env, -tenv <env>`: Environment name used to select environment-specific settings from the configuration file and the parameter file (if present). Optional.
 - `--params, -P <params>`: JSON-formatted parameters provided to the deployment process at runtime. Optional.
 - `--force, -f`: Run the deployment without interactive confirmation prompts. Optional.
+- `--bulk_publish`: Enables experimental bulk publish, deploying all items in a single bulk import API call instead of one at a time. Optional, disabled by default.
 
 **Example:**
 
