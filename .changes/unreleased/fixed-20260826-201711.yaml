@@ -1,0 +1,6 @@
+kind: fixed
+body: Fix VS Code debug launch (F5) not entering interactive mode; the launch configurations now start the REPL directly in the integrated terminal, and interactive mode explains why it stopped instead of printing an empty error when standard input is not a terminal
+time: 2026-08-26T20:17:11+03:00
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun
