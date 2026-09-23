@@ -91,16 +91,34 @@ ALL_ITEM_TYPES = [
 
 item_type_paramerter = pytest.mark.parametrize("item_type", ALL_ITEM_TYPES)
 
+unsupported_mkdir_item_types = {
+    ItemType.DASHBOARD,
+    ItemType.PAGINATED_REPORT,
+    ItemType.SQL_ENDPOINT,
+    ItemType.DATAMART,
+    ItemType.MIRRORED_WAREHOUSE,
+    ItemType.METRIC_SET,
+    ItemType.EXPLORATION,
+    ItemType.RETAIL_DATA_MANAGER,
+    ItemType.HEALTHCARE_DATA_SOLUTION,
+    ItemType.SUSTAINABILITY_DATA_SOLUTION,
+    ItemType.AISKILL,
+    ItemType.ANOMALY_DETECTOR,
+    ItemType.APP_BACKEND,
+    ItemType.AZURE_DATABRICKS_STORAGE,
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
+    ItemType.MIRRORED_CATALOG,
+    ItemType.ORG_APP_AUDIENCE,
+    ItemType.SNOWFLAKE_DATABASE,
+    ItemType.WAREHOUSE_SNAPSHOT,
+}
+
 mkdir_item_paramerter = pytest.mark.parametrize(
     "item_type",
     [
-        ItemType.APACHE_AIRFLOW_JOB,
-        ItemType.DATA_AGENT,
-        ItemType.DATA_BUILD_TOOL_JOB,
-        ItemType.EVENT_SCHEMA_SET,
-        ItemType.OPERATIONS_AGENT,
-        ItemType.ORG_APP,
-        ItemType.PLAN,
+        item_type
+        for item_type in ALL_ITEM_TYPES
+        if item_type not in unsupported_mkdir_item_types
     ],
 )
 
@@ -228,23 +246,28 @@ rm_item_without_force_cancel_operation_success_params = pytest.mark.parametrize(
     ],
 )
 
-unsupported_item_failure_params = pytest.mark.parametrize(
+unsupported_rm_item_failure_params = pytest.mark.parametrize(
     "unsupported_item_type",
-    [
-        ItemType.DASHBOARD,
-        ItemType.DATAMART,
-        ItemType.MIRRORED_WAREHOUSE,
-        ItemType.PAGINATED_REPORT,
-        ItemType.SQL_ENDPOINT,
-        ItemType.ANOMALY_DETECTOR,
-        ItemType.APP_BACKEND,
-        ItemType.AZURE_DATABRICKS_STORAGE,
-        ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
-        ItemType.MIRRORED_CATALOG,
-        ItemType.ORG_APP_AUDIENCE,
-        ItemType.SNOWFLAKE_DATABASE,
-        ItemType.WAREHOUSE_SNAPSHOT,
-    ],
+    sorted(
+        {
+            ItemType.DASHBOARD,
+            ItemType.SQL_ENDPOINT,
+            ItemType.MIRRORED_WAREHOUSE,
+            ItemType.DATAMART,
+            ItemType.METRIC_SET,
+            ItemType.EXPLORATION,
+            ItemType.RETAIL_DATA_MANAGER,
+            ItemType.HEALTHCARE_DATA_SOLUTION,
+            ItemType.SUSTAINABILITY_DATA_SOLUTION,
+            ItemType.AISKILL,
+        },
+        key=lambda item_type: item_type.value,
+    ),
+)
+
+unsupported_mkdir_item_failure_params = pytest.mark.parametrize(
+    "unsupported_item_type",
+    sorted(unsupported_mkdir_item_types, key=lambda item_type: item_type.value),
 )
 
 mkdir_item_with_creation_payload_success_params = pytest.mark.parametrize(
