@@ -373,6 +373,10 @@ commands:
           - plan
           - snowflake_database
           - warehouse_snapshot
+          # Pre-existing gap (not part of this iteration's onboarded types):
+          # MirroredWarehouse has a format_mapping entry but no uri_mapping
+          # entry either, so it has the same "open" problem.
+          - mirrored_warehouse
       bulkexport:
         supported_elements: 
           - workspace
