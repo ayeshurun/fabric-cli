@@ -246,23 +246,28 @@ VICMap: dict[VirtualItemContainerType, VirtualItemType] = {
 class ItemType(_BaseItemType):
     # Portal only, not documented in the API
     AISKILL = "AISkill"
-    APACHE_AIRFLOW_JOB = "ApacheAirflowJob"
     EXPLORATION = "Exploration"
     RETAIL_DATA_MANAGER = "RetailDataManager"
     HEALTHCARE_DATA_SOLUTION = "Healthcaredatasolution"
     METRIC_SET = "MetricSet"
-    ORG_APP = "OrgApp"
     SUSTAINABILITY_DATA_SOLUTION = "SustainabilityDataSolution"
 
     # API
+    ANOMALY_DETECTOR = "AnomalyDetector"
+    APACHE_AIRFLOW_JOB = "ApacheAirflowJob"
+    APP_BACKEND = "AppBackend"
+    AZURE_DATABRICKS_STORAGE = "AzureDatabricksStorage"
     COSMOS_DB_DATABASE = "CosmosDBDatabase"
     DASHBOARD = "Dashboard"
+    DATA_AGENT = "DataAgent"
     DATAMART = "Datamart"
+    DATA_BUILD_TOOL_JOB = "DataBuildToolJob"
     DATA_PIPELINE = "DataPipeline"
     DIGITAL_TWIN_BUILDER = "DigitalTwinBuilder"
     DIGITAL_TWIN_BUILDER_FLOW = "DigitalTwinBuilderFlow"
     ENVIRONMENT = "Environment"
     EVENTHOUSE = "Eventhouse"
+    EVENT_SCHEMA_SET = "EventSchemaSet"
     EVENTSTREAM = "Eventstream"
     GRAPH_MODEL = "GraphModel"
     KQL_DASHBOARD = "KQLDashboard"
@@ -270,19 +275,27 @@ class ItemType(_BaseItemType):
     KQL_QUERYSET = "KQLQueryset"
     LAKEHOUSE = "Lakehouse"
     MAP = "Map"
+    MIRRORED_AZURE_DATABRICKS_CATALOG = "MirroredAzureDatabricksCatalog"
+    MIRRORED_CATALOG = "MirroredCatalog"
     MIRRORED_WAREHOUSE = "MirroredWarehouse"
     MIRRORED_DATABASE = "MirroredDatabase"
     ML_EXPERIMENT = "MLExperiment"
     ML_MODEL = "MLModel"
     NOTEBOOK = "Notebook"
     ONTOLOGY = "Ontology"
+    OPERATIONS_AGENT = "OperationsAgent"
+    ORG_APP = "OrgApp"
+    ORG_APP_AUDIENCE = "OrgAppAudience"
     PAGINATED_REPORT = "PaginatedReport"
+    PLAN = "Plan"
     REFLEX = "Reflex"
     REPORT = "Report"
     SEMANTIC_MODEL = "SemanticModel"
+    SNOWFLAKE_DATABASE = "SnowflakeDatabase"
     SPARK_JOB_DEFINITION = "SparkJobDefinition"
     SQL_ENDPOINT = "SQLEndpoint"
     WAREHOUSE = "Warehouse"
+    WAREHOUSE_SNAPSHOT = "WarehouseSnapshot"
     COPYJOB = "CopyJob"
     GRAPHQLAPI = "GraphQLApi"
     GRAPH_QUERY_SET = "GraphQuerySet"
@@ -492,22 +505,27 @@ ItemOnelakeWritableFoldersMap: dict[ItemType, List[str]] = {
 format_mapping = {
     # Portal only
     ItemType.AISKILL: "aiskills",
-    ItemType.APACHE_AIRFLOW_JOB: "apacheairflowprojects",
     ItemType.EXPLORATION: "explorations",
     ItemType.RETAIL_DATA_MANAGER: "retaildatamanagers",
     ItemType.HEALTHCARE_DATA_SOLUTION: "healthcaredatasolutions",
     ItemType.SUSTAINABILITY_DATA_SOLUTION: "sustainabilitydatasolutions",
     ItemType.METRIC_SET: "metricsets",
-    ItemType.ORG_APP: "orgapps",
     # API
+    ItemType.ANOMALY_DETECTOR: "anomalyDetectors",
+    ItemType.APACHE_AIRFLOW_JOB: "apacheAirflowJobs",
+    ItemType.APP_BACKEND: "appBackends",
+    ItemType.AZURE_DATABRICKS_STORAGE: "azureDatabricksStorages",
     ItemType.COSMOS_DB_DATABASE: "cosmosDbDatabases",
     ItemType.DASHBOARD: "dashboards",
+    ItemType.DATA_AGENT: "dataAgents",
     ItemType.DATA_PIPELINE: "dataPipelines",
     ItemType.DATAMART: "datamarts",
+    ItemType.DATA_BUILD_TOOL_JOB: "dataBuildToolJobs",
     ItemType.DIGITAL_TWIN_BUILDER: "digitalTwinBuilders",
     ItemType.DIGITAL_TWIN_BUILDER_FLOW: "digitalTwinBuilderFlows",
     ItemType.ENVIRONMENT: "environments",
     ItemType.EVENTHOUSE: "eventhouses",
+    ItemType.EVENT_SCHEMA_SET: "eventSchemaSets",
     ItemType.EVENTSTREAM: "eventstreams",
     ItemType.GRAPH_MODEL: "graphModels",
     ItemType.KQL_DASHBOARD: "kqlDashboards",
@@ -515,20 +533,28 @@ format_mapping = {
     ItemType.KQL_QUERYSET: "kqlQuerysets",
     ItemType.LAKEHOUSE: "lakehouses",
     ItemType.MAP: "maps",
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG: "mirroredAzureDatabricksCatalogs",
+    ItemType.MIRRORED_CATALOG: "mirroredCatalogs",
     ItemType.ML_EXPERIMENT: "mlExperiments",
     ItemType.ML_MODEL: "mlModels",
     ItemType.MIRRORED_WAREHOUSE: "mirroredWarehouses",
     ItemType.MIRRORED_DATABASE: "mirroredDatabases",
     ItemType.NOTEBOOK: "notebooks",
     ItemType.ONTOLOGY: "ontologies",
+    ItemType.OPERATIONS_AGENT: "operationsAgents",
+    ItemType.ORG_APP: "orgApps",
+    ItemType.ORG_APP_AUDIENCE: "orgAppAudiences",
     ItemType.PAGINATED_REPORT: "paginatedReports",
+    ItemType.PLAN: "plans",
     ItemType.REFLEX: "reflexes",
     ItemType.REPORT: "reports",
     ItemType.SQL_DATABASE: "sqlDatabases",
     ItemType.SQL_ENDPOINT: "sqlEndpoints",
     ItemType.SEMANTIC_MODEL: "semanticModels",
+    ItemType.SNOWFLAKE_DATABASE: "snowflakeDatabases",
     ItemType.SPARK_JOB_DEFINITION: "sparkJobDefinitions",
     ItemType.WAREHOUSE: "warehouses",
+    ItemType.WAREHOUSE_SNAPSHOT: "warehouseSnapshots",
     ItemType.COPYJOB: "copyJobs",
     ItemType.GRAPHQLAPI: "graphqlapis",
     ItemType.GRAPH_QUERY_SET: "GraphQuerySets",

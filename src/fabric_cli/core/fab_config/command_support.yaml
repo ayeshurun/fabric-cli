@@ -133,13 +133,10 @@ commands:
           - external_data_share
         unsupported_items:
           - dashboard
-          - paginated_report
           - sql_endpoint
           - mirrored_warehouse
           - datamart  
-          - org_app
           - metric_set
-          - apache_airflow_job
           - exploration
           - retail_data_manager
           - healthcare_data_solution
@@ -324,13 +321,10 @@ commands:
           - graph_query_set
         unsupported_items:
           - dashboard
-          - paginated_report
           - sql_endpoint
           - mirrored_warehouse
           - datamart
-          - org_app
           - metric_set
-          - apache_airflow_job
           - exploration
           - retail_data_manager
           - healthcare_data_solution
@@ -350,13 +344,10 @@ commands:
           - gateway
         unsupported_items:
           - dashboard
-          - paginated_report
           - sql_endpoint
           - mirrored_warehouse
           - datamart
-          - org_app
           - metric_set
-          - apache_airflow_job
           - exploration
           - retail_data_manager
           - healthcare_data_solution
@@ -423,14 +414,20 @@ commands:
           - sql_endpoint
           - datamart
           - mirrored_warehouse
-          - org_app
           - metric_set
-          - apache_airflow_job
           - exploration
           - retail_data_manager
           - healthcare_data_solution
           - sustainability_data_solution
           - ai_skill
+          - anomaly_detector
+          - app_backend
+          - azure_databricks_storage
+          - mirrored_azure_databricks_catalog
+          - mirrored_catalog
+          - org_app_audience
+          - snowflake_database
+          - warehouse_snapshot
       start:
         supported_items:
           - capacity
