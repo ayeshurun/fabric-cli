@@ -358,6 +358,21 @@ commands:
         supported_elements: 
           - workspace
           - item
+        unsupported_items:
+          # No portal URL mapping is available yet for these item types
+          - anomaly_detector
+          - app_backend
+          - azure_databricks_storage
+          - data_agent
+          - data_build_tool_job
+          - event_schema_set
+          - mirrored_azure_databricks_catalog
+          - mirrored_catalog
+          - operations_agent
+          - org_app_audience
+          - plan
+          - snowflake_database
+          - warehouse_snapshot
       bulkexport:
         supported_elements: 
           - workspace
