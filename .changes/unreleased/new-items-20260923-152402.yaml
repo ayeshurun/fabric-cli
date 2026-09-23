@@ -1,6 +1,0 @@
-kind: new-items
-body: Add mkdir, get, set, rm and ls support for AnomalyDetector, ApacheAirflowJob, AppBackend, AzureDatabricksStorage, DataAgent, DataBuildToolJob, EventSchemaSet, MirroredAzureDatabricksCatalog, MirroredCatalog, OperationsAgent, OrgApp, OrgAppAudience, PaginatedReport, Plan, SnowflakeDatabase and WarehouseSnapshot items (where supported by the Fabric REST API)
-time: 2026-09-23T15:24:02.000000000Z
-custom:
-    Author: ayeshurun
-    AuthorLink: https://github.com/ayeshurun
