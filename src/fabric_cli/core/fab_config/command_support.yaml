@@ -359,23 +359,9 @@ commands:
           - workspace
           - item
         unsupported_items:
-          # No portal URL mapping is available yet for these item types
-          - anomaly_detector
-          - app_backend
-          - azure_databricks_storage
-          - data_agent
-          - data_build_tool_job
-          - event_schema_set
-          - mirrored_azure_databricks_catalog
-          - mirrored_catalog
-          - operations_agent
-          - org_app_audience
-          - plan
-          - snowflake_database
-          - warehouse_snapshot
           # Pre-existing gap (not part of this iteration's onboarded types):
-          # MirroredWarehouse has a format_mapping entry but no uri_mapping
-          # entry either, so it has the same "open" problem.
+          # MirroredWarehouse has a format_mapping entry but no confirmed
+          # portal URL mapping, so it has the same "open" problem.
           - mirrored_warehouse
       bulkexport:
         supported_elements: 
