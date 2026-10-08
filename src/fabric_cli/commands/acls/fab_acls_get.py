@@ -145,17 +145,13 @@ def _get_acls_onelake(context: OneLakeItem, args: Namespace) -> None:
             )
     except FabricAPIError as e:
         if e.status_code == "BadRequest":
-            fab_ui.print_output_error(
-                FabricCLIError(
-                    ErrorMessages.Common.universal_security_disabled(item_name),
-                    fab_constant.ERROR_UNIVERSAL_SECURITY_DISABLED,
-                ),
-                f"{args.command_path}",
-                output_format_type=args.output_format,
-            )
             fab_ui.print_grey(
                 f"→ Run 'open /{workspace_name}/{item_name}' and enable it"
             )
+            raise FabricCLIError(
+                ErrorMessages.Common.universal_security_disabled(item_name),
+                fab_constant.ERROR_UNIVERSAL_SECURITY_DISABLED,
+            ) from e
         else:
             raise e
 
@@ -170,5 +166,5 @@ def _process_query_and_export(
         utils_storage.do_output(
             data=json_path_response, file_name=output_file_name, args=args
         )
-    elif json_path_response:
+    else:
         fab_ui.print_output_format(args, data=json_path_response)

@@ -84,8 +84,12 @@ def _write_to_lakehouse(
             file_path += ".json"
 
     file_path = file_path.replace(".Workspace", "", 1).replace(".workspace", "", 1)
-    args = Namespace()
-    args.to_path = file_path
+    args = Namespace(
+        to_path=file_path,
+        command=getattr(args, "command", None),
+        output_format=getattr(args, "output_format", None),
+        compact_json=getattr(args, "compact_json", False),
+    )
 
     try:
         response = onelake_api.touch_file(args)
@@ -106,8 +110,12 @@ def _write_to_sjd(
     export: Optional[bool] = True,
     content_type: Optional[str] = "application/json",
 ) -> None:
-    args = Namespace()
-    args.to_path = file_path
+    args = Namespace(
+        to_path=file_path,
+        command=getattr(args, "command", None),
+        output_format=getattr(args, "output_format", None),
+        compact_json=getattr(args, "compact_json", False),
+    )
 
     try:
         response = onelake_api.touch_file(args)
@@ -128,7 +136,7 @@ def _validate_json(data: Any) -> tuple:
     try:
         if isinstance(data, str):
             return json.loads(data), True
-        elif isinstance(data, (dict, list)):
+        elif data is None or isinstance(data, (dict, list, bool, int, float)):
             return data, True
         else:
             return data, False
@@ -150,7 +158,8 @@ def get_export_path(output_path: str) -> dict:
                 return {"type": "local", "path": expanded_path}
             else:
                 raise FabricCLIError(
-                    ErrorMessages.Common.no_such_file_or_directory(), fab_constant.ERROR_INVALID_PATH
+                    ErrorMessages.Common.no_such_file_or_directory(),
+                    fab_constant.ERROR_INVALID_PATH,
                 )
 
     # Validate Fabric path if exists
@@ -191,7 +200,8 @@ def get_import_path(input_path: str) -> dict:
             return {"type": "local", "path": expanded_path}
         else:
             raise FabricCLIError(
-                ErrorMessages.Common.no_such_file_or_directory(), fab_constant.ERROR_INVALID_PATH
+                ErrorMessages.Common.no_such_file_or_directory(),
+                fab_constant.ERROR_INVALID_PATH,
             )
 
     # Validate Fabric path if exists

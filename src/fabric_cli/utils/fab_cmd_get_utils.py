@@ -15,16 +15,16 @@ from fabric_cli.utils import fab_ui as utils_ui
 def is_metadata_property_query(query: str) -> bool:
     """
     Check if the query is for a metadata property or nested sub-property.
-    
+
     Examples:
         - "properties" -> True (exact match)
         - "properties.connectionString" -> True (nested property)
         - "id" -> True (exact match)
         - "someOtherField" -> False (not a metadata property)
-    
+
     Args:
         query: The query string to check (assumed to be non-empty)
-        
+
     Returns:
         bool: True if query matches a metadata property or its nested properties
     """
@@ -32,7 +32,7 @@ def is_metadata_property_query(query: str) -> bool:
 
     # Extract root property and check if it's a valid metadata property
     # This handles both exact matches and nested properties in one step
-    root_property = query.split('.')[0]
+    root_property = query.split(".")[0]
     return root_property in fab_constant.ITEM_METADATA_PROPERTIES
 
 
@@ -45,7 +45,7 @@ def query_and_export(
 
     if args.output:
         utils_storage.do_output(data=json_path_response, file_name=file_name, args=args)
-    elif json_path_response and verbose:
+    elif verbose:
         utils_ui.print_output_format(args, data=json_path_response)
 
 
@@ -57,7 +57,12 @@ def get_environment_metadata(item_def: dict, args: Namespace) -> dict:
         if env_libraries.status_code == 200:
             env_libraries_def = json.loads(env_libraries.text)
             item_def.setdefault("published", {})["libraries"] = env_libraries_def
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve published libraries: HTTP {env_libraries.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(f"Could not retrieve published libraries: {e}")
         item_def.setdefault("published", {})["libraries"] = []
 
     # Fetch libraries for staging
@@ -67,7 +72,12 @@ def get_environment_metadata(item_def: dict, args: Namespace) -> dict:
         if env_libraries_staging.status_code == 200:
             env_libraries_staging_def = json.loads(env_libraries_staging.text)
             item_def.setdefault("staging", {})["libraries"] = env_libraries_staging_def
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve staging libraries: HTTP {env_libraries_staging.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(f"Could not retrieve staging libraries: {e}")
         item_def.setdefault("staging", {})["libraries"] = []
 
     # Fetch sparkComputeSettings for published
@@ -79,7 +89,14 @@ def get_environment_metadata(item_def: dict, args: Namespace) -> dict:
             item_def.setdefault("published", {})[
                 "sparkComputeSettings"
             ] = env_spark_compute_def
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve published Spark compute settings: HTTP {env_spark_compute.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(
+            f"Could not retrieve published Spark compute settings: {e}"
+        )
         item_def.setdefault("published", {})["sparkComputeSettings"] = []
 
     # Fetch sparkComputeSettings for staging
@@ -91,7 +108,14 @@ def get_environment_metadata(item_def: dict, args: Namespace) -> dict:
             item_def.setdefault("staging", {})[
                 "sparkComputeSettings"
             ] = env_spark_compute_staging_def
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve staging Spark compute settings: HTTP {env_spark_compute_staging.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(
+            f"Could not retrieve staging Spark compute settings: {e}"
+        )
         item_def.setdefault("staging", {})["sparkComputeSettings"] = []
 
     return item_def
@@ -104,7 +128,12 @@ def get_mirroreddb_metadata(item_def: dict, args: Namespace) -> dict:
         if status.status_code == 200:
             status_def = json.loads(status.text)
             item_def["status"] = status_def
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve mirroring status: HTTP {status.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(f"Could not retrieve mirroring status: {e}")
         item_def["status"] = []
 
     # Fetch tablesStatus
@@ -113,7 +142,12 @@ def get_mirroreddb_metadata(item_def: dict, args: Namespace) -> dict:
         if tables_status.status_code == 200:
             tables_status_def = json.loads(tables_status.text)
             item_def["tablesStatus"] = tables_status_def["data"]
+        else:
+            utils_ui.print_warning(
+                f"Could not retrieve table mirroring status: HTTP {tables_status.status_code}"
+            )
     except Exception as e:
+        utils_ui.print_warning(f"Could not retrieve table mirroring status: {e}")
         item_def["tablesStatus"] = []
 
     return item_def

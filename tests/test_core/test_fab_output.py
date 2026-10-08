@@ -100,7 +100,7 @@ def test_fabric_cli_output_json_failure():
 def test_output_result_success():
     # Test 1: with None values
     result = OutputResult(data=None, hidden_data=None, message=None)
-    assert result.data is None
+    assert result.data == [None]
     assert result.hidden_data is None
     assert result.message is None
 

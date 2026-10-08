@@ -2,6 +2,7 @@
 # Licensed under the MIT License.
 
 import json
+from argparse import Namespace
 from typing import Any, Optional
 
 import jmespath
@@ -14,9 +15,8 @@ from fabric_cli.errors import ErrorMessages
 # https://redis.io/docs/latest/integrate/redis-data-integration/reference/jmespath-custom-functions/
 
 
-def search(
-    data: Any, expression: str, deep_traversal: Optional[bool] = False
-) -> str | list | dict:
+def search(data: Any, expression: str, deep_traversal: Optional[bool] = False) -> Any:
+    """Query data without converting JSON scalar types to strings."""
     if not expression:
         max_depth = float("inf") if deep_traversal else 4
         return _get_json_paths(data, max_depth=max_depth)
@@ -24,15 +24,34 @@ def search(
         try:
             if "." == expression:
                 return data
-            result = jmespath.search(expression, data, options=None)
-            if isinstance(result, (dict, list)):
-                return result
-            return str(result)
-        except Exception as e:
+            return jmespath.search(expression, data, options=None)
+        except jmespath.exceptions.JMESPathError as e:
             raise FabricCLIError(
                 ErrorMessages.Common.invalid_jmespath_query(),
                 fab_constant.ERROR_INVALID_INPUT,
-            )
+            ) from e
+
+
+def validate_expression(expression: str) -> None:
+    """Validate an output query before executing a command."""
+    try:
+        jmespath.compile("@" if expression == "." else expression)
+    except jmespath.exceptions.JMESPathError as e:
+        raise FabricCLIError(
+            ErrorMessages.Common.invalid_jmespath_query(),
+            fab_constant.ERROR_INVALID_INPUT,
+        ) from e
+
+
+def validate_query_args(args: Namespace) -> None:
+    """Validate result queries without interpreting mutation targets."""
+    query = getattr(args, "output_query", None)
+    if query is not None:
+        validate_expression(query)
+    elif getattr(args, "command", None) != "set" and getattr(args, "query", None):
+        from fabric_cli.utils.fab_util import process_nargs
+
+        validate_expression(process_nargs(args.query))
 
 
 def replace(data: Any, expression: Any, new_value: Any) -> Any:

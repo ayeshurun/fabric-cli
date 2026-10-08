@@ -12,7 +12,7 @@ from typing import Any, Optional, Sequence
 from fabric_cli import __version__
 from fabric_cli.core import fab_constant, fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
-from fabric_cli.core.fab_output import FabricCLIOutput, OutputStatus
+from fabric_cli.core.fab_output import NO_DATA, FabricCLIOutput, OutputStatus
 from fabric_cli.errors import ErrorMessages
 from fabric_cli.utils import fab_lazy_load
 from fabric_cli.utils import fab_util
@@ -90,10 +90,18 @@ def print_version(args=None):
     print("https://aka.ms/fabric-cli/release-notes")
 
 
+def is_json_output(args: Namespace) -> bool:
+    """Return whether explicit flags or configuration select JSON output."""
+    return (
+        getattr(args, "output_format", None)
+        or fab_state_config.get_config(fab_constant.FAB_OUTPUT_FORMAT)
+    ) == "json"
+
+
 def print_output_format(
     args: Namespace,
     message: Optional[str] = None,
-    data: Optional[Any] = None,
+    data: Any = NO_DATA,
     hidden_data: Optional[Any] = None,
     show_headers: bool = False,
     show_key_value_list: bool = False,
@@ -119,6 +127,15 @@ def print_output_format(
     command = getattr(args, "command", None)
     subcommand = getattr(args, f"{command}_subcommand", None)
 
+    query = getattr(args, "output_query", None)
+    if query is not None:
+        from fabric_cli.utils import fab_jmespath
+
+        fab_jmespath.validate_expression(query)
+        if data is not NO_DATA:
+            data = fab_jmespath.search(data, query)
+            show_key_value_list = False
+
     output = FabricCLIOutput(
         command=command,
         subcommand=subcommand,
@@ -136,7 +153,11 @@ def print_output_format(
     )
     match format_type:
         case "json":
-            _print_output_format_json(output.to_json())
+            _print_output_format_json(
+                output.to_json(
+                    indent=None if getattr(args, "compact_json", False) else 4
+                )
+            )
         case "text":
             if (
                 truncate_columns
@@ -148,9 +169,7 @@ def print_output_format(
             _print_output_format_result_text(output)
         case _:
             raise FabricCLIError(
-                ErrorMessages.Common.output_format_not_supported(
-                    str(format_type)
-                ),
+                ErrorMessages.Common.output_format_not_supported(str(format_type)),
                 fab_constant.ERROR_NOT_SUPPORTED,
             )
 
@@ -179,6 +198,7 @@ def print_output_error(
     error: FabricCLIError,
     command: Optional[str] = None,
     output_format_type: Optional[str] = None,
+    compact_json: bool = False,
 ) -> None:
     """
     Prints an error message in the specified output format defined in config file.
@@ -187,6 +207,7 @@ def print_output_error(
         error (FabricCLIError): The error to display.
         command (Optional[str], optional): The command associated with the error.
         output_format_type (Optional[str], optional): The output format to use.
+        compact_json: Whether to omit JSON whitespace for the --json flag.
 
     Raises:
         FabricCLIError: If the output format is not supported.
@@ -203,7 +224,7 @@ def print_output_error(
                     error_code=error.status_code,
                     command=command,
                     message=error.message,
-                ).to_json()
+                ).to_json(indent=None if compact_json else 4)
             )
             return
         case "text":
@@ -211,9 +232,7 @@ def print_output_error(
             return
         case _:
             raise FabricCLIError(
-                ErrorMessages.Common.output_format_not_supported(
-                    str(format_type)
-                ),
+                ErrorMessages.Common.output_format_not_supported(str(format_type)),
                 fab_constant.ERROR_NOT_SUPPORTED,
             )
 
@@ -295,10 +314,7 @@ def print_entries_unix_style(
         widths = [
             max(
                 _get_visual_length(field),
-                max(
-                    get_visual_length(entry, field)
-                    for entry in _entries
-                ),
+                max(get_visual_length(entry, field) for entry in _entries),
             )
             for field in fields
         ]
@@ -327,8 +343,7 @@ def print_entries_unix_style(
             new_widths = [max(min_col_width, int(w * scale)) for w in widths]
             # Fine-tune: trim the largest column until we fit
             while sum(new_widths) + separator_space > terminal_width:
-                max_idx = max(range(len(new_widths)),
-                              key=lambda k: new_widths[k])
+                max_idx = max(range(len(new_widths)), key=lambda k: new_widths[k])
                 if new_widths[max_idx] <= min_col_width:
                     break
                 new_widths[max_idx] -= 1
@@ -337,8 +352,7 @@ def print_entries_unix_style(
                 base = available // n
                 remainder = available % n
                 new_widths = [
-                    max(1, base + (1 if i < remainder else 0))
-                    for i in range(n)
+                    max(1, base + (1 if i < remainder else 0)) for i in range(n)
                 ]
             widths = new_widths
 
@@ -347,8 +361,11 @@ def print_entries_unix_style(
         for line in header_lines:
             print_grey(line, to_stderr=False)
         # Print a separator line matching the width of the first header line
-        separator_width = _get_visual_length(
-            header_lines[0]) if header_lines else (sum(widths) + len(widths) - 1)
+        separator_width = (
+            _get_visual_length(header_lines[0])
+            if header_lines
+            else (sum(widths) + len(widths) - 1)
+        )
         print_grey("-" * separator_width, to_stderr=False)
 
     for entry in _entries:
@@ -416,9 +433,9 @@ def _print_output_format_result_text(output: FabricCLIOutput) -> None:
             data_keys = output.result.get_data_keys() if output_result.data else []
             if len(data_keys) > 0:
                 print_entries_unix_style(
-                    output_result.data, data_keys, header=(
-                        len(data_keys) > 1 or show_headers
-                    )
+                    output_result.data,
+                    data_keys,
+                    header=(len(data_keys) > 1 or show_headers),
                 )
             else:
                 _print_raw_data(output_result.data)
@@ -503,9 +520,7 @@ def _print_error_format_json(output: str) -> None:
 
 def _print_error_format_text(message: str, command: Optional[str] = None) -> None:
     command_text = f"{command}: " if command else ""
-    _safe_print_formatted_text(
-        f"<ansired>x</ansired> {command_text}{message}", message
-    )
+    _safe_print_formatted_text(f"<ansired>x</ansired> {command_text}{message}", message)
 
 
 def _print_fallback(text: str, e: Exception, to_stderr: bool = False) -> None:
@@ -629,21 +644,24 @@ def _format_key_to_convert_to_title_case(key: str) -> str:
         ValueError: If the key is not in the expected underscore-separated format
     """
     # Allow letters, numbers, and underscores only
-    if not key.replace('_', '').replace(' ', '').isalnum():
+    if not key.replace("_", "").replace(" ", "").isalnum():
         raise ValueError(
-            f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
+            f"Invalid key format: '{key}'. Only underscore-separated words are allowed."
+        )
 
     # Check for invalid patterns (camelCase, spaces mixed with underscores, etc.)
-    if ' ' in key and '_' in key:
+    if " " in key and "_" in key:
         raise ValueError(
-            f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
+            f"Invalid key format: '{key}'. Only underscore-separated words are allowed."
+        )
 
     # Check for camelCase pattern (uppercase letters not at the start)
-    if any(char.isupper() for char in key[1:]) and '_' not in key:
+    if any(char.isupper() for char in key[1:]) and "_" not in key:
         raise ValueError(
-            f"Invalid key format: '{key}'. Only underscore-separated words are allowed.")
+            f"Invalid key format: '{key}'. Only underscore-separated words are allowed."
+        )
 
-    pretty = key.replace('_', ' ').title().strip()
+    pretty = key.replace("_", " ").title().strip()
 
     return _check_special_cases(pretty)
 

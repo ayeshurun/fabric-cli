@@ -1,0 +1,6 @@
+kind: added
+body: Add compact --json output and JMESPath queries across structured results while preserving JSON values, failures, and omission diagnostics.
+time: 2026-10-08T12:46:27.505425372Z
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun

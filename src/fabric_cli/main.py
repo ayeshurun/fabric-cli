@@ -23,6 +23,10 @@ def main():
     try:
         fab_state_config.init_defaults()
 
+        from fabric_cli.utils.fab_jmespath import validate_query_args
+
+        validate_query_args(args)
+
         if args.command == "auth" and args.auth_command == None:
             auth_parser.show_help(args)
             return
@@ -89,6 +93,17 @@ def main():
 
     except KeyboardInterrupt:
         _handle_keyboard_interrupt(args)
+    except FabricCLIError as err:
+        fab_ui.print_output_error(
+            err,
+            output_format_type=args.output_format,
+            compact_json=getattr(args, "compact_json", False),
+        )
+        sys.exit(
+            fab_constant.EXIT_CODE_AUTHORIZATION_REQUIRED
+            if err.status_code == fab_constant.ERROR_UNAUTHORIZED
+            else fab_constant.EXIT_CODE_ERROR
+        )
     except Exception as err:
         _handle_unexpected_error(err, args)
 
@@ -101,6 +116,7 @@ def _handle_keyboard_interrupt(args):
             fab_constant.ERROR_OPERATION_CANCELLED,
         ),
         output_format_type=args.output_format,
+        compact_json=getattr(args, "compact_json", False),
     )
     sys.exit(fab_constant.EXIT_CODE_CANCELLED_OR_MISUSE_BUILTINS)
 
@@ -115,6 +131,7 @@ def _handle_unexpected_error(err, args):
     fab_ui.print_output_error(
         FabricCLIError(error_message, fab_constant.ERROR_UNEXPECTED_ERROR),
         output_format_type=args.output_format,
+        compact_json=getattr(args, "compact_json", False),
     )
     sys.exit(fab_constant.EXIT_CODE_ERROR)
 

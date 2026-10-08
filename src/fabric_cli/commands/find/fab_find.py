@@ -41,9 +41,9 @@ def find_command(args: Namespace) -> None:
     if args.query:
         args.query = utils.process_nargs(args.query)
 
-    is_interactive = (
-        getattr(args, "fab_mode", None) == fab_constant.FAB_MODE_INTERACTIVE
-    )
+    is_interactive = getattr(
+        args, "fab_mode", None
+    ) == fab_constant.FAB_MODE_INTERACTIVE and not utils_ui.is_json_output(args)
     payload = _build_search_payload(args, is_interactive)
 
     utils_ui.print_grey("Searching...")
@@ -81,7 +81,9 @@ def _next_page_payload(token: str, current: dict[str, Any]) -> dict[str, Any]:
 def _print_search_summary(count: int, has_more_pages: bool = False) -> None:
     """Print the search result summary line."""
     label = "item" if count == 1 else "items"
-    count_msg = f"{count} {label} found" + (" (more available)" if has_more_pages else "")
+    count_msg = f"{count} {label} found" + (
+        " (more available)" if has_more_pages else ""
+    )
     utils_ui.print_grey("")
     utils_ui.print_grey(count_msg)
     utils_ui.print_grey("")
@@ -89,15 +91,16 @@ def _print_search_summary(count: int, has_more_pages: bool = False) -> None:
 
 def _display_page(
     args: Namespace,
-    display_items: list[dict],
+    display_items: Any,
     truncate_cols: list[str] | None,
     has_more_pages: bool,
     total_count: int,
 ) -> int:
     """Display a page of results, returning the updated total count."""
-    if display_items:
-        total_count += len(display_items)
-        _print_search_summary(total_count, has_more_pages)
+    if not isinstance(display_items, list) or display_items:
+        if isinstance(display_items, list):
+            total_count += len(display_items)
+            _print_search_summary(total_count, has_more_pages)
         _display_items(args, display_items, truncate_cols)
     return total_count
 
@@ -107,12 +110,13 @@ def _find_interactive(args: Namespace, payload: dict[str, Any]) -> None:
     total_count = 0
     items, continuation_token = _fetch_results(args, payload)
     display_items, truncate_cols = _prepare_display_items(args, items)
+    displayed_results = not isinstance(display_items, list) or bool(display_items)
     total_count = _display_page(
         args, display_items, truncate_cols, continuation_token is not None, total_count
     )
 
     while continuation_token is not None:
-        if display_items:
+        if not isinstance(display_items, list) or display_items:
             try:
                 utils_ui.print_grey("")
                 input("Press Enter to continue... (Ctrl+C to stop)")
@@ -123,11 +127,20 @@ def _find_interactive(args: Namespace, payload: dict[str, Any]) -> None:
         payload = _next_page_payload(continuation_token, payload)
         items, continuation_token = _fetch_results(args, payload)
         display_items, truncate_cols = _prepare_display_items(args, items)
+        displayed_results = (
+            not isinstance(display_items, list)
+            or bool(display_items)
+            or displayed_results
+        )
         total_count = _display_page(
-            args, display_items, truncate_cols, continuation_token is not None, total_count
+            args,
+            display_items,
+            truncate_cols,
+            continuation_token is not None,
+            total_count,
         )
 
-    if total_count == 0:
+    if not displayed_results:
         utils_ui.print_grey("No items found.")
 
 
@@ -142,15 +155,20 @@ def _find_commandline(args: Namespace, payload: dict[str, Any]) -> None:
         items, continuation_token = _fetch_results(args, payload)
         all_items.extend(items)
 
-    if not all_items:
+    if not all_items and not args.query and not utils_ui.is_json_output(args):
         utils_ui.print_grey("No items found.")
         return
 
     display_items, truncate_cols = _prepare_display_items(args, all_items)
-    if not display_items:
+    if (
+        isinstance(display_items, list)
+        and not display_items
+        and not utils_ui.is_json_output(args)
+    ):
         utils_ui.print_grey("No items found.")
         return
-    _print_search_summary(len(display_items))
+    if isinstance(display_items, list):
+        _print_search_summary(len(display_items))
     _display_items(args, display_items, truncate_cols)
 
 
@@ -293,7 +311,7 @@ def _get_workspace_field(item: dict, field: str) -> str | None:
 
 def _prepare_display_items(
     args: Namespace, items: list[dict]
-) -> tuple[list[dict], list[str] | None]:
+) -> tuple[Any, list[str] | None]:
     """Transform API items into display-ready dicts with optional filtering.
 
     Returns:
@@ -302,7 +320,7 @@ def _prepare_display_items(
     show_details = getattr(args, "long", False)
     has_descriptions = any(item.get("description") for item in items)
 
-    display_items = []
+    display_items: Any = []
     for item in items:
         if show_details:
             entry = {
@@ -323,10 +341,7 @@ def _prepare_display_items(
         display_items.append(entry)
 
     if getattr(args, "query", None):
-        query_result = utils_jmespath.search(display_items, args.query)
-        if not isinstance(query_result, list):
-            return [], None
-        display_items = query_result
+        display_items = utils_jmespath.search(display_items, args.query)
 
     truncate_cols = ["description", "workspace", "name"] if not show_details else None
     return display_items, truncate_cols
@@ -334,7 +349,7 @@ def _prepare_display_items(
 
 def _display_items(
     args: Namespace,
-    display_items: list[dict],
+    display_items: Any,
     columns_to_truncate: list[str] | None = None,
 ) -> None:
     """Render prepared display items, truncating columns for text format."""

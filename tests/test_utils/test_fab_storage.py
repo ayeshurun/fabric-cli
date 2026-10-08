@@ -2,9 +2,11 @@
 # Licensed under the MIT License.
 
 import argparse
+import json
 import os
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -44,8 +46,8 @@ def test_write_to_storage_local_success(mock_fab_set_state_config):
 
     data = 22
     write_to_storage(args, export_path, data, export=False)
-    assert os.path.exists("item_folder/test.txt")
-    os.remove("item_folder/test.txt")
+    assert os.path.exists("item_folder/test.txt.json")
+    os.remove("item_folder/test.txt.json")
 
 
 def test_write_to_storage_local_with_nested_path(mock_fab_set_state_config):
@@ -78,23 +80,26 @@ def test_get_export_path_success():
     os.remove(test_file)
 
 
-@patch('os.path.exists')
-@patch('os.path.expanduser')
-@patch('fabric_cli.utils.fab_storage.handle_context.get_command_context')
-def test_get_export_path_with_home_dir_success(mock_get_command_context, mock_expanduser, mock_exists):
+@patch("os.path.exists")
+@patch("os.path.expanduser")
+@patch("fabric_cli.utils.fab_storage.handle_context.get_command_context")
+def test_get_export_path_with_home_dir_success(
+    mock_get_command_context, mock_expanduser, mock_exists
+):
     """Test get_export_path with ~/path"""
     # Setup mocks
     mock_expanduser.return_value = "/home/user/test.txt"
     mock_exists.return_value = True
     # Mock the get_command_context to raise an exception
     mock_get_command_context.side_effect = Exception("Not a valid Fabric context")
-    
+
     # Test with path containing ~/
     result = get_export_path("~/test.txt")
-    
+
     # Verify
     mock_expanduser.assert_called_once_with("~/test.txt")
     assert result == {"type": "local", "path": "/home/user/test.txt"}
+
 
 def test_get_export_path_failure():
     """Test get_export_path with non-existent path"""
@@ -103,23 +108,26 @@ def test_get_export_path_failure():
     assert "No such file or directory" in str(exc.value)
 
 
-@patch('os.path.exists')
-@patch('os.path.expanduser')
-@patch('fabric_cli.utils.fab_storage.handle_context.get_command_context')
-def test_get_import_path_with_home_dir_success(mock_get_command_context, mock_expanduser, mock_exists):
+@patch("os.path.exists")
+@patch("os.path.expanduser")
+@patch("fabric_cli.utils.fab_storage.handle_context.get_command_context")
+def test_get_import_path_with_home_dir_success(
+    mock_get_command_context, mock_expanduser, mock_exists
+):
     """Test get_import_path with ~/path"""
     # Setup mocks
     mock_expanduser.return_value = "/home/user/test.txt"
     mock_exists.return_value = True
     # Mock the get_command_context to raise an exception
     mock_get_command_context.side_effect = Exception("Not a valid Fabric context")
-    
+
     # Test with path containing ~/
     result = get_import_path("~/test.txt")
-    
+
     # Verify
     mock_expanduser.assert_called_once_with("~/test.txt")
     assert result == {"type": "local", "path": "/home/user/test.txt"}
+
 
 def test_get_import_path_success():
     """Test get_import_path with valid local path"""
@@ -140,3 +148,53 @@ def test_get_import_path_failure():
     with pytest.raises(FabricCLIError) as exc:
         get_import_path("nonexistent.txt")
     assert "No such file or directory" in str(exc.value)
+
+
+@pytest.mark.parametrize("value", [None, False, 0, 2.5, [], {}])
+def test_export_native_json_values_local(value: Any, tmp_path: Path) -> None:
+    args = argparse.Namespace(output_format="json", compact_json=True)
+    target = tmp_path / "query"
+    write_to_storage(args, {"type": "local", "path": str(target)}, value, export=False)
+    result = json.loads(target.with_suffix(".json").read_text(encoding="utf-8"))
+    assert result == value
+    assert type(result) is type(value)
+
+
+@pytest.mark.parametrize("value", [None, False, 0, 2.5, [], {}])
+def test_export_native_json_values_onelake(value: Any) -> None:
+    with (
+        patch("fabric_cli.utils.fab_storage.onelake_api.touch_file") as touch,
+        patch("fabric_cli.utils.fab_storage.onelake_api.append_file") as append,
+        patch("fabric_cli.utils.fab_storage.onelake_api.flush_file") as flush,
+    ):
+        touch.return_value.status_code = 201
+        write_to_storage(
+            argparse.Namespace(),
+            {"type": "lakehouse", "path": "/ws.Workspace/l.Lakehouse/Files/query.json"},
+            value,
+            export=True,
+        )
+        assert json.loads(append.call_args.args[1]) == value
+        flush.assert_called_once()
+
+
+def test_onelake_export_preserves_json_output_flag(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with (
+        patch("fabric_cli.utils.fab_storage.onelake_api.touch_file") as touch,
+        patch("fabric_cli.utils.fab_storage.onelake_api.append_file"),
+        patch("fabric_cli.utils.fab_storage.onelake_api.flush_file"),
+    ):
+        touch.return_value.status_code = 201
+        write_to_storage(
+            argparse.Namespace(command="get", output_format="json", compact_json=True),
+            {"type": "lakehouse", "path": "/ws.Workspace/l.Lakehouse/Files/query"},
+            False,
+            export=False,
+        )
+    captured = capsys.readouterr()
+    assert captured.out.count("\n") == 1
+    result = json.loads(captured.out)
+    assert result["command"] == "get"
+    assert result["result"] == {"message": "Export completed"}

@@ -21,7 +21,7 @@ def singleton(class_):
         if class_ not in instances:
             instances[class_] = class_(*args, **kwargs)
         return instances[class_]
-    
+
     return getinstance
 
 
@@ -41,6 +41,7 @@ def handle_exceptions():
                     e,
                     args[0].command_path,
                     output_format_type=args[0].output_format,
+                    compact_json=getattr(args[0], "compact_json", False),
                 )
                 # If the error is an unauthorized error, return 4
                 if e.status_code == ERROR_UNAUTHORIZED:
@@ -62,8 +63,12 @@ def set_command_context():
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            from fabric_cli.utils.fab_jmespath import validate_query_args
+
+            validate_query_args(args[0])
             # Import Context locally to avoid circular import
             from fabric_cli.core.fab_context import Context
+
             Context().command = args[0].command_path
             Context().fabric_skill = getattr(args[0], "skill", None)
             return func(*args, **kwargs)

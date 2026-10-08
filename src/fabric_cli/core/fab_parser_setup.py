@@ -4,6 +4,8 @@
 import argparse
 import re
 import sys
+from collections.abc import Iterable
+from typing import Any
 
 import argcomplete
 
@@ -148,6 +150,17 @@ class CustomArgumentParser(argparse.ArgumentParser):
     def set_mode(self, mode):
         self.fab_mode = mode
 
+    def parse_args(
+        self,
+        args: Iterable[str] | None = None,
+        namespace: Any = None,
+    ) -> Any:
+        """Preserve global flags across subparsers and restore absent defaults."""
+        parsed = super().parse_args(args, namespace)
+        if not hasattr(parsed, "output_format"):
+            parsed.output_format = None
+        return parsed
+
     def get_mode(self):
         return self.fab_mode
 
@@ -169,6 +182,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
 # Global parser instances
 _global_parser = None
 _global_subparsers = None
+
 
 def create_parser_and_subparsers():
     """Create parser and subparsers for reuse across CLI modes"""
@@ -230,14 +244,15 @@ def create_parser_and_subparsers():
     )
     version_parser.set_defaults(func=fab_ui.print_version)
 
+    fab_global_params.add_output_queries(parser)
     return parser, subparsers
+
 
 def get_global_parser_and_subparsers():
     """Get singleton parser and subparsers instances"""
     global _global_parser, _global_subparsers
-    
+
     if _global_parser is None:
         _global_parser, _global_subparsers = create_parser_and_subparsers()
-    
-    return _global_parser, _global_subparsers
 
+    return _global_parser, _global_subparsers

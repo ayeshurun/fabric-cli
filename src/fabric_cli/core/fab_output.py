@@ -10,10 +10,13 @@ from typing import Any, Dict, List, Optional, cast
 from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_exceptions import FabricCLIError
 
+NO_DATA = object()
+
 
 class OutputStatus(str, Enum):
     Success = "Success"
     Failure = "Failure"
+
 
 class OutputResult:
 
@@ -24,7 +27,9 @@ class OutputResult:
         message: Optional[str],
         error_code: Optional[str] = None,
     ):
-        self._data = data if isinstance(data, list) else ([data] if data else None)
+        self._data = (
+            None if data is NO_DATA else data if isinstance(data, list) else [data]
+        )
         self._hidden_data = (
             self._create_hidden_data(hidden_data) if hidden_data is not None else None
         )
@@ -32,7 +37,7 @@ class OutputResult:
         self._message = message
 
     @property
-    def data(self) -> Optional[List[Dict[str, Any]]]:
+    def data(self) -> Optional[List[Any]]:
         return self._data
 
     @property
@@ -75,7 +80,7 @@ class FabricCLIOutput:
         status: OutputStatus = OutputStatus.Success,
         message: Optional[str] = None,
         error_code: Optional[str] = None,
-        data: Optional[Any] = None,
+        data: Any = NO_DATA,
         hidden_data: Optional[Any] = None,
         show_key_value_list: bool = False,
     ):
@@ -131,10 +136,15 @@ class FabricCLIOutput:
     def show_key_value_list(self) -> bool:
         return self._show_key_value_list
 
-    def to_json(self, indent: int = 4) -> str:
+    def to_json(self, indent: int | None = 4) -> str:
         try:
             from fabric_cli.utils.fab_util import dumps
-            return dumps(self._to_dict(), indent=indent)
+
+            return dumps(
+                self._to_dict(),
+                indent=indent,
+                separators=(",", ":") if indent is None else None,
+            )
         except (RuntimeError, AttributeError, Exception) as e:
             raise (
                 FabricCLIError(

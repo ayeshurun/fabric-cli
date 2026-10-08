@@ -7,6 +7,9 @@ from argparse import Namespace
 from typing import Any
 
 from fabric_cli.client import fab_api_client as fabric_api
+from fabric_cli.core.fab_exceptions import FabricCLIError
+from fabric_cli.errors import ErrorMessages
+from fabric_cli.utils import fab_error_parser as utils_errors
 from fabric_cli.utils import fab_jmespath as utils_jmespath
 from fabric_cli.utils import fab_ui
 from fabric_cli.utils import fab_util as utils
@@ -25,6 +28,15 @@ def exec_command(args: Namespace) -> None:
     else:
         response = fabric_api.do_request(args)
 
+    # Raw responses bypass the API client's HTTP error handling.
+    if response.status_code >= 400:
+        raise FabricCLIError(
+            ErrorMessages.Client.unexpected_error_response(
+                response.status_code, response.text
+            ),
+            utils_errors.map_http_status_code_to_error_code(response.status_code),
+        )
+
     # Build the JSON payload
     payload: Any = {
         "status_code": response.status_code,
@@ -38,8 +50,6 @@ def exec_command(args: Namespace) -> None:
     # Filter based on JMESPath
     query = utils.process_nargs(args.query)
     if query:
-        payload_jmespath = utils_jmespath.search(payload, query)
-        if payload_jmespath:
-            payload = payload_jmespath
+        payload = utils_jmespath.search(payload, query)
 
     fab_ui.print_output_format(args, data=payload)

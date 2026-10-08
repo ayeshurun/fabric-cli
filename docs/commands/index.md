@@ -95,21 +95,55 @@ Manage CLI configuration settings and preferences.
 #### [API Operations (api)](api/index.md)
 Make authenticated API requests directly to Fabric services.
 
-## Global Parameters
+## Global parameters
 
 The following parameters are available for all commands:
 
 - `-h, --help`: Display help information for the command
-- `--output_format`: Specify the output format (`text` or `json`).
+- `--output_format`: Specify the output format (`text` or pretty-printed `json`).
+- `--json`: Select compact, single-line JSON.
 
-## Common Parameters
+Both JSON formats use the same `timestamp`, `status`, `command`, and `result` envelope. Command data is wrapped in the `result.data` list: scalar values, including `null`, become `[value]`, objects become `[object]`, and an empty list stays `[]`. Messages and `hidden_data` remain outside the projected data.
+
+You can place `--json` before a command, command group, or leaf command (the final subcommand). The deepest command level with an explicit output flag takes precedence; at the same level, the last output flag wins. For predictable results, place output flags after the leaf command.
+
+## Common parameters
 
 Most commands support a set of common parameters:
 
 - `-f, --force`: Force operations without confirmation
 - `-o, --output`: Specify output file path
 - `-i, --input`: Specify input file path or value
-- `-q, --query`: Filter output using JMESPath queries
+- `-q, --query EXPRESSION`: Project command data using a JMESPath expression.
+
+### Query behavior
+
+Leaf commands without an existing query option support `-q, --query EXPRESSION` to project their structured data before the `result.data` wrapper. Each projection applies once. Commands with existing query options retain their semantics:
+
+- [`ls` (dir)](./fs/ls.md) and [`acl ls`](./acls/index.md) query the resource list before selecting display columns.
+- [`get`](./fs/get.md) and [`acl get`](./acls/index.md) enumerate properties when no query is supplied. Use `-q '.'` or `-q '@'` to return the full payload.
+- [`set`](./fs/set.md) still requires `-q` to select the mutation target, not project output.
+- [`api`](./api/index.md) queries its response object, including `status_code`, `text`, and any additional response fields.
+
+Queries do not filter envelope status, errors, messages, or `hidden_data`. HTTP failures remain failures and are not projected; existing diagnostics remain on standard error (`stderr`). A projected result does not indicate how many resources were omitted.
+
+Queries reduce local output, not API requests or data transfer. Existing defaults remain unchanged. These flags affect structured results, not arbitrary text, exported file content, or interactive prompts.
+
+### JSON and query examples
+
+```bash
+# List configuration setting names as compact JSON
+fab config ls --json -q '[].setting'
+
+# List capacity names as compact JSON
+fab ls .capacities --json -q '[].name'
+
+# Return the full notebook payload as compact JSON
+fab get ws.Workspace/f.Folder/n.Notebook --json -q '.'
+
+# Return the same configuration projection as pretty-printed JSON
+fab config ls --output_format json -q '[].setting'
+```
 
 ## Getting Help
 
