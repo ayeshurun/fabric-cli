@@ -1,0 +1,6 @@
+kind: added
+body: Add machine-readable JSON help with command inputs, types, output metadata, and common errors using --help --output_format json.
+time: 2026-10-08T11:46:38.530829561Z
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun
