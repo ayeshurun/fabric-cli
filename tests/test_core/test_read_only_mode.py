@@ -11,7 +11,6 @@ import pytest
 
 from fabric_cli.client import fab_api_catalog, fab_api_client, fab_api_item
 from fabric_cli.commands.config import fab_config_set
-from fabric_cli.commands.fs import fab_fs_deploy
 from fabric_cli.core import fab_constant, fab_read_only, fab_state_config
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
@@ -193,6 +192,8 @@ def test_cli_writes_return_structured_error(
 
 @pytest.mark.parametrize("force", [False, True])
 def test_deploy_blocked_before_prompt_and_external_client(force: bool) -> None:
+    from fabric_cli.commands.fs import fab_fs_deploy
+
     with (
         patch.object(fab_fs_deploy, "deploy_with_config_file") as deploy,
         patch.object(fab_fs_deploy.fab_ui, "prompt_confirm") as prompt,
@@ -205,6 +206,8 @@ def test_deploy_blocked_before_prompt_and_external_client(force: bool) -> None:
 
 
 def test_deploy_allowed_when_mode_disabled() -> None:
+    from fabric_cli.commands.fs import fab_fs_deploy
+
     fab_state_config.set_config(fab_constant.FAB_READ_ONLY_MODE, "false")
     with patch.object(fab_fs_deploy, "deploy_with_config_file") as deploy:
         args = Namespace(force=True, target_env="test")
