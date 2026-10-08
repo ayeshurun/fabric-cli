@@ -37,6 +37,41 @@ fab config ls
 
 ## Set Configuration Settings
 
+### Enable Read-Only Mode
+
+Prevent Fabric CLI from changing remote resources:
+
+```bash
+fab config set read_only_mode true
+```
+
+This setting persists across command-line and interactive sessions. It allows
+supported reads, including listing resources, getting item definitions, catalog
+search, and exporting definitions to local files. Local file work, authentication,
+navigation, and CLI configuration remain available.
+
+Remote creates, updates, deletes, uploads, copies, moves, assignments, job runs,
+schedule changes, access-control changes, and deployments are blocked. Exporting
+to OneLake is also blocked because it writes remote files. The same restrictions
+apply to `fab api`, even when confirmation prompts are bypassed with `--force`.
+
+GET and HEAD requests are allowed. POST requests are allowed only for the Fabric
+catalog search, item get-definition, and bulk export-definition endpoints.
+Other HTTP methods and method-override headers are blocked. Automatic HTTP
+redirects are disabled in this mode to prevent forwarding an allowed read POST
+to a mutating endpoint.
+
+Read-only mode is a CLI guardrail, not an authorization boundary or an agent
+sandbox. It does not restrict other tools, shell commands, or the Fabric portal,
+and a caller can change the local configuration. Use read-only credentials and
+external policy controls when enforcement must be tamper-resistant.
+
+To restore normal operation:
+
+```bash
+fab config set read_only_mode false
+```
+
 ### Enable/Disable Cache
 
 Control whether the CLI caches data for improved performance.

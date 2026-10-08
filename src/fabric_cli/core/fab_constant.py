@@ -82,6 +82,7 @@ FAB_MODE = "mode"
 FAB_CACHE_ENABLED = "cache_enabled"
 FAB_CONTEXT_PERSISTENCE_ENABLED = "context_persistence_enabled"
 FAB_DEBUG_ENABLED = "debug_enabled"
+FAB_READ_ONLY_MODE = "read_only_mode"
 FAB_ENCRYPTION_FALLBACK_ENABLED = "encryption_fallback_enabled"
 FAB_SHOW_HIDDEN = "show_hidden"
 FAB_LOCAL_DEFINITION_LABELS = "local_definition_labels"
@@ -109,6 +110,7 @@ FAB_CONFIG_KEYS_TO_VALID_VALUES = {
     FAB_CACHE_ENABLED: ["false", "true"],
     FAB_CONTEXT_PERSISTENCE_ENABLED: ["false", "true"],
     FAB_DEBUG_ENABLED: ["false", "true"],
+    FAB_READ_ONLY_MODE: ["false", "true"],
     FAB_ENCRYPTION_FALLBACK_ENABLED: ["false", "true"],
     FAB_JOB_CANCEL_ONTIMEOUT: ["false", "true"],
     FAB_LOCAL_DEFINITION_LABELS: [],
@@ -132,6 +134,7 @@ CONFIG_DEFAULT_VALUES = {
     FAB_CONTEXT_PERSISTENCE_ENABLED: "false",
     FAB_JOB_CANCEL_ONTIMEOUT: "true",
     FAB_DEBUG_ENABLED: "false",
+    FAB_READ_ONLY_MODE: "false",
     FAB_SHOW_HIDDEN: "false",
     FAB_ENCRYPTION_FALLBACK_ENABLED: "false",
     FAB_DEFAULT_OPEN_EXPERIENCE: "fabric",
@@ -253,6 +256,7 @@ ERROR_CONTEXT_LOAD_FAILED = "ContextLoadFailed"
 ERROR_DUPLICATE_GATEWAY_NAME = "DuplicateGatewayName"
 ERROR_ENCRYPTION_FAILED = "EncryptionFailed"
 ERROR_FORBIDDEN = "Forbidden"
+ERROR_READ_ONLY_MODE = "ReadOnlyMode"
 ERROR_INVALID_ACCESS_MODE = "InvalidAccessMode"
 ERROR_INVALID_CERTIFICATE = "InvalidCertificate"
 ERROR_INVALID_CERTIFICATE_PATH = "InvalidCertificatePath"

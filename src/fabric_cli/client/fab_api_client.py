@@ -14,7 +14,7 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from fabric_cli.client.fab_api_types import ApiResponse
-from fabric_cli.core import fab_constant, fab_logger, fab_state_config
+from fabric_cli.core import fab_constant, fab_logger, fab_read_only, fab_state_config
 from fabric_cli.core.fab_exceptions import (
     AzureAPIError,
     FabricAPIError,
@@ -57,6 +57,10 @@ def do_request(
     continuation_token=None,
     hostname=None,
 ) -> ApiResponse:
+    read_only = fab_read_only.is_enabled()
+    if read_only:
+        fab_read_only.check_request(args)
+
     json_file = getattr(args, "json_file", None)
     audience_value = getattr(args, "audience", None)
     headers_value = getattr(args, "headers", None)
@@ -146,6 +150,9 @@ def do_request(
             "headers": headers,
             "timeout": timeout_sec,
         }
+        if read_only:
+            # Redirects could send an allowed POST to a different, mutating endpoint.
+            request_params["allow_redirects"] = False
 
         if files is not None:
             request_params["files"] = files

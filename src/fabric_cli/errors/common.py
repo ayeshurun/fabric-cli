@@ -80,6 +80,10 @@ class CommonErrors:
         return "Access is forbidden. You do not have permission to access this resource"
 
     @staticmethod
+    def read_only_operation(operation: str) -> str:
+        return f"'{operation}' is blocked in read-only mode. Remote write/update operations are not allowed"
+
+    @staticmethod
     def max_retries_exceeded(retries_count: int) -> str:
         return f"Maximum retries ({retries_count}) exceeded. The operation could not be completed"
 
@@ -252,7 +256,9 @@ class CommonErrors:
     @staticmethod
     def invalid_definition_format(valid_formats: list[str]) -> str:
         if valid_formats:
-            message = f"Only the following formats are supported: {', '.join(valid_formats)}"
+            message = (
+                f"Only the following formats are supported: {', '.join(valid_formats)}"
+            )
         else:
             message = "No formats are supported"
         return f"Invalid format. {message}"

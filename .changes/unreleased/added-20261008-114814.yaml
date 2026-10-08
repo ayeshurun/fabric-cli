@@ -1,0 +1,6 @@
+kind: added
+body: Add opt-in read-only mode that permits supported reads and local file work while blocking remote writes and deployments.
+time: 2026-10-08T11:48:14.555768649Z
+custom:
+    Author: ayeshurun
+    AuthorLink: https://github.com/ayeshurun
