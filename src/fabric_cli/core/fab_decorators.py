@@ -64,8 +64,11 @@ def set_command_context():
         def wrapper(*args, **kwargs):
             # Import Context locally to avoid circular import
             from fabric_cli.core.fab_context import Context
+            from fabric_cli.core.fab_read_only import check_command
+
             Context().command = args[0].command_path
             Context().fabric_skill = getattr(args[0], "skill", None)
+            check_command(args[0])
             return func(*args, **kwargs)
 
         return wrapper

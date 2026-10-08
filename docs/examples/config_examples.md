@@ -55,6 +55,12 @@ schedule changes, access-control changes, and deployments are blocked. Exporting
 to OneLake is also blocked because it writes remote files. The same restrictions
 apply to `fab api`, even when confirmation prompts are bypassed with `--force`.
 
+Known write commands are rejected before resolving remote resources or prompting
+for confirmation. Copy commands are checked after resolving the destination:
+OneLake-to-local downloads remain allowed, while copies to remote destinations
+are blocked. Errors name the command, such as `mkdir`, `cp`, or `job run`, rather
+than an HTTP method. The API request guard remains in place as a fallback.
+
 GET and HEAD requests are allowed. POST requests are allowed only for the Fabric
 catalog search, item get-definition, and bulk export-definition endpoints.
 Other HTTP methods and method-override headers are blocked. Automatic HTTP

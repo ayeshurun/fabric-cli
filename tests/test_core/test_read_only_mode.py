@@ -12,8 +12,12 @@ import pytest
 from fabric_cli.client import fab_api_catalog, fab_api_client, fab_api_item
 from fabric_cli.commands.config import fab_config_set
 from fabric_cli.core import fab_constant, fab_read_only, fab_state_config
+from fabric_cli.core.fab_context import Context
+from fabric_cli.core.fab_decorators import handle_exceptions, set_command_context
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.core.fab_parser_setup import get_global_parser_and_subparsers
+from fabric_cli.core.hiearchy.fab_hiearchy import LocalPath, OneLakeItem
+from fabric_cli.errors import ErrorMessages
 from fabric_cli.main import _execute_command
 from fabric_cli.utils.fab_storage import write_to_storage
 
@@ -27,6 +31,8 @@ MockTransport = tuple[MagicMock, MagicMock, MagicMock]
 def read_only_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Isolate configuration and enable read-only mode for each test."""
     monkeypatch.setattr(fab_state_config, "config_file", str(tmp_path / "config.json"))
+    monkeypatch.setattr(Context(), "_command", None)
+    monkeypatch.setattr(Context(), "_fabric_skill", None)
     fab_state_config.init_defaults()
     fab_state_config.set_config(fab_constant.FAB_READ_ONLY_MODE, "true")
 
@@ -173,6 +179,11 @@ def test_supported_read_clients_use_allowlist(mock_transport: MockTransport) -> 
         ["api", "-X", "post", "workspaces"],
         ["api", "-X", "put", "-A", "storage", "workspace/item/Files/new"],
         ["deploy", "--config", "/nonexistent/config.yml", "--force"],
+        ["mkdir", "/new.Workspace"],
+        ["set", "/missing.Workspace", "-q", "description", "-i", "test"],
+        ["rm", "/missing.Workspace", "--force"],
+        ["import", "/missing.Workspace/test.Notebook", "-i", "/nonexistent"],
+        ["mv", "/missing.Workspace/a.Notebook", "/other.Workspace/a.Notebook"],
     ],
 )
 def test_cli_writes_return_structured_error(
@@ -186,8 +197,135 @@ def test_cli_writes_return_structured_error(
         )
     error = print_error.call_args.args[0]
     assert error.status_code == fab_constant.ERROR_READ_ONLY_MODE
+    assert error.message == ErrorMessages.Common.read_only_operation(args.command_path)
     mock_transport[0].assert_not_called()
     mock_transport[2].request.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "create",
+        "mkdir",
+        "set",
+        "rm",
+        "del",
+        "import",
+        "mv",
+        "move",
+        "ln",
+        "mklink",
+        "start",
+        "stop",
+        "assign",
+        "unassign",
+        "deploy",
+        "acl set",
+        "acl rm",
+        "acl del",
+        "label set",
+        "label rm",
+        "label del",
+        "job start",
+        "job run",
+        "job run-cancel",
+        "job run-update",
+        "job run-rm",
+        "job run-sch",
+        "table load",
+        "table optimize",
+        "table vacuum",
+    ],
+)
+def test_known_write_commands_rejected_before_body(command: str) -> None:
+    body = MagicMock()
+    guarded = handle_exceptions()(set_command_context()(body))
+    with patch("fabric_cli.utils.fab_ui.print_output_error") as print_error:
+        result = guarded(Namespace(command_path=command, output_format="json"))
+    assert result == fab_constant.EXIT_CODE_ERROR
+    body.assert_not_called()
+    assert print_error.call_args.args[0].message == (
+        ErrorMessages.Common.read_only_operation(command)
+    )
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "ls",
+        "get",
+        "find",
+        "export",
+        "bulkexport",
+        "config set",
+        "config clear-cache",
+        "acl get",
+        "label ls",
+        "job run-list",
+        "job run-status",
+        "table schema",
+    ],
+)
+def test_read_and_local_commands_not_rejected(command: str) -> None:
+    body = MagicMock()
+    guarded = set_command_context()(body)
+    guarded(Namespace(command_path=command))
+    body.assert_called_once()
+
+
+@pytest.mark.parametrize("local_destination", [False, True])
+@pytest.mark.parametrize("command", ["cp", "copy"])
+def test_copy_guard_preserves_local_downloads(
+    local_destination: bool, command: str, tmp_path: Path
+) -> None:
+    from fabric_cli.commands.fs import fab_fs
+
+    source = MagicMock(spec=OneLakeItem)
+    destination = (
+        LocalPath(str(tmp_path / "download.txt"))
+        if local_destination
+        else MagicMock(spec=OneLakeItem)
+    )
+    args = Namespace(
+        command_path=command,
+        fab_mode=fab_constant.FAB_MODE_COMMANDLINE,
+        output_format="json",
+    )
+    with (
+        patch.object(
+            fab_fs, "extract_from_to_paths", return_value=(source, destination)
+        ),
+        patch.object(fab_fs.fs_cp, "exec_command") as copy,
+        patch("fabric_cli.utils.fab_ui.print_output_error") as print_error,
+    ):
+        result = fab_fs.cp_command(args)
+    if local_destination:
+        copy.assert_called_once_with(args, source, destination)
+        print_error.assert_not_called()
+    else:
+        copy.assert_not_called()
+        assert result == fab_constant.EXIT_CODE_ERROR
+        assert print_error.call_args.args[0].message == (
+            ErrorMessages.Common.read_only_operation(command)
+        )
+
+
+def test_transport_error_uses_active_command_for_fresh_namespace(
+    mock_transport: MockTransport,
+) -> None:
+    from fabric_cli.core.fab_context import Context
+
+    with patch.object(Context(), "_command", "export"):
+        with pytest.raises(FabricCLIError) as exc:
+            fab_api_client.do_request(Namespace(uri="remote/file", method="put"))
+    assert exc.value.message == ErrorMessages.Common.read_only_operation("export")
+
+
+def test_command_guard_disabled_preserves_execution() -> None:
+    fab_state_config.set_config(fab_constant.FAB_READ_ONLY_MODE, "false")
+    body = MagicMock()
+    set_command_context()(body)(Namespace(command_path="mkdir"))
+    body.assert_called_once()
 
 
 @pytest.mark.parametrize("force", [False, True])

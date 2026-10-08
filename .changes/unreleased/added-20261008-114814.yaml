@@ -1,5 +1,5 @@
 kind: added
-body: Add opt-in read-only mode that permits supported reads and local file work while blocking remote writes and deployments.
+body: Add opt-in read-only mode that permits supported reads and local file work while blocking remote writes and deployments. Reject known write commands early and report command names in errors.
 time: 2026-10-08T11:48:14.555768649Z
 custom:
     Author: ayeshurun

@@ -27,7 +27,7 @@ from fabric_cli.commands.fs import fab_fs_set as fs_set
 from fabric_cli.commands.fs import fab_fs_start as fs_start
 from fabric_cli.commands.fs import fab_fs_stop as fs_stop
 from fabric_cli.commands.fs import fab_fs_unassign as fs_unassign
-from fabric_cli.core import fab_constant
+from fabric_cli.core import fab_constant, fab_read_only
 from fabric_cli.core import fab_handle_context as handle_context
 from fabric_cli.core import fab_state_config as state_config
 from fabric_cli.core.fab_commands import Command
@@ -94,6 +94,8 @@ def mv_command(args: Namespace) -> None:
 @set_command_context()
 def cp_command(args: Namespace) -> None:
     from_context, to_context = extract_from_to_paths(args)
+    if not isinstance(to_context, LocalPath):
+        fab_read_only.ensure_writes_allowed(args.command_path)
     _check_command_line_support(args.fab_mode, from_context, False)
     from_context.check_command_support(Command.FS_CP)
     fs_cp.exec_command(args, from_context, to_context)
