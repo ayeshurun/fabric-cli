@@ -21,6 +21,7 @@ from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_decorators import handle_exceptions
 from fabric_cli.core.fab_exceptions import FabricAPIError, FabricCLIError
 from fabric_cli.core.hiearchy.fab_folder import Folder
+from fabric_cli.core.hiearchy.fab_item import Item
 from fabric_cli.utils import fab_cmd_get_utils, fab_cmd_ls_utils, fab_jmespath
 
 
@@ -199,6 +200,29 @@ def test_folder_ls_applies_query_once_and_preserves_default_rows(
         patch.object(fab_jmespath, "search", wraps=fab_jmespath.search) as search,
     ):
         fab_fs_ls_folder.exec(Mock(spec=Folder), args)
+    assert search.call_count == (1 if query else 0)
+    _assert_result(capsys, expected)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("[].id", ["item-id"]),
+        ("[0]", {"name": "notebook.Notebook", "id": "item-id"}),
+        (None, [{"name": "notebook.Notebook"}]),
+    ],
+)
+def test_folder_ls_queries_ids_before_default_column_projection(
+    query: str | None, expected: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    folder = Folder("parent", "folder-id", Mock(spec=Folder))
+    item = Item("notebook", "item-id", folder, "Notebook")
+    args = _args(command="ls", query=[query] if query else None, long=False)
+    with (
+        patch.object(fab_fs_ls_folder.utils_fs, "get_ws_elements", return_value=[item]),
+        patch.object(fab_jmespath, "search", wraps=fab_jmespath.search) as search,
+    ):
+        fab_fs_ls_folder.exec(folder, args)
     assert search.call_count == (1 if query else 0)
     _assert_result(capsys, expected)
 

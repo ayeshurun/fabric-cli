@@ -15,10 +15,12 @@ from fabric_cli.utils import fab_util as utils
 def exec(folder: Folder, args: Namespace) -> None:
     """List folder contents with optional result projection."""
     show_details = bool(args.long)
+    query = getattr(args, "query", None)
 
     ws_elements: list[Union[Item, Folder]] = utils_fs.get_ws_elements(folder)
-    sort_elements: Any = utils_fs.sort_ws_elements(ws_elements, show_details)
-    query = getattr(args, "query", None)
+    sort_elements: Any = utils_fs.sort_ws_elements(
+        ws_elements, show_details or bool(query)
+    )
     if query:
         sort_elements = utils_jmespath.search(sort_elements, utils.process_nargs(query))
 

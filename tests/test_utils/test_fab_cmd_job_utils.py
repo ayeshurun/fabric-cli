@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from fabric_cli.core import fab_constant
+from fabric_cli.core.fab_decorators import handle_exceptions
 from fabric_cli.core.fab_exceptions import FabricCLIError
 from fabric_cli.utils.fab_cmd_job_utils import (
     validate_timeout_polling_interval,
@@ -61,6 +62,57 @@ def test_wait_for_job_completion_immediate_success(
 
     assert mock_sleep.call_count == 1
     mock_get_polling_interval.assert_called_once_with({}, None)
+
+
+def test_job_completion_preserves_compact_query(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with (
+        patch(
+            "fabric_cli.utils.fab_cmd_job_utils.jobs_api.get_item_job_instance"
+        ) as api,
+        patch("fabric_cli.utils.fab_cmd_job_utils.time.sleep"),
+    ):
+        api.return_value = create_mock_response()
+        args = Namespace(
+            command="job", output_format="json", compact_json=True, output_query="id"
+        )
+        wait_for_job_completion(args, "job-id", create_mock_response())
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert captured.out.count("\n") == 1
+    assert result["result"]["data"] == ["job-id"]
+    assert "completed" in result["result"]["message"]
+
+
+def test_failed_job_keeps_diagnostics_out_of_json_stdout(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    @handle_exceptions()
+    def command(args: Namespace) -> None:
+        wait_for_job_completion(args, "job-id", create_mock_response())
+
+    with (
+        patch(
+            "fabric_cli.utils.fab_cmd_job_utils.jobs_api.get_item_job_instance"
+        ) as api,
+        patch("fabric_cli.utils.fab_cmd_job_utils.time.sleep"),
+    ):
+        api.return_value = create_mock_response(
+            status="Failed", error="failure details"
+        )
+        args = Namespace(
+            command_path="job run",
+            output_format="json",
+            compact_json=True,
+            output_query="`null`",
+        )
+        assert command(args) == fab_constant.EXIT_CODE_ERROR
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["status"] == "Failure"
+    assert result["result"]["error_code"] == fab_constant.ERROR_JOB_FAILED
+    assert "failure details" in captured.err
 
 
 @patch("questionary.print")

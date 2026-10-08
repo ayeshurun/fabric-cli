@@ -66,6 +66,8 @@ def wait_for_job_completion(
             else getattr(job_args, "command", None)
         ),
         output_format=getattr(job_args, "output_format", None),
+        compact_json=getattr(job_args, "compact_json", False),
+        output_query=getattr(job_args, "output_query", None),
     )
     attempts = 0
     status = "NotStarted"
@@ -109,7 +111,12 @@ def wait_for_job_completion(
                     )
                 return
             elif status == "Failed":
-                fab_ui.print_entries_unix_style([content], content.keys(), header=True)
+                if fab_ui.is_json_output(args):
+                    fab_ui.print_grey(response.text)
+                else:
+                    fab_ui.print_entries_unix_style(
+                        [content], content.keys(), header=True
+                    )
                 raise FabricCLIError(
                     ErrorMessages.Common.job_instance_failed(job_ins_id),
                     fab_constant.ERROR_JOB_FAILED,
