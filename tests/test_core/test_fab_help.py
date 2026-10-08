@@ -273,3 +273,49 @@ def test_unknown_validator_is_not_executed(
     assert inputs["custom"]["validator"] == "custom_type"
     assert "hidden" not in inputs
     assert document["common_errors"][0]["code"] == fab_constant.ERROR_INVALID_INPUT
+
+
+@pytest.mark.parametrize(
+    ("command", "status", "formats"),
+    [
+        (["exists"], "partial", ["text", "json"]),
+        (["config", "get"], "partial", ["text", "json"]),
+        (["config", "ls"], "partial", ["text", "json"]),
+        (["api"], "partial", ["text", "json"]),
+        (["version"], "not_applicable", ["text"]),
+        (["job", "run"], "unknown", None),
+    ],
+)
+def test_output_metadata_is_explicit_about_coverage(
+    parser: CustomArgumentParser,
+    capsys: pytest.CaptureFixture[str],
+    command: list[str],
+    status: str,
+    formats: list[str] | None,
+) -> None:
+    document = _help(parser, [*command, "--help", "--output_format=json"], capsys)
+    assert document["outputs"]["schema_status"] == status
+    assert document["outputs"]["formats"] == formats
+    if status == "partial":
+        schema = document["outputs"]["schema"]
+        assert schema["required"] == ["timestamp", "status", "result"]
+        assert schema["properties"]["status"] == {"const": "Success"}
+    else:
+        assert document["outputs"]["schema"] is None
+
+
+def test_exists_output_metadata_matches_formatter(
+    parser: CustomArgumentParser, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from fabric_cli.core.fab_output import FabricCLIOutput
+
+    document = _help(parser, ["exists", "--help", "--output_format=json"], capsys)
+    schema = document["outputs"]["schema"]
+    message_schema = schema["properties"]["result"]["properties"]["message"]
+    for message in (fab_constant.INFO_EXISTS_TRUE, fab_constant.INFO_EXISTS_FALSE):
+        output = json.loads(
+            FabricCLIOutput(command="exists", message=message).to_json()
+        )
+        assert all(key in output for key in schema["required"])
+        assert output["result"]["message"] in message_schema["enum"]
+        assert isinstance(output["result"]["message"], str)

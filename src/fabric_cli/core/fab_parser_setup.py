@@ -185,6 +185,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
 _global_parser = None
 _global_subparsers = None
 
+
 def create_parser_and_subparsers():
     """Create parser and subparsers for reuse across CLI modes"""
     parser = CustomArgumentParser(description="Fabric CLI")
@@ -247,11 +248,12 @@ def create_parser_and_subparsers():
 
     return parser, subparsers
 
+
 def get_global_parser_and_subparsers():
     """Get singleton parser and subparsers instances"""
     global _global_parser, _global_subparsers
-    
+
     if _global_parser is None:
         _global_parser, _global_subparsers = create_parser_and_subparsers()
-    
+
     return _global_parser, _global_subparsers

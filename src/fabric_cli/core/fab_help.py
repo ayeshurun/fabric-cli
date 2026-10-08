@@ -43,6 +43,11 @@ _COMMON_ERRORS = [
         "recovery": "Check the authentication method and sign in with fab auth login.",
     },
     {
+        "code": fab_constant.ERROR_UNAUTHORIZED,
+        "description": "An authenticated session is required.",
+        "recovery": "Sign in with fab auth login and check the active account.",
+    },
+    {
         "code": fab_constant.ERROR_FORBIDDEN,
         "description": "Access to the requested resource is denied.",
         "recovery": "Check the account's permissions on the requested resource.",
@@ -166,6 +171,77 @@ def _input_metadata(action: argparse.Action) -> dict[str, Any]:
     return result
 
 
+def _output_metadata(command: str) -> dict[str, Any]:
+    if command == "version":
+        return {
+            "formats": ["text"],
+            "schema_status": "not_applicable",
+            "schema": None,
+            "description": "Version and release-notes link as text.",
+        }
+
+    result_properties: dict[str, Any] = {
+        "message": {"type": "string"},
+        "data": {"type": "array", "items": {}},
+        "hidden_data": {"type": "array", "items": {"type": "string"}},
+        "error_code": {"type": "string"},
+    }
+    descriptions = {
+        "exists": (
+            "Success result.message is the string 'true' or 'false', not a boolean."
+        ),
+        "config get": (
+            "Success result.data contains the configuration value in an array. "
+            "An unset or empty value may produce no output."
+        ),
+        "config ls": (
+            "Success result.data contains objects with setting and value fields."
+        ),
+        "api": (
+            "Success result.data contains the HTTP status_code, optional headers, "
+            "and parsed response text. A query can change this shape."
+        ),
+    }
+    if command not in descriptions:
+        return {
+            "formats": None,
+            "schema_status": "unknown",
+            "schema": None,
+            "description": (
+                "Command output is not yet described by a command-specific schema. "
+                "The output_format flag does not guarantee structured output."
+            ),
+        }
+    if command == "exists":
+        result_properties["message"]["enum"] = [
+            fab_constant.INFO_EXISTS_TRUE,
+            fab_constant.INFO_EXISTS_FALSE,
+        ]
+        # Failure messages are arbitrary strings; this schema describes success.
+        result_properties.pop("error_code")
+    elif command == "config ls":
+        result_properties["data"]["items"] = {
+            "type": "object",
+            "required": ["setting", "value"],
+            "properties": {"setting": {"type": "string"}, "value": {}},
+        }
+    return {
+        "formats": ["text", "json"],
+        "schema_status": "partial",
+        "description": descriptions[command],
+        "schema": {
+            "type": "object",
+            "required": ["timestamp", "status", "result"],
+            "properties": {
+                "timestamp": {"type": "string", "format": "date-time"},
+                "status": {"const": "Success"},
+                "command": {"type": "string"},
+                "result": {"type": "object", "properties": result_properties},
+            },
+        },
+    }
+
+
 def format_json_help(parser: argparse.ArgumentParser) -> str:
     """Describe a parser using declarations only, without loading command handlers."""
     context = _help_context.get()
@@ -196,15 +272,7 @@ def format_json_help(parser: argparse.ArgumentParser) -> str:
             and action.help != argparse.SUPPRESS
         ],
         "subcommands": subcommands,
-        "outputs": {
-            "formats": ["text", "json"],
-            "schema_status": "unknown",
-            "schema": None,
-            "description": (
-                "Command output is not yet described by a command-specific schema. "
-                "The output_format flag does not guarantee all output is structured."
-            ),
-        },
+        "outputs": _output_metadata(" ".join(path[1:])),
         "common_errors": _COMMON_ERRORS,
         "errors_scope": (
             "Non-exhaustive CLI-wide examples, not guaranteed for every command. "
