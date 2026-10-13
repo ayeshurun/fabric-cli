@@ -30,8 +30,8 @@ from fabric_cli.core.fab_types import (
 )
 from fabric_cli.errors import ErrorMessages
 from tests.test_commands.conftest import (
-    item_type_paramerter,
-    unsupported_item_failure_params,
+    mkdir_item_paramerter,
+    unsupported_mkdir_item_failure_params,
     mkdir_item_with_creation_payload_success_params,
 )
 from tests.test_commands.data.models import EntityMetadata
@@ -43,7 +43,7 @@ from tests.test_commands.utils import cli_path_join, is_record_mode
 class TestMkdir:
     # region ITEM
 
-    @item_type_paramerter
+    @mkdir_item_paramerter
     def test_mkdir_item_name_already_exists_failure(
         self, item_type, item_factory, cli_executor, assert_fabric_cli_error
     ):
@@ -56,7 +56,7 @@ class TestMkdir:
         # Assert
         assert_fabric_cli_error(constant.ERROR_ALREADY_EXISTS)
 
-    @item_type_paramerter
+    @mkdir_item_paramerter
     def test_mkdir_item_success(
         self,
         item_type,
@@ -87,7 +87,7 @@ class TestMkdir:
         # Cleanup
         rm(item_full_path)
 
-    @unsupported_item_failure_params
+    @unsupported_mkdir_item_failure_params
     def test_mkdir_unsupported_item_failure(
         self,
         unsupported_item_type,

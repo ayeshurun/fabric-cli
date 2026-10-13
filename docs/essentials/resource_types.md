@@ -47,6 +47,20 @@ Item types are the primary content resources within Fabric workspaces. Each type
 | `.UserDataFunction`    | User data functions                |
 | `.GraphModel`          | Graph models                       |
 | `.Ontology`            | Ontologies                         |
+| `.AnomalyDetector`     | Anomaly detectors                  |
+| `.AppBackend`          | App backends                       |
+| `.AzureDatabricksStorage` | Azure Databricks storage         |
+| `.DataAgent`           | Data agents                        |
+| `.DataBuildToolJob`    | Data Build Tool (dbt) jobs         |
+| `.EventSchemaSet`      | Event schema sets                  |
+| `.MirroredAzureDatabricksCatalog` | Mirrored Azure Databricks catalogs |
+| `.MirroredCatalog`     | Mirrored catalogs                  |
+| `.OperationsAgent`     | Operations agents                  |
+| `.OrgApp`              | Org apps                           |
+| `.OrgAppAudience`      | Org app audiences                  |
+| `.Plan`                | Plans                              |
+| `.SnowflakeDatabase`   | Snowflake databases                |
+| `.WarehouseSnapshot`   | Warehouse snapshots                |
 
 
 ---
