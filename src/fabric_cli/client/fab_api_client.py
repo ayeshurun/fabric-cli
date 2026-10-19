@@ -31,6 +31,8 @@ from fabric_cli.utils.fab_util import GUID_PATTERN_STR
 _HOST_APP_VERSION_RE = re.compile(r"\d+(\.\d+){0,2}(-[a-zA-Z0-9\.-]+)?")
 
 FABRIC_WORKSPACE_URI_PATTERN = rf"workspaces/{GUID_PATTERN_STR}"
+EARLY_POLLING_THRESHOLD_SECONDS = 20
+EARLY_POLLING_INTERVAL_SECONDS = 5
 
 # Module-level reusable session for connection pooling
 _shared_session = None
@@ -431,7 +433,12 @@ def _poll_operation(
     args.params = {}
 
     initial_interval = get_polling_interval(original_response.headers)
-    time.sleep(initial_interval)
+    early_polling = (
+        scope == fab_constant.SCOPE_FABRIC_DEFAULT
+        and initial_interval >= EARLY_POLLING_THRESHOLD_SECONDS
+    )
+    time.sleep(EARLY_POLLING_INTERVAL_SECONDS if early_polling else initial_interval)
+    adjust_first_retry_interval = early_polling
 
     while True:
         response = do_request(args, hostname=hostname)
@@ -475,6 +482,10 @@ def _poll_operation(
                     # Any other status is considered running
                     _log_operation_progress(result_json)
                     interval = get_polling_interval(response.headers)
+                    if adjust_first_retry_interval:
+                        if interval == initial_interval:
+                            interval -= EARLY_POLLING_INTERVAL_SECONDS
+                        adjust_first_retry_interval = False
                     time.sleep(interval)
             else:
                 original_response.status_code = 200

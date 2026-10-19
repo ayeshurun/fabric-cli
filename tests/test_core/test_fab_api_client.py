@@ -6,12 +6,15 @@ from argparse import Namespace
 from unittest.mock import patch
 
 import pytest
+from requests.structures import CaseInsensitiveDict
 
 from fabric_cli.client.fab_api_client import (
     _get_host_app,
+    _poll_operation,
     _transform_workspace_url_for_private_link_if_needed,
     do_request,
 )
+from fabric_cli.client.fab_api_types import ApiResponse
 from fabric_cli.core import fab_constant
 from fabric_cli.core.fab_auth import FabAuth
 from fabric_cli.core.fab_exceptions import FabricAPIError
@@ -343,6 +346,120 @@ def test_do_request_429_without_retry_after_header_retries_with_default_interval
     assert response.status_code == 200
     # Retried using the default polling interval (10s) rather than raising.
     mock_sleep.assert_called_once_with(10)
+
+
+def _operation_response(status_code, body, headers=None):
+    return ApiResponse(
+        status_code=status_code,
+        text=body,
+        content=body.encode(),
+        headers=CaseInsensitiveDict(headers or {}),
+    )
+
+
+def test_poll_operation_uses_early_poll_and_adjusted_retry_after():
+    original_response = _operation_response(202, "{}", {"Retry-After": "20"})
+    running_response = _operation_response(
+        200, '{"status": "Running"}', {"Retry-After": "20"}
+    )
+    running_response_with_new_interval = _operation_response(
+        200, '{"status": "Running"}', {"Retry-After": "45"}
+    )
+    completed_response = _operation_response(200, '{"status": "Completed"}')
+
+    with (
+        patch(
+            "fabric_cli.client.fab_api_client.do_request",
+            side_effect=[
+                running_response,
+                running_response_with_new_interval,
+                completed_response,
+            ],
+        ),
+        patch("fabric_cli.client.fab_api_client.time.sleep") as mock_sleep,
+    ):
+        result = _poll_operation(
+            "fabric",
+            "operations/operation-id",
+            original_response,
+            fab_constant.SCOPE_FABRIC_DEFAULT,
+            check_status=True,
+        )
+
+    assert result.status_code == 200
+    assert [call.args[0] for call in mock_sleep.call_args_list] == [5, 15, 45]
+
+
+def test_poll_operation_uses_changed_retry_after_after_early_poll():
+    original_response = _operation_response(202, "{}", {"Retry-After": "20"})
+    running_response = _operation_response(
+        200, '{"status": "Running"}', {"Retry-After": "30"}
+    )
+    completed_response = _operation_response(200, '{"status": "Completed"}')
+
+    with (
+        patch(
+            "fabric_cli.client.fab_api_client.do_request",
+            side_effect=[running_response, completed_response],
+        ),
+        patch("fabric_cli.client.fab_api_client.time.sleep") as mock_sleep,
+    ):
+        _poll_operation(
+            "fabric",
+            "operations/operation-id",
+            original_response,
+            fab_constant.SCOPE_FABRIC_DEFAULT,
+            check_status=True,
+        )
+
+    assert [call.args[0] for call in mock_sleep.call_args_list] == [5, 30]
+
+
+def test_poll_operation_does_not_early_poll_below_threshold():
+    original_response = _operation_response(202, "{}", {"Retry-After": "19"})
+    running_response = _operation_response(
+        200, '{"status": "Running"}', {"Retry-After": "19"}
+    )
+    completed_response = _operation_response(200, '{"status": "Completed"}')
+
+    with (
+        patch(
+            "fabric_cli.client.fab_api_client.do_request",
+            side_effect=[running_response, completed_response],
+        ),
+        patch("fabric_cli.client.fab_api_client.time.sleep") as mock_sleep,
+    ):
+        _poll_operation(
+            "fabric",
+            "operations/operation-id",
+            original_response,
+            fab_constant.SCOPE_FABRIC_DEFAULT,
+            check_status=True,
+        )
+
+    assert [call.args[0] for call in mock_sleep.call_args_list] == [19, 19]
+
+
+def test_poll_operation_does_not_early_poll_azure_async_operations():
+    original_response = _operation_response(202, "{}", {"Retry-After": "20"})
+    completed_response = _operation_response(200, '{"status": "Succeeded"}')
+
+    with (
+        patch(
+            "fabric_cli.client.fab_api_client.do_request",
+            return_value=completed_response,
+        ),
+        patch("fabric_cli.client.fab_api_client.time.sleep") as mock_sleep,
+    ):
+        _poll_operation(
+            "azure",
+            "operation-uri",
+            original_response,
+            fab_constant.SCOPE_AZURE_DEFAULT,
+            check_status=True,
+        )
+
+    mock_sleep.assert_called_once_with(20)
 
 
 @pytest.mark.parametrize(
