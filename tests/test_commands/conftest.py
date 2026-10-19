@@ -71,9 +71,56 @@ ALL_ITEM_TYPES = [
     ItemType.MAP,
     ItemType.GRAPH_MODEL,
     ItemType.ONTOLOGY,
+    ItemType.ANOMALY_DETECTOR,
+    ItemType.APACHE_AIRFLOW_JOB,
+    ItemType.APP_BACKEND,
+    ItemType.AZURE_DATABRICKS_STORAGE,
+    ItemType.DATA_AGENT,
+    ItemType.DATA_BUILD_TOOL_JOB,
+    ItemType.EVENT_SCHEMA_SET,
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
+    ItemType.MIRRORED_CATALOG,
+    ItemType.OPERATIONS_AGENT,
+    ItemType.ORG_APP,
+    ItemType.ORG_APP_AUDIENCE,
+    ItemType.PAGINATED_REPORT,
+    ItemType.PLAN,
+    ItemType.SNOWFLAKE_DATABASE,
+    ItemType.WAREHOUSE_SNAPSHOT,
 ]
 
 item_type_paramerter = pytest.mark.parametrize("item_type", ALL_ITEM_TYPES)
+
+unsupported_mkdir_item_types = {
+    ItemType.DASHBOARD,
+    ItemType.PAGINATED_REPORT,
+    ItemType.SQL_ENDPOINT,
+    ItemType.DATAMART,
+    ItemType.MIRRORED_WAREHOUSE,
+    ItemType.METRIC_SET,
+    ItemType.EXPLORATION,
+    ItemType.RETAIL_DATA_MANAGER,
+    ItemType.HEALTHCARE_DATA_SOLUTION,
+    ItemType.SUSTAINABILITY_DATA_SOLUTION,
+    ItemType.AISKILL,
+    ItemType.ANOMALY_DETECTOR,
+    ItemType.APP_BACKEND,
+    ItemType.AZURE_DATABRICKS_STORAGE,
+    ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
+    ItemType.MIRRORED_CATALOG,
+    ItemType.ORG_APP_AUDIENCE,
+    ItemType.SNOWFLAKE_DATABASE,
+    ItemType.WAREHOUSE_SNAPSHOT,
+}
+
+mkdir_item_paramerter = pytest.mark.parametrize(
+    "item_type",
+    [
+        item_type
+        for item_type in ALL_ITEM_TYPES
+        if item_type not in unsupported_mkdir_item_types
+    ],
+)
 
 basic_item_parametrize = pytest.mark.parametrize(
     "item_type",
@@ -97,6 +144,22 @@ basic_item_parametrize = pytest.mark.parametrize(
         ItemType.MAP,
         ItemType.GRAPH_MODEL,
         ItemType.ONTOLOGY,
+        ItemType.ANOMALY_DETECTOR,
+        ItemType.APACHE_AIRFLOW_JOB,
+        ItemType.APP_BACKEND,
+        ItemType.AZURE_DATABRICKS_STORAGE,
+        ItemType.DATA_AGENT,
+        ItemType.DATA_BUILD_TOOL_JOB,
+        ItemType.EVENT_SCHEMA_SET,
+        ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
+        ItemType.MIRRORED_CATALOG,
+        ItemType.OPERATIONS_AGENT,
+        ItemType.ORG_APP,
+        ItemType.ORG_APP_AUDIENCE,
+        ItemType.PAGINATED_REPORT,
+        ItemType.PLAN,
+        ItemType.SNOWFLAKE_DATABASE,
+        ItemType.WAREHOUSE_SNAPSHOT,
     ],
 )
 
@@ -183,15 +246,28 @@ rm_item_without_force_cancel_operation_success_params = pytest.mark.parametrize(
     ],
 )
 
-unsupported_item_failure_params = pytest.mark.parametrize(
+unsupported_rm_item_failure_params = pytest.mark.parametrize(
     "unsupported_item_type",
-    [
-        ItemType.DASHBOARD,
-        ItemType.DATAMART,
-        ItemType.MIRRORED_WAREHOUSE,
-        ItemType.PAGINATED_REPORT,
-        ItemType.SQL_ENDPOINT,
-    ],
+    sorted(
+        {
+            ItemType.DASHBOARD,
+            ItemType.SQL_ENDPOINT,
+            ItemType.MIRRORED_WAREHOUSE,
+            ItemType.DATAMART,
+            ItemType.METRIC_SET,
+            ItemType.EXPLORATION,
+            ItemType.RETAIL_DATA_MANAGER,
+            ItemType.HEALTHCARE_DATA_SOLUTION,
+            ItemType.SUSTAINABILITY_DATA_SOLUTION,
+            ItemType.AISKILL,
+        },
+        key=lambda item_type: item_type.value,
+    ),
+)
+
+unsupported_mkdir_item_failure_params = pytest.mark.parametrize(
+    "unsupported_item_type",
+    sorted(unsupported_mkdir_item_types, key=lambda item_type: item_type.value),
 )
 
 mkdir_item_with_creation_payload_success_params = pytest.mark.parametrize(
@@ -342,6 +418,22 @@ set_item_metadata_for_all_types_success_item_params = pytest.mark.parametrize(
         ItemType.DIGITAL_TWIN_BUILDER_FLOW,
         ItemType.GRAPH_MODEL,
         ItemType.ONTOLOGY,
+        ItemType.ANOMALY_DETECTOR,
+        ItemType.APACHE_AIRFLOW_JOB,
+        ItemType.APP_BACKEND,
+        ItemType.AZURE_DATABRICKS_STORAGE,
+        ItemType.DATA_AGENT,
+        ItemType.DATA_BUILD_TOOL_JOB,
+        ItemType.EVENT_SCHEMA_SET,
+        ItemType.MIRRORED_AZURE_DATABRICKS_CATALOG,
+        ItemType.MIRRORED_CATALOG,
+        ItemType.OPERATIONS_AGENT,
+        ItemType.ORG_APP,
+        ItemType.ORG_APP_AUDIENCE,
+        ItemType.PAGINATED_REPORT,
+        ItemType.PLAN,
+        ItemType.SNOWFLAKE_DATABASE,
+        ItemType.WAREHOUSE_SNAPSHOT,
     ],
 )
 
