@@ -120,3 +120,32 @@ fab [command-group] [command] --help
 ```
 
 For detailed examples and usage patterns, see the individual command group pages linked above.
+
+### Machine-readable help
+
+Request JSON help explicitly with `--output_format json`. Existing text help remains the default, even when your configuration selects JSON. The format option can appear before or after `--help`:
+
+```bash
+# Describe the root, a group, or a command
+fab --help --output_format json
+fab job --help --output_format json
+fab job run --output_format json --help
+
+# Use equals syntax
+fab job run --help --output_format=json
+
+# Inherit the root format option for help only
+fab --output_format json job run --help
+```
+
+Root-level `--output_format` before a command is inherited for help only, not command execution. Discovery needs no required arguments or authentication, runs no command, and makes no network requests. Successful JSON help writes only JSON to standard output and exits with code zero. It excludes hidden flags, parsed runtime values, and credentials.
+
+The document contains static metadata:
+
+- **Identity:** `schema_version` is `"1.0"`; `cli_version` identifies the CLI version. `name`, canonical `command`, `description`, and `aliases` identify the command. Alias requests normalize to the canonical command.
+- **Discovery:** `subcommands` lists immediate children with their names, canonical commands, descriptions, and aliases. Request JSON help for each child's `command` recursively to discover the command tree.
+- **Inputs:** `inputs` describes parser declarations through `name`, `flags`, `kind`, `description`, `required`, `default`, `default_suppressed`, `choices`, `nargs`, `multiple`, `repeatable`, `type`, and optional `constraints`. Types describe each value; multiplicity is separate. `nargs: null` means one value; `nargs: 0` means a flag taking no value. Unknown custom types remain `unknown`, with a `validator` name rather than an inferred type. The positive-integer validator explicitly declares integer type and `constraints.minimum: 1`.
+- **Outputs:** `outputs` describes command execution, not the help document. `exists`, `config get`, `config ls`, and `api` declare text and JSON formats with partial success JSON schemas (`schema_status: "partial"`). `version` is text-only, with `schema: null` and `schema_status: "not_applicable"`. Remaining commands have `formats: null`, `schema: null`, and `schema_status: "unknown"`; the format flag does not establish JSON support.
+- **Errors:** `common_errors` provides nonexhaustive CLI-wide examples with recovery guidance. `errors_scope` states their limits; service APIs can return additional codes. Separate `exit_codes` describes process exit codes. Runtime errors remain unchanged.
+
+This is initial metadata coverage, not a complete typed output contract. Use `schema_version` to interpret the document and tolerate added fields.

@@ -4,10 +4,11 @@
 import argparse
 import re
 import sys
+from typing import Any, Iterable
 
 import argcomplete
 
-from fabric_cli.core import fab_constant, fab_logger
+from fabric_cli.core import fab_constant, fab_help, fab_logger
 from fabric_cli.parsers import fab_acls_parser as acls_parser
 from fabric_cli.parsers import fab_api_parser as api_parser
 from fabric_cli.parsers import fab_auth_parser as auth_parser
@@ -128,6 +129,10 @@ class CustomArgumentParser(argparse.ArgumentParser):
         self.fab_aliases = fab_aliases or []
 
     def print_help(self, file=None):
+        if fab_help.is_json_help():
+            self._print_message(fab_help.format_json_help(self), file or sys.stdout)
+            return
+
         command_name = self.prog.split()[-1]
 
         help_functions = {
@@ -144,6 +149,16 @@ class CustomArgumentParser(argparse.ArgumentParser):
             help_functions[command_name]()
         else:
             super().print_help(file)
+
+    def parse_known_args(
+        self,
+        args: Iterable[str] | None = None,
+        namespace: Any = None,
+    ) -> tuple[Any, list[str]]:
+        """Keep help format independent of flag order and nested parser defaults."""
+        arguments = list(args) if args is not None else sys.argv[1:]
+        with fab_help.help_output_context(self, arguments):
+            return super().parse_known_args(arguments, namespace)
 
     def set_mode(self, mode):
         self.fab_mode = mode
@@ -169,6 +184,7 @@ class CustomArgumentParser(argparse.ArgumentParser):
 # Global parser instances
 _global_parser = None
 _global_subparsers = None
+
 
 def create_parser_and_subparsers():
     """Create parser and subparsers for reuse across CLI modes"""
@@ -232,12 +248,12 @@ def create_parser_and_subparsers():
 
     return parser, subparsers
 
+
 def get_global_parser_and_subparsers():
     """Get singleton parser and subparsers instances"""
     global _global_parser, _global_subparsers
-    
+
     if _global_parser is None:
         _global_parser, _global_subparsers = create_parser_and_subparsers()
-    
-    return _global_parser, _global_subparsers
 
+    return _global_parser, _global_subparsers
