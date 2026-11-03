@@ -34,6 +34,11 @@ slice is described below. Python-named `ls` (`dir`) and `get` are recognized; th
 library composition is described in [read-command compatibility](read-command-compatibility.md).
 The separate `native-read` feature now installs an explicitly configured Windows
 read host; the bootstrap table below continues to describe default builds.
+The optional `repl` feature adds a separately packaged Reedline terminal host;
+no arguments then enter that host only with terminal stdin and stdout. Default
+no-argument diagnostics remain unchanged. See the [interactive shell
+contract](../hosts/repl/fabric-cli-repl/README.md) for aliases, lexing, EOF,
+bounded memory-only history and remaining terminal-appearance differences.
 See [native host setup and limits](native-read-host.md) for supported composition,
 distinct failures and still-unexecuted live acceptance.
 The additive [bounded job composition](native-job-reads.md) recognizes all eight
@@ -92,6 +97,13 @@ and `auth logout`; default builds retain help/version and the existing
 `ls`/`dir`/`get` parser with unconfigured read-host diagnostics. This is an
 experimental implementation, not a proven production-policy replacement.
 
+The separate optional `headless` feature composes explicit unattended credentials
+with the shared native service host. Its provider modes, renewal inputs and
+managed-host restrictions are documented in
+[native host configuration](native-read-host.md#headless-credentials). It does
+not make the Windows broker a supported headless credential, enable an implicit
+developer-tool chain, or establish live tenant-policy acceptance.
+
 Every command requires non-secret `--account <UPN>` and `--tenant <GUID>`.
 `--client-id` defaults to Python's registered public-client ID and can be
 explicitly overridden with a team-approved registration. Missing/invalid
@@ -134,6 +146,22 @@ Full cache migration, CAE/challenge handling, multi-platform and service validat
 are not complete. See [manual login instructions](../README.md#run-an-actual-windows-broker-login).
 
 ## Required compatibility work
+
+The owner additionally requires GitHub Releases-backed automatic updating.
+The optional `self-update` feature is an additive release-host surface, not a
+replacement for any existing command. Default builds retain their original
+argument/help/version behavior. Updates are outer-only operations; batches and
+the REPL cannot replace the running installation.
+
+Publisher trust is pinned to `microsoft/fabric-cli`, with a Rust-specific release
+namespace and independently configured verification key. Automatic installation
+must remain within the current major version; major upgrades require explicit
+opt-in. Package-manager custody and failed verification prevent replacement.
+No requested business command may be silently skipped with success or replayed
+after an update. The owner selected a dedicated bounded native helper; its
+lifecycle, repeated-update reconciliation, signing and platform acceptance remain
+release gates. The earlier controlled self-replacement fixture is not proof of
+that new helper.
 
 | Area | Compatibility gate before rollout |
 | --- | --- |

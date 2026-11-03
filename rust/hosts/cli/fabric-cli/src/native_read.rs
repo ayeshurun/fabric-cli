@@ -3,41 +3,46 @@
 
 //! Explicit opt-in binary composition. Libraries never read these host inputs.
 
+use crate::batch_state::{BatchState, CommandOutcome};
 use fabric_cli::{
     HostError,
     parser::{Invocation, JobMutationCommand, JobReadCommand, JobRunCommand, ReadCommand},
 };
 use fabric_sdk::{EndpointBinding, ServiceOrigin};
 use serde_json::json;
-use std::{
-    io::{self, Write},
-    process::ExitCode,
-};
+use std::io::{self, Write};
 
-type Failure = (&'static str, String, u8);
+pub(crate) type Failure = (&'static str, String, u8);
 
-#[cfg(windows)]
+#[path = "native_get.rs"]
+mod get;
+
+#[cfg(all(test, feature = "headless"))]
+#[path = "headless_host_tests.rs"]
+mod headless_host_tests;
+
+#[cfg(any(windows, feature = "headless"))]
 #[path = "native_settings.rs"]
 mod settings;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 #[path = "native_transfer_paths.rs"]
 mod transfer_paths;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 #[path = "native_deploy_inputs.rs"]
 mod deploy_inputs;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 #[path = "native_terminal_ui.rs"]
 mod terminal_ui;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 use terminal_ui::NativeMutationUi;
 
 #[derive(Clone, Copy)]
 #[cfg_attr(
-    not(windows),
+    not(any(windows, feature = "headless")),
     allow(
         dead_code,
         reason = "The selected host is explicitly unsupported off Windows."
@@ -62,12 +67,16 @@ fn has_bound_context(command: NativeCommand<'_>) -> bool {
     }
 }
 
-fn failure(code: &'static str, message: impl Into<String>, exit: u8) -> Failure {
+pub(crate) fn failure(code: &'static str, message: impl Into<String>, exit: u8) -> Failure {
     (code, message.into(), exit)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 fn selected_read_options(command: &ReadCommand) -> Result<(), Failure> {
+    if command.kind == fabric_cli::parser::ReadKind::Get {
+        // Settings normalize presentation; the GET engine applies source preflight.
+        return Ok(());
+    }
     fabric_cli::session::get_options::preflight(command).map_err(|_| {
         failure(
             "NotSupported",
@@ -77,12 +86,12 @@ fn selected_read_options(command: &ReadCommand) -> Result<(), Failure> {
     })
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 fn consumes_definition_files(command: &Invocation) -> bool {
     matches!(command, Invocation::Deploy(_) | Invocation::Transfer(_))
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, feature = "headless", test))]
 fn interrupted_failure(code: &'static str, message: &str, exit: u8) -> Failure {
     failure(
         code,
@@ -93,7 +102,7 @@ fn interrupted_failure(code: &'static str, message: &str, exit: u8) -> Failure {
     )
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, feature = "headless", test))]
 fn finish_runtime<T>(runtime: tokio::runtime::Runtime, result: T) -> T {
     // Runtime Drop waits indefinitely for blocking syscalls; a bounded wait does
     // not cancel those calls or erase their possible filesystem effects.
@@ -101,7 +110,7 @@ fn finish_runtime<T>(runtime: tokio::runtime::Runtime, result: T) -> T {
     result
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, feature = "headless", test))]
 async fn wait_for_deadline(deadline: Option<std::time::Duration>) {
     match deadline {
         Some(deadline) => tokio::time::sleep(deadline).await,
@@ -109,7 +118,7 @@ async fn wait_for_deadline(deadline: Option<std::time::Duration>) {
     }
 }
 
-fn write_error((code, message, exit): Failure) -> io::Result<ExitCode> {
+fn write_error((code, message, exit): Failure) -> io::Result<CommandOutcome> {
     let mut stderr = io::stderr().lock();
     serde_json::to_writer(
         &mut stderr,
@@ -117,7 +126,23 @@ fn write_error((code, message, exit): Failure) -> io::Result<ExitCode> {
     )
     .map_err(io::Error::other)?;
     writeln!(stderr)?;
-    Ok(ExitCode::from(exit))
+    Ok(failure_outcome(code, exit))
+}
+
+fn failure_outcome(code: &str, exit: u8) -> CommandOutcome {
+    match code {
+        "cancelled" => CommandOutcome::Cancelled(exit),
+        "signal_failed"
+        | "timed_out"
+        | "cleanup_pending"
+        | "completion_unconfirmed"
+        | "render_failed"
+        | "output_failed"
+        | "invalid_configuration"
+        | "invalid_arguments"
+        | "runtime_failed" => CommandOutcome::Stop(exit),
+        _ => CommandOutcome::Returned(exit),
+    }
 }
 
 fn required(name: &str) -> Result<String, Failure> {
@@ -136,6 +161,183 @@ fn required(name: &str) -> Result<String, Failure> {
     }
 }
 
+#[cfg(any(windows, feature = "headless"))]
+enum NativeCredential {
+    Broker {
+        tenant: String,
+        account: String,
+        client: String,
+    },
+    #[cfg(feature = "headless")]
+    Headless(crate::headless::Selection),
+}
+
+#[cfg(any(windows, feature = "headless"))]
+impl NativeCredential {
+    fn tenant(&self) -> &str {
+        match self {
+            Self::Broker { tenant, .. } => tenant,
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => &selection.tenant,
+        }
+    }
+
+    fn account(&self) -> &str {
+        match self {
+            Self::Broker { account, .. } => account,
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => &selection.account,
+        }
+    }
+
+    fn is_broker(&self) -> bool {
+        matches!(self, Self::Broker { .. })
+    }
+
+    fn metadata_endpoint(&self) -> Option<azure_core::http::Url> {
+        match self {
+            Self::Broker { .. } => None,
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => selection.metadata_endpoint(),
+        }
+    }
+
+    fn bind(
+        &self,
+        state: &mut BatchState,
+        home: fabric_cli_context::HomeContext,
+    ) -> Result<(), fabric_cli_local::LocalError> {
+        match self {
+            Self::Broker {
+                tenant,
+                account,
+                client,
+            } => state.bind(tenant, account, client, home),
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => state.bind_provider(
+                &selection.tenant,
+                &selection.account,
+                &selection.client,
+                &selection.binding,
+                home,
+            ),
+        }
+    }
+
+    fn bind_get(&self, state: &mut BatchState) -> Result<(), fabric_cli_local::LocalError> {
+        match self {
+            Self::Broker {
+                tenant,
+                account,
+                client,
+            } => state.bind_read_provider(tenant, account, client, "broker"),
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => state.bind_read_provider(
+                &selection.tenant,
+                &selection.account,
+                &selection.client,
+                &selection.binding,
+            ),
+        }
+    }
+
+    async fn connect(
+        self,
+        http: std::sync::Arc<dyn azure_core::http::HttpClient>,
+    ) -> Result<std::sync::Arc<dyn azure_core::credentials::TokenCredential>, Failure> {
+        match self {
+            Self::Broker {
+                tenant,
+                account,
+                client,
+            } => {
+                let _ = &http;
+                #[cfg(all(windows, feature = "windows-broker"))]
+                {
+                    let options = fabric_identity::LoginOptions::new(&tenant, &client, &account)
+                        .map_err(|_| {
+                            failure("invalid_configuration", "Invalid broker selection.", 2)
+                        })?;
+                    fabric_identity::WindowsCredential::connect(options)
+                        .await
+                        .map(|credential| {
+                            credential
+                                as std::sync::Arc<dyn azure_core::credentials::TokenCredential>
+                        })
+                        .map_err(|error| {
+                            let (code, message) = crate::auth::broker_error(error);
+                            failure(code, message, 1)
+                        })
+                }
+                #[cfg(not(all(windows, feature = "windows-broker")))]
+                {
+                    let _ = (tenant, account, client);
+                    Err(failure(
+                        "unsupported",
+                        "The selected broker host is unavailable.",
+                        1,
+                    ))
+                }
+            }
+            #[cfg(feature = "headless")]
+            Self::Headless(selection) => selection.credential(http),
+        }
+    }
+}
+
+#[cfg(any(windows, feature = "headless"))]
+fn selected_credential() -> Result<NativeCredential, Failure> {
+    let mode = match std::env::var("FAB_RUST_AUTH_MODE") {
+        Ok(mode) if !mode.is_empty() => mode,
+        Err(std::env::VarError::NotPresent) => {
+            if cfg!(feature = "native-read") {
+                "broker".into()
+            } else {
+                return Err(failure(
+                    "NotConfigured",
+                    "An explicit FAB_RUST_AUTH_MODE is required.",
+                    1,
+                ));
+            }
+        }
+        _ => {
+            return Err(failure(
+                "invalid_configuration",
+                "Invalid native credential mode.",
+                2,
+            ));
+        }
+    };
+    if mode == "broker" {
+        let tenant = required("FAB_RUST_TENANT")?;
+        let account = required("FAB_RUST_ACCOUNT")?;
+        let client = required("FAB_RUST_CLIENT_ID")?;
+        #[cfg(all(windows, feature = "windows-broker"))]
+        fabric_identity::LoginOptions::new(&tenant, &client, &account)
+            .map_err(|_| failure("invalid_configuration", "Invalid broker selection.", 2))?;
+        if !cfg!(all(windows, feature = "windows-broker")) {
+            return Err(failure(
+                "unsupported",
+                "The selected broker host is unavailable.",
+                1,
+            ));
+        }
+        return Ok(NativeCredential::Broker {
+            tenant,
+            account,
+            client,
+        });
+    }
+    #[cfg(feature = "headless")]
+    return crate::headless::Selection::capture(&mode).map(NativeCredential::Headless);
+    #[cfg(not(feature = "headless"))]
+    Err(failure(
+        "invalid_configuration",
+        "The selected credential mode is unavailable.",
+        2,
+    ))
+}
+
 fn selected_endpoint(value: Option<std::ffi::OsString>) -> Result<EndpointBinding, Failure> {
     match value {
         None => Ok(EndpointBinding::public(ServiceOrigin::Fabric)),
@@ -152,29 +354,40 @@ fn selected_endpoint(value: Option<std::ffi::OsString>) -> Result<EndpointBindin
     }
 }
 
-pub(crate) fn run(command: &ReadCommand) -> io::Result<ExitCode> {
-    run_command(NativeCommand::Read(command))
+pub(crate) fn run(command: &ReadCommand, state: &mut BatchState) -> io::Result<CommandOutcome> {
+    run_command(NativeCommand::Read(command), state)
 }
 
-pub(crate) fn run_job(command: &JobReadCommand) -> io::Result<ExitCode> {
-    run_command(NativeCommand::Job(command))
+pub(crate) fn run_job(
+    command: &JobReadCommand,
+    state: &mut BatchState,
+) -> io::Result<CommandOutcome> {
+    run_command(NativeCommand::Job(command), state)
 }
 
-pub(crate) fn run_job_execution(command: &JobRunCommand) -> io::Result<ExitCode> {
-    run_command(NativeCommand::JobExecution(command))
+pub(crate) fn run_job_execution(
+    command: &JobRunCommand,
+    state: &mut BatchState,
+) -> io::Result<CommandOutcome> {
+    run_command(NativeCommand::JobExecution(command), state)
 }
 
-pub(crate) fn run_job_mutation(command: &JobMutationCommand) -> io::Result<ExitCode> {
-    run_command(NativeCommand::JobMutation(command))
+pub(crate) fn run_job_mutation(
+    command: &JobMutationCommand,
+    state: &mut BatchState,
+) -> io::Result<CommandOutcome> {
+    run_command(NativeCommand::JobMutation(command), state)
 }
 
-pub(crate) fn run_family(command: &Invocation) -> io::Result<ExitCode> {
-    run_command(NativeCommand::Family(command))
+pub(crate) fn run_family(
+    command: &Invocation,
+    state: &mut BatchState,
+) -> io::Result<CommandOutcome> {
+    run_command(NativeCommand::Family(command), state)
 }
 
-fn run_command(command: NativeCommand<'_>) -> io::Result<ExitCode> {
+fn run_command(command: NativeCommand<'_>, state: &mut BatchState) -> io::Result<CommandOutcome> {
     let result = (|| {
-        // Public selectors only, never token/secret environment inputs.
         let endpoint = selected_endpoint(std::env::var_os("FAB_API_ENDPOINT_FABRIC"))?;
         if endpoint != EndpointBinding::public(ServiceOrigin::Fabric) && !has_bound_context(command)
         {
@@ -184,28 +397,34 @@ fn run_command(command: NativeCommand<'_>) -> io::Result<ExitCode> {
                 1,
             ));
         }
-        let tenant = required("FAB_RUST_TENANT")?;
-        let account = required("FAB_RUST_ACCOUNT")?;
-        let client = required("FAB_RUST_CLIENT_ID")?;
-        run_selected(command, &tenant, &account, &client, endpoint)
+        #[cfg(any(windows, feature = "headless"))]
+        {
+            let credential = selected_credential()?;
+            run_selected(command, credential, endpoint, state)
+        }
+        #[cfg(not(any(windows, feature = "headless")))]
+        {
+            let tenant = required("FAB_RUST_TENANT")?;
+            let account = required("FAB_RUST_ACCOUNT")?;
+            let client = required("FAB_RUST_CLIENT_ID")?;
+            run_selected(command, &tenant, &account, &client, endpoint, state)
+        }
     })();
     match result {
-        Ok(plan) => {
-            plan.write_to(&mut io::stdout().lock(), &mut io::stderr().lock())?;
-            Ok(ExitCode::from(plan.exit_code))
-        }
+        Ok(delivery) => delivery.write_to(&mut io::stdout().lock(), &mut io::stderr().lock()),
         Err(error) => write_error(error),
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, feature = "headless")))]
 fn run_selected(
     _: NativeCommand<'_>,
     _: &str,
     _: &str,
     _: &str,
     _: EndpointBinding,
-) -> Result<fabric_cli_output::text::TextPlan, Failure> {
+    _: &mut BatchState,
+) -> Result<get::Delivery, Failure> {
     Err(failure(
         "unsupported",
         "Native read credentials currently require Windows.",
@@ -216,6 +435,19 @@ fn run_selected(
 #[cfg(test)]
 mod endpoint_tests {
     use super::*;
+
+    #[test]
+    fn cancellation_and_configuration_failure_do_not_share_a_control_reason() {
+        assert_eq!(
+            failure_outcome("cancelled", 2),
+            CommandOutcome::Cancelled(2)
+        );
+        assert_eq!(
+            failure_outcome("invalid_configuration", 2),
+            CommandOutcome::Stop(2)
+        );
+        assert_eq!(failure_outcome("timed_out", 1), CommandOutcome::Stop(1));
+    }
 
     #[cfg(windows)]
     #[test]
@@ -240,7 +472,7 @@ mod endpoint_tests {
 
     #[cfg(windows)]
     #[test]
-    fn native_get_option_gate_defers_metadata_flags_but_rejects_file_output() {
+    fn native_get_option_gate_defers_get_output_to_full_engine() {
         for flag in ["--force", "--verbose"] {
             let Invocation::Read(command) = fabric_cli::parser::parse_args([
                 "fab-rs",
@@ -265,10 +497,8 @@ mod endpoint_tests {
         .unwrap() else {
             panic!("expected GET invocation");
         };
-        let (code, message, exit) = selected_read_options(&command).unwrap_err();
-        assert_eq!(code, "NotSupported");
-        assert_eq!(exit, 1);
-        assert!(!message.contains("private-output-path"));
+        selected_read_options(&command).unwrap();
+        assert_eq!(command.output.as_deref(), Some("private-output-path"));
     }
 
     #[test]
@@ -418,29 +648,33 @@ mod runtime_tests {
     }
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 fn run_selected(
     command: NativeCommand<'_>,
-    tenant: &str,
-    account: &str,
-    client: &str,
+    credential: NativeCredential,
     endpoint: EndpointBinding,
-) -> Result<fabric_cli_output::text::TextPlan, Failure> {
-    let options = fabric_identity::LoginOptions::new(tenant, client, account)
-        .map_err(|e| failure("invalid_configuration", e.to_string(), 2))?;
-    let (current, restored) = crate::local_host::context_selection()
+    state: &mut BatchState,
+) -> Result<get::Delivery, Failure> {
+    let current = state
+        .path()
         .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
-    let home = std::env::var("FAB_RUST_HOME").map_or_else(
-        |e| match e {
-            std::env::VarError::NotPresent => Ok(fabric_cli_context::HomeContext::Unspecified),
-            _ => Err(failure(
-                "invalid_configuration",
-                "Invalid home selector.",
-                2,
-            )),
-        },
-        selected_home,
-    )?;
+    let home = match state
+        .home()
+        .map_err(|message| failure("invalid_configuration", message, 2))?
+    {
+        Some(home) => selected_home(home)?,
+        None => fabric_cli_context::HomeContext::Unspecified,
+    };
+    let is_get = matches!(
+        command,
+        NativeCommand::Read(read) if read.kind == fabric_cli::parser::ReadKind::Get
+    );
+    if is_get {
+        credential.bind_get(state)
+    } else {
+        credential.bind(state, home.clone())
+    }
+    .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
     if let NativeCommand::Read(command) = command {
         selected_read_options(command)?;
     }
@@ -487,8 +721,38 @@ fn run_selected(
         .enable_all()
         .build()
         .map_err(|_| failure("runtime_failed", "The read runtime could not start.", 1))?;
+    let before = state
+        .navigation
+        .as_ref()
+        .map(|navigation| std::sync::Arc::clone(navigation.current()));
     let result = runtime.block_on(async {
-        tokio::select! {
+        if is_get {
+            let clock = get::NativeClock(tokio::runtime::Handle::current());
+            get::controlled(
+                async |evidence, cancelled| {
+                    execute_delivery(
+                        command, credential, &current, home, endpoint, settings, state,
+                        Some(get::Inputs {
+                            evidence, cancelled, clock: &clock, ui: &NativeTransferUi,
+                            files: get::Files::native(),
+                        }),
+                    ).await
+                },
+                async {
+                    tokio::select! {
+                        biased;
+                        signal = tokio::signal::ctrl_c() => match signal {
+                            Ok(()) => interrupted_failure("cancelled", "Read cancelled.", 2),
+                            Err(_) => failure("signal_failed", "The cancellation handler could not start.", 1),
+                        },
+                        _ = wait_for_deadline(deadline) => interrupted_failure(
+                            "timed_out", "The read command deadline elapsed.", 1,
+                        ),
+                    }
+                },
+            ).await
+        } else {
+            tokio::select! {
             biased;
             signal = tokio::signal::ctrl_c() => {
                 match signal {
@@ -499,13 +763,17 @@ fn run_selected(
             _ = wait_for_deadline(deadline) => {
                 Err(interrupted_failure("timed_out", "The read command deadline elapsed.", 1))
             },
-            result = execute(command, options, &current, home, restored, endpoint, settings) => result,
+            result = execute_delivery(command, credential, &current, home, endpoint, settings, state, None) => result,
+            }
         }
     });
+    if let Some(before) = before {
+        state.commit_navigation(&before);
+    }
     finish_runtime(runtime, result)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 fn selected_home(value: String) -> Result<fabric_cli_context::HomeContext, Failure> {
     let valid = value.rsplit_once('.').is_some_and(|(name, suffix)| {
         !name.is_empty()
@@ -522,40 +790,25 @@ fn selected_home(value: String) -> Result<fabric_cli_context::HomeContext, Failu
     Ok(fabric_cli_context::HomeContext::Workspace(value))
 }
 
-#[cfg(windows)]
-async fn execute(
+#[cfg(any(windows, feature = "headless"))]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Borrowed command capabilities, not a second runtime."
+)]
+async fn execute_delivery(
     command: NativeCommand<'_>,
-    options: fabric_identity::LoginOptions,
+    credential: NativeCredential,
     current: &str,
     home: fabric_cli_context::HomeContext,
-    restored: bool,
     endpoint: EndpointBinding,
     settings: settings::NativeSettings,
-) -> Result<fabric_cli_output::text::TextPlan, Failure> {
-    use fabric_cli::session::ReadSession;
-    use fabric_cli_context::Element;
-    use fabric_sdk::{Audience, Client, CredentialSelection, RequestContext};
-    use fabric_sdk_http::{ExecutionOptions, HttpExecutor};
-    use fabric_sdk_transport::{
-        NativeHttpClient, ProxyPolicy, TokioTimer, TransportOptions, TrustPolicy,
-    };
+    state: &mut BatchState,
+    get_inputs: Option<get::Inputs<'_>>,
+) -> Result<get::Delivery, Failure> {
+    use fabric_sdk_transport::{NativeHttpClient, ProxyPolicy, TransportOptions, TrustPolicy};
     use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
-    let selection = CredentialSelection::new(options.account(), options.tenant(), Audience::Fabric)
-        .map_err(|_| failure("invalid_configuration", "Invalid credential selection.", 2))?;
-    let tenant = Element::tenant(options.tenant(), options.tenant());
-    let credential = fabric_identity::WindowsCredential::connect(options)
-        .await
-        .map_err(|error| {
-            let (code, message) = crate::auth::broker_error(error);
-            failure(code, message, 1)
-        })?;
-    let sdk = Client::with_context(RequestContext::with_endpoint(
-        credential,
-        selection,
-        endpoint.clone(),
-    ));
-    let client = NativeHttpClient::new(TransportOptions {
+    let options = TransportOptions {
         connect_timeout: Duration::from_secs(10),
         read_timeout: Duration::from_secs(30),
         write_timeout: Duration::from_secs(30),
@@ -565,21 +818,140 @@ async fn execute(
             additional_roots: Vec::new(),
         },
         proxy: ProxyPolicy::None,
-    })
-    .map_err(|_| {
+    };
+    let identity_client = credential
+        .metadata_endpoint()
+        .map(|endpoint| {
+            NativeHttpClient::for_managed_identity(options.clone(), endpoint)
+                .map(|client| Arc::new(client) as Arc<dyn azure_core::http::HttpClient>)
+        })
+        .transpose()
+        .map_err(|_| {
+            failure(
+                "invalid_configuration",
+                "Invalid managed identity transport configuration.",
+                2,
+            )
+        })?;
+    let client = NativeHttpClient::new(options).map_err(|_| {
         failure(
             "transport_failed",
             "The native HTTP client could not start.",
             1,
         )
     })?;
-    let executor = HttpExecutor::new(
-        Arc::new(client),
-        Arc::new(TokioTimer),
-        ExecutionOptions::default(),
+    let client = Arc::new(client);
+    let identity_client = identity_client.unwrap_or_else(|| client.clone());
+    execute_injected_delivery(
+        command,
+        (credential, client, identity_client),
+        current,
+        home,
+        endpoint,
+        settings,
+        state,
+        get_inputs,
     )
-    .map_err(|_| failure("transport_failed", "The HTTP executor could not start.", 1))?
-    .with_endpoint(endpoint);
+    .await
+}
+
+#[cfg(all(test, any(windows, feature = "headless")))]
+async fn execute_injected(
+    command: NativeCommand<'_>,
+    (credential, client, identity_client): (
+        NativeCredential,
+        std::sync::Arc<dyn azure_core::http::HttpClient>,
+        std::sync::Arc<dyn azure_core::http::HttpClient>,
+    ),
+    current: &str,
+    home: fabric_cli_context::HomeContext,
+    endpoint: EndpointBinding,
+    settings: settings::NativeSettings,
+    state: &mut BatchState,
+) -> Result<(fabric_cli_output::text::TextPlan, CommandOutcome), Failure> {
+    execute_injected_delivery(
+        command,
+        (credential, client, identity_client),
+        current,
+        home,
+        endpoint,
+        settings,
+        state,
+        None,
+    )
+    .await
+    .map(get::Delivery::into_plan_parts)
+}
+
+#[cfg(any(windows, feature = "headless"))]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "The existing native composition plus explicit GET capabilities."
+)]
+async fn execute_injected_delivery(
+    command: NativeCommand<'_>,
+    (credential, client, identity_client): (
+        NativeCredential,
+        std::sync::Arc<dyn azure_core::http::HttpClient>,
+        std::sync::Arc<dyn azure_core::http::HttpClient>,
+    ),
+    current: &str,
+    home: fabric_cli_context::HomeContext,
+    endpoint: EndpointBinding,
+    settings: settings::NativeSettings,
+    state: &mut BatchState,
+    get_inputs: Option<get::Inputs<'_>>,
+) -> Result<get::Delivery, Failure> {
+    use fabric_sdk::{Audience, Client, CredentialSelection, RequestContext};
+    use fabric_sdk_http::{ExecutionOptions, HttpExecutor};
+    use fabric_sdk_transport::TokioTimer;
+    use std::sync::Arc;
+
+    let selection =
+        CredentialSelection::new(credential.account(), credential.tenant(), Audience::Fabric)
+            .map_err(|_| failure("invalid_configuration", "Invalid credential selection.", 2))?;
+    let broker_identity = credential.is_broker();
+    let credential = credential.connect(identity_client).await?;
+    let sdk = Client::with_context(RequestContext::with_endpoint(
+        credential,
+        selection,
+        endpoint.clone(),
+    ));
+    let executor = HttpExecutor::new(client, Arc::new(TokioTimer), ExecutionOptions::default())
+        .map_err(|_| failure("transport_failed", "The HTTP executor could not start.", 1))?
+        .with_endpoint(endpoint);
+    execute_authenticated_injected(
+        command,
+        sdk,
+        executor,
+        current,
+        home,
+        settings,
+        state,
+        broker_identity,
+        get_inputs,
+    )
+    .await
+}
+
+#[cfg(any(windows, feature = "headless"))]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "The existing authenticated host with explicit GET capabilities."
+)]
+async fn execute_authenticated_injected(
+    command: NativeCommand<'_>,
+    sdk: fabric_sdk::Client,
+    executor: fabric_sdk_http::HttpExecutor,
+    current: &str,
+    home: fabric_cli_context::HomeContext,
+    settings: settings::NativeSettings,
+    state: &mut BatchState,
+    broker_identity: bool,
+    get_inputs: Option<get::Inputs<'_>>,
+) -> Result<get::Delivery, Failure> {
+    use fabric_cli::session::ReadSession;
+    use std::sync::Arc;
     let now = azure_core::time::OffsetDateTime::now_utc();
     let timestamp = fabric_cli_output::Timestamp::parse(format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:06}Z",
@@ -601,7 +973,10 @@ async fn execute(
     let session = ReadSession {
         sdk: &sdk,
         executor: &executor,
-        tenant,
+        tenant: fabric_cli_context::Element::tenant(
+            sdk.selection().tenant(),
+            sdk.selection().tenant(),
+        ),
         current_path: current,
         home,
         timestamp,
@@ -612,10 +987,18 @@ async fn execute(
             let command = settings
                 .read_command(command)
                 .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
-            session
-                .with_source_operations(&executor)
-                .dispatch(&command, std::future::pending())
-                .await
+            if command.kind == fabric_cli::parser::ReadKind::Get {
+                Ok(get::dispatch(&session, &executor, &command, get_inputs).await)
+            } else {
+                session
+                    .with_source_operations(&executor)
+                    .dispatch_with_evidence(&command, std::future::pending())
+                    .await
+                    .map(|output| {
+                        let outcome = crate::batch_state::read_outcome(&output);
+                        get::Delivery::plan(output.plan, outcome)
+                    })
+            }
         }
         NativeCommand::Job(command) => {
             let mut command = command.clone();
@@ -628,40 +1011,54 @@ async fn execute(
                 reads: &session,
                 jobs: Arc::new(fabric_cli_jobs::HttpJobExecutor::new(executor.clone())),
             }
-            .dispatch(&command, std::future::pending())
+            .dispatch_with_evidence(&command, std::future::pending())
             .await
+            .map(job_dispatch)
+            .map(|(plan, outcome)| get::Delivery::plan(plan, outcome))
         }
         NativeCommand::JobExecution(command) => {
             let command = settings
                 .job_command(&command.family_command())
                 .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
-            execute_job(&session, &executor, &command, settings.jobs).await
+            execute_job(&session, &executor, &command, settings.jobs)
+                .await
+                .map(job_dispatch)
+                .map(|(plan, outcome)| get::Delivery::plan(plan, outcome))
         }
         NativeCommand::JobMutation(command) => {
             let command = settings
                 .job_command(&command.family_command())
                 .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
-            execute_job(&session, &executor, &command, settings.jobs).await
+            execute_job(&session, &executor, &command, settings.jobs)
+                .await
+                .map(job_dispatch)
+                .map(|(plan, outcome)| get::Delivery::plan(plan, outcome))
         }
-        NativeCommand::Family(command) => execute_family(&session, &executor, command).await,
+        NativeCommand::Family(command) => {
+            execute_family(&session, &executor, command, state, broker_identity)
+                .await
+                .map(|(plan, outcome)| get::Delivery::plan(plan, outcome))
+        }
     };
     match result {
-        Ok(mut plan) => {
-            if restored {
+        Ok(mut delivery) => {
+            if state
+                .take_restored()
+                .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?
+            {
                 use fabric_cli_output::text::{self, Presentation};
                 let message = format!(
                     "Command context path: {}",
                     if current == "/" { "root" } else { current }
                 );
-                let mut warning = text::render_notice(
+                let warning = text::render_notice(
                     text::Notice::Warning(&message),
                     None,
                     Presentation::default(),
                 );
-                warning.records.append(&mut plan.records);
-                plan.records = warning.records;
+                delivery.prepend(warning);
             }
-            Ok(plan)
+            Ok(delivery)
         }
         Err(error) => {
             // Retain source output-before-error, rather than silently dropping it.
@@ -677,13 +1074,21 @@ async fn execute(
     }
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
+fn job_dispatch(
+    output: fabric_cli::jobs::JobDispatch,
+) -> (fabric_cli_output::text::TextPlan, CommandOutcome) {
+    let outcome = crate::batch_state::job_outcome(&output);
+    (output.plan, outcome)
+}
+
+#[cfg(any(windows, feature = "headless"))]
 async fn execute_job(
     session: &fabric_cli::session::ReadSession<'_>,
     executor: &fabric_sdk_http::HttpExecutor,
     command: &fabric_cli_jobs::JobCommand,
     config: fabric_cli_jobs::JobConfig,
-) -> Result<fabric_cli_output::text::TextPlan, fabric_cli_output::text::TextError> {
+) -> Result<fabric_cli::jobs::JobDispatch, fabric_cli_output::text::TextError> {
     fabric_cli::jobs::JobSession {
         reads: session,
         jobs: std::sync::Arc::new(fabric_cli_jobs::HttpJobExecutor::new(executor.clone())),
@@ -691,128 +1096,127 @@ async fn execute_job(
         ui: &NativeJobUi,
         config,
     }
-    .dispatch(command, std::future::pending())
+    .dispatch_with_evidence(command, std::future::pending())
     .await
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 async fn execute_family(
     session: &fabric_cli::session::ReadSession<'_>,
     executor: &fabric_sdk_http::HttpExecutor,
     command: &Invocation,
-) -> Result<fabric_cli_output::text::TextPlan, fabric_cli_output::text::TextError> {
-    use fabric_cli_context::PathElement;
-    use fabric_cli_local::NavigationState;
+    state: &mut BatchState,
+    broker_identity: bool,
+) -> Result<(fabric_cli_output::text::TextPlan, CommandOutcome), fabric_cli_output::text::TextError>
+{
     use fabric_cli_output::text::{self, OutputFormat, Presentation, TextOptions};
 
-    let result = async {
-        let store = crate::local_host::store()?;
-        store.initialize()?;
-        let local_root = std::env::current_dir()?;
-        let physical_files =
-            fabric_cli::families::native_resource_files::NativeResourceFileInputs::new(
-                local_root.clone(),
-                tokio::runtime::Handle::current(),
-            );
-        let mut navigation = NavigationState::new(
-            PathElement::from_fabric(session.tenant.clone()),
-            session.home.clone(),
-            local_root.to_string_lossy().into_owned(),
-            crate::local_host::session_id()?,
-            true,
-        )?;
-        let mut effects = NativeLocalEffects {
-            base: crate::local_host::Effects,
-            identity: fabric_cli_local::BrowserIdentity {
-                user: true,
-                claims: vec![
-                    ("upn".into(), session.sdk.selection().account().into()),
-                    ("tid".into(), session.sdk.selection().tenant().into()),
-                ],
-            },
-            capacities: None,
-        };
-        if matches!(command, Invocation::Local(local)
+    let result = state
+        .family(async |navigation| {
+            let store = crate::local_host::store()?;
+            store.initialize()?;
+            let local_root = std::env::current_dir()?;
+            let physical_files =
+                fabric_cli::families::native_resource_files::NativeResourceFileInputs::new(
+                    local_root.clone(),
+                    tokio::runtime::Handle::current(),
+                );
+            let mut effects = NativeLocalEffects {
+                base: crate::local_host::Effects,
+                identity: fabric_cli_local::BrowserIdentity {
+                    user: broker_identity,
+                    claims: if broker_identity {
+                        vec![
+                            ("upn".into(), session.sdk.selection().account().into()),
+                            ("tid".into(), session.sdk.selection().tenant().into()),
+                        ]
+                    } else {
+                        Vec::new()
+                    },
+                },
+                capacities: None,
+            };
+            if matches!(command, Invocation::Local(local)
                 if matches!(&local.command, fabric_cli_local::LocalCommand::ConfigSet { key, .. }
                     if key.eq_ignore_ascii_case("default_capacity")))
-        {
-            let list = session
-                .sdk
-                .list_capacities(session.executor, Default::default(), std::future::pending())
-                .await
-                .map_err(|_| {
-                    fabric_cli_local::LocalError::command(
-                        "ReadFailed",
-                        "Capacity metadata did not complete",
-                    )
-                })?;
-            effects.capacities = Some(
-                list.value
-                    .into_iter()
-                    .map(|capacity| fabric_cli_local::Capacity {
-                        display_name: capacity.display_name,
-                        id: capacity.id,
-                    })
-                    .collect(),
-            );
-        }
-        let mut mutations = NativeMutationUi::default();
-        let mut confirmation = terminal_ui::NativeAccessConfirmation::default();
-        let mut files = if consumes_definition_files(command) {
-            let files: Box<dyn fabric_cli_transfer::TransferFiles> =
-                if let Invocation::Deploy(deploy) = command {
-                    let argument = deploy.config.clone().ok_or_else(|| {
+            {
+                let list = session
+                    .sdk
+                    .list_capacities(session.executor, Default::default(), std::future::pending())
+                    .await
+                    .map_err(|_| {
                         fabric_cli_local::LocalError::command(
-                            "InvalidInput",
-                            "A deployment configuration path is required",
+                            "ReadFailed",
+                            "Capacity metadata did not complete",
                         )
                     })?;
-                    let home = transfer_paths::home_from_environment();
-                    let candidate = transfer_paths::candidate(
-                        &argument,
-                        &local_root,
-                        home.as_deref(),
-                        std::env::var_os("USERNAME").as_deref(),
-                    );
-                    Box::new(
-                        fabric_cli::families::transfer_files::TokioDeployFiles::defer_config(
-                            candidate,
-                            argument,
-                            Default::default(),
-                            tokio::runtime::Handle::current(),
-                        ),
-                    )
-                } else if let Invocation::Transfer(transfer) = command
-                    && matches!(
-                        transfer.kind,
-                        fabric_cli_transfer::TransferKind::Import
-                            | fabric_cli_transfer::TransferKind::Export
-                            | fabric_cli_transfer::TransferKind::BulkExport
-                    )
-                {
-                    let tokens = if transfer.kind == fabric_cli_transfer::TransferKind::Import {
-                        transfer.input.as_deref()
-                    } else {
-                        transfer.output.as_deref()
-                    };
-                    let input =
-                        tokens
-                            .map(fabric_cli_transfer::process_tokens)
-                            .ok_or_else(|| {
-                                fabric_cli_local::LocalError::command(
-                                    "InvalidInput",
-                                    "A transfer path is required",
-                                )
-                            })?;
-                    let home = transfer_paths::home_from_environment();
-                    let candidate = transfer_paths::candidate(
-                        &input,
-                        &local_root,
-                        home.as_deref(),
-                        std::env::var_os("USERNAME").as_deref(),
-                    );
-                    if transfer.kind == fabric_cli_transfer::TransferKind::Import {
+                effects.capacities = Some(
+                    list.value
+                        .into_iter()
+                        .map(|capacity| fabric_cli_local::Capacity {
+                            display_name: capacity.display_name,
+                            id: capacity.id,
+                        })
+                        .collect(),
+                );
+            }
+            let mut mutations = NativeMutationUi::default();
+            let mut confirmation = terminal_ui::NativeAccessConfirmation::default();
+            let mut files = if consumes_definition_files(command) {
+                let files: Box<dyn fabric_cli_transfer::TransferFiles> =
+                    if let Invocation::Deploy(deploy) = command {
+                        let argument = deploy.config.clone().ok_or_else(|| {
+                            fabric_cli_local::LocalError::command(
+                                "InvalidInput",
+                                "A deployment configuration path is required",
+                            )
+                        })?;
+                        let home = transfer_paths::home_from_environment();
+                        let candidate = transfer_paths::candidate(
+                            &argument,
+                            &local_root,
+                            home.as_deref(),
+                            std::env::var_os("USERNAME").as_deref(),
+                        );
                         Box::new(
+                            fabric_cli::families::transfer_files::TokioDeployFiles::defer_config(
+                                candidate,
+                                argument,
+                                Default::default(),
+                                tokio::runtime::Handle::current(),
+                            ),
+                        )
+                    } else if let Invocation::Transfer(transfer) = command
+                        && matches!(
+                            transfer.kind,
+                            fabric_cli_transfer::TransferKind::Import
+                                | fabric_cli_transfer::TransferKind::Export
+                                | fabric_cli_transfer::TransferKind::BulkExport
+                        )
+                    {
+                        let tokens = if transfer.kind == fabric_cli_transfer::TransferKind::Import {
+                            transfer.input.as_deref()
+                        } else {
+                            transfer.output.as_deref()
+                        };
+                        let input =
+                            tokens
+                                .map(fabric_cli_transfer::process_tokens)
+                                .ok_or_else(|| {
+                                    fabric_cli_local::LocalError::command(
+                                        "InvalidInput",
+                                        "A transfer path is required",
+                                    )
+                                })?;
+                        let home = transfer_paths::home_from_environment();
+                        let candidate = transfer_paths::candidate(
+                            &input,
+                            &local_root,
+                            home.as_deref(),
+                            std::env::var_os("USERNAME").as_deref(),
+                        );
+                        if transfer.kind == fabric_cli_transfer::TransferKind::Import {
+                            Box::new(
                         fabric_cli::families::transfer_files::TokioTransferFiles::defer_import_root(
                             candidate,
                             input,
@@ -820,8 +1224,8 @@ async fn execute_family(
                             tokio::runtime::Handle::current(),
                         ),
                     )
-                    } else {
-                        Box::new(
+                        } else {
+                            Box::new(
                         fabric_cli::families::transfer_files::TokioTransferFiles::defer_export_root(
                             candidate,
                             input,
@@ -829,74 +1233,77 @@ async fn execute_family(
                             tokio::runtime::Handle::current(),
                         ),
                     )
-                    }
-                } else {
-                    Box::new(
-                        fabric_cli::families::transfer_files::TokioTransferFiles::new(
-                            local_root,
-                            None,
-                            Default::default(),
-                            tokio::runtime::Handle::current(),
+                        }
+                    } else {
+                        Box::new(
+                            fabric_cli::families::transfer_files::TokioTransferFiles::new(
+                                local_root,
+                                None,
+                                Default::default(),
+                                tokio::runtime::Handle::current(),
+                            )
+                            .await?,
                         )
-                        .await?,
-                    )
-                };
-            Some(files)
-        } else {
-            None
-        };
-        let mut families = fabric_cli::families::FamilySession {
-            reads: session,
-            http: executor,
-            store: &store,
-            navigation: &mut navigation,
-            local: &mut effects,
-            mutations: &mut mutations,
-            confirmation: Some(&mut confirmation),
-            transfer_ui: &NativeTransferUi,
-            transfer_files: files
-                .as_mut()
-                .map(|files| files.as_mut() as &mut dyn fabric_cli_transfer::TransferFiles),
-            resource_files: None,
-        };
-        let mut output = if matches!(command, Invocation::Deploy(_)) {
-            let inputs = deploy_inputs::snapshot_environment().map_err(|error| {
-                fabric_cli_local::LocalError::command("InvalidInput", error.to_string())
-            })?;
-            families
-                .dispatch_with_deploy_inputs(command, &inputs, std::future::pending())
-                .await?
-        } else if matches!(
-            command,
-            Invocation::Resource(fabric_cli_mutations::frontdoor::ResourceCommand::Remove { .. })
-        ) {
-            let mut removal = NativeMutationUi::default();
-            let mut output = families
-                .dispatch_with_removal_ui(command, &mut removal, std::future::pending())
-                .await?;
-            let mut notices = std::mem::take(&mut removal.records);
+                    };
+                Some(files)
+            } else {
+                None
+            };
+            let mut families = fabric_cli::families::FamilySession {
+                reads: session,
+                http: executor,
+                store: &store,
+                navigation,
+                local: &mut effects,
+                mutations: &mut mutations,
+                confirmation: Some(&mut confirmation),
+                transfer_ui: &NativeTransferUi,
+                transfer_files: files
+                    .as_mut()
+                    .map(|files| files.as_mut() as &mut dyn fabric_cli_transfer::TransferFiles),
+                resource_files: None,
+            };
+            let mut output = if matches!(command, Invocation::Deploy(_)) {
+                let inputs = deploy_inputs::snapshot_environment().map_err(|error| {
+                    fabric_cli_local::LocalError::command("InvalidInput", error.to_string())
+                })?;
+                families
+                    .dispatch_with_deploy_inputs(command, &inputs, std::future::pending())
+                    .await?
+            } else if matches!(
+                command,
+                Invocation::Resource(
+                    fabric_cli_mutations::frontdoor::ResourceCommand::Remove { .. }
+                )
+            ) {
+                let mut removal = NativeMutationUi::default();
+                let mut output = families
+                    .dispatch_with_removal_ui(command, &mut removal, std::future::pending())
+                    .await?;
+                let mut notices = std::mem::take(&mut removal.records);
+                notices.append(&mut output.plan.records);
+                output.plan.records = notices;
+                output
+            } else if matches!(
+                command,
+                Invocation::Resource(
+                    fabric_cli_mutations::frontdoor::ResourceCommand::Copy { .. }
+                        | fabric_cli_mutations::frontdoor::ResourceCommand::Move { .. }
+                )
+            ) {
+                families
+                    .dispatch_with_physical_files(command, &physical_files, std::future::pending())
+                    .await?
+            } else {
+                families.dispatch(command, std::future::pending()).await?
+            };
+            let mut notices = std::mem::take(&mut mutations.records);
             notices.append(&mut output.plan.records);
             output.plan.records = notices;
-            output
-        } else if matches!(
-            command,
-            Invocation::Resource(
-                fabric_cli_mutations::frontdoor::ResourceCommand::Copy { .. }
-                    | fabric_cli_mutations::frontdoor::ResourceCommand::Move { .. }
-            )
-        ) {
-            families
-                .dispatch_with_physical_files(command, &physical_files, std::future::pending())
-                .await?
-        } else {
-            families.dispatch(command, std::future::pending()).await?
-        };
-        let mut notices = std::mem::take(&mut mutations.records);
-        notices.append(&mut output.plan.records);
-        output.plan.records = notices;
-        Ok::<_, fabric_cli_local::LocalError>(output.plan)
-    }
-    .await;
+            let outcome = crate::batch_state::family_outcome(&output);
+            Ok::<_, fabric_cli_local::LocalError>((output.plan, outcome))
+        })
+        .await;
     match result {
         Ok(plan) => Ok(plan),
         Err(fabric_cli_local::LocalError::Text(error)) => Err(error),
@@ -908,18 +1315,22 @@ async fn execute_family(
             &TextOptions::default(),
             &text::ascii_width,
             Presentation::default(),
-        ),
+        )
+        .map(|plan| {
+            let outcome = crate::batch_state::error_outcome(&error.command_error(), plan.exit_code);
+            (plan, outcome)
+        }),
     }
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 struct NativeLocalEffects {
     base: crate::local_host::Effects,
     identity: fabric_cli_local::BrowserIdentity,
     capacities: Option<Vec<fabric_cli_local::Capacity>>,
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 impl fabric_cli_local::LocalEffects for NativeLocalEffects {
     fn clear_cli_cache(&mut self) -> Result<(), fabric_cli_local::LocalError> {
         self.base.clear_cli_cache()
@@ -947,10 +1358,9 @@ impl fabric_cli_local::LocalEffects for NativeLocalEffects {
     }
 }
 
-#[cfg(windows)]
+#[cfg_attr(not(any(windows, feature = "headless")), allow(dead_code))]
 struct NativeTransferUi;
 
-#[cfg(windows)]
 impl fabric_cli_transfer::TransferUi for NativeTransferUi {
     fn emit(
         &self,
@@ -993,10 +1403,10 @@ impl fabric_cli_transfer::TransferUi for NativeTransferUi {
         Box::pin(async move { fabric_cli::console::select_items(names).await })
     }
 }
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 struct NativeJobUi;
 
-#[cfg(windows)]
+#[cfg(any(windows, feature = "headless"))]
 impl fabric_cli_jobs::JobUi for NativeJobUi {
     fn emit(
         &self,

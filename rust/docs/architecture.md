@@ -25,6 +25,8 @@ layers:
 | `capabilities/deployment/` | Deployment workflows and definition transfer adapters |
 | `capabilities/local/` | Local configuration, navigation and platform commands |
 | `hosts/cli/` | Executable composition and CLI-specific context, query and presentation |
+| `hosts/repl/` | Removable shell loop and opt-in Reedline terminal adapter |
+| `hosts/update/` | Pinned-trust release verification and optional standalone updater |
 | `infrastructure/core/` | Shared contracts and ordered JSON encoding |
 | `infrastructure/identity/` | Credential selection and isolated Windows interop |
 | `infrastructure/http/` | Shared HTTP execution and optional native transport |
@@ -157,6 +159,23 @@ Direct SDK consumer ------------------------+
 
 MCP and Azure DevOps task hosts are potential additional consumers of the SDK
 and deployment workflows, not implemented hosts or new dependency exceptions.
+
+### Optional terminal shell
+
+`fabric-cli-repl` is a CLI-layer package with an empty default feature set. Its
+pure shell loop accepts caller-owned input and command callbacks; only its
+`reedline-editor` feature selects Reedline. The executable's optional `repl`
+feature connects that adapter through a private binary child module to the
+existing dispatcher and session state. No application-private API is promoted
+into the SDK, and neither SDK nor default CLI consumers acquire terminal
+dependencies.
+
+Interactive execution explicitly selects in-memory navigation: command-line
+context-file restoration and persistence are disabled, including when a
+configuration store enables persistence. Definition transfer receives the same
+runtime-mode selection. Terminal support is checked before any configuration or
+credential setup. Removing the CLI feature edge and private shim removes the
+terminal component without rewriting shared command or batch behavior.
 
 ### Focused workspace SDK
 

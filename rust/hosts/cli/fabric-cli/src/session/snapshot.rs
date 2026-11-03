@@ -64,7 +64,7 @@ impl Lookup for Snapshot {
 }
 
 impl Snapshot {
-    #[cfg(feature = "native-read")]
+    #[cfg(feature = "native-host")]
     pub(crate) fn cached_folders(
         &self,
         workspace: Arc<Element>,
@@ -80,12 +80,12 @@ impl Snapshot {
             .transpose()
     }
 
-    #[cfg(feature = "native-read")]
+    #[cfg(feature = "native-host")]
     pub(crate) fn ready(&self, request: LookupRequest<'_>) -> bool {
         self.loaded.contains(&scope(request))
     }
 
-    #[cfg(feature = "native-read")]
+    #[cfg(feature = "native-host")]
     pub(crate) async fn load_lookup(
         &mut self,
         session: &ReadSession<'_>,

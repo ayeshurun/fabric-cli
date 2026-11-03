@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::{
-    RootCertificate, TransportError, TransportOptions, TrustPolicy, connector::Connector,
-    decode::decoded,
+    ProxyPolicy, RootCertificate, TransportError, TransportOptions, TrustPolicy,
+    connector::Connector, decode::decoded,
 };
 use async_trait::async_trait;
 use azure_core::{
     Bytes,
     error::ErrorKind,
-    http::{AsyncRawResponse, Body, HttpClient, Method, Request, headers::Headers},
+    http::{AsyncRawResponse, Body, HttpClient, Method, Request, Url, headers::Headers},
 };
 use futures_util::TryStreamExt;
 use http_body_util::{BodyExt, Full, StreamBody, combinators::UnsyncBoxBody};
@@ -34,6 +34,7 @@ type NativeClient = Client<TimeoutConnector<HttpsConnector<Connector>>, RequestB
 #[derive(Clone)]
 pub struct NativeHttpClient {
     client: NativeClient,
+    metadata_endpoint: Option<Url>,
 }
 
 impl NativeHttpClient {
@@ -43,10 +44,62 @@ impl NativeHttpClient {
     /// Returns sanitized typed configuration, trust and client-build failures.
     pub fn new(options: TransportOptions) -> Result<Self, TransportError> {
         let connector = Connector::new(options.proxy.clone())?;
-        Self::build(options, connector)
+        Self::build(options, connector, None)
     }
 
-    fn build(options: TransportOptions, connector: Connector) -> Result<Self, TransportError> {
+    /// Constructs a dedicated GET-only managed-identity metadata client.
+    ///
+    /// Only the exact selected HTTP origin and path are accepted. The endpoint
+    /// must use a literal loopback or link-local IP; DNS, proxies, redirects,
+    /// service HTTPS requests, endpoint queries and user information are refused.
+    /// Credential adapters must independently validate provider query parameters.
+    ///
+    /// # Errors
+    /// Returns sanitized configuration or client-construction errors.
+    pub fn for_managed_identity(
+        options: TransportOptions,
+        exact_endpoint: Url,
+    ) -> Result<Self, TransportError> {
+        Self::validate_metadata_endpoint(&options, &exact_endpoint)?;
+        let connector = Connector::new(ProxyPolicy::None)?;
+        Self::build(options, connector, Some(exact_endpoint))
+    }
+
+    fn validate_metadata_endpoint(
+        options: &TransportOptions,
+        endpoint: &Url,
+    ) -> Result<(), TransportError> {
+        let local = endpoint.host_str().is_some_and(|host| {
+            host.trim_matches(['[', ']'])
+                .parse::<std::net::IpAddr>()
+                .is_ok_and(|address| match address {
+                    std::net::IpAddr::V4(address) => {
+                        address.is_loopback() || address.is_link_local()
+                    }
+                    std::net::IpAddr::V6(address) => {
+                        address.is_loopback() || address.is_unicast_link_local()
+                    }
+                })
+        });
+        if !local
+            || endpoint.scheme() != "http"
+            || endpoint.port_or_known_default() == Some(0)
+            || !endpoint.username().is_empty()
+            || endpoint.password().is_some()
+            || endpoint.query().is_some()
+            || endpoint.fragment().is_some()
+            || !matches!(options.proxy, ProxyPolicy::None)
+        {
+            return Err(TransportError::InvalidConfiguration);
+        }
+        Ok(())
+    }
+
+    fn build(
+        options: TransportOptions,
+        connector: Connector,
+        metadata_endpoint: Option<Url>,
+    ) -> Result<Self, TransportError> {
         options.validate()?;
         let provider = Arc::new(rustls::crypto::ring::default_provider());
         let TrustPolicy::Platform { additional_roots } = options.trust;
@@ -59,7 +112,9 @@ impl NativeHttpClient {
             .with_custom_certificate_verifier(verifier)
             .with_no_client_auth();
         let mut https = HttpsConnector::from((connector, tls));
-        https.enforce_https();
+        if metadata_endpoint.is_none() {
+            https.enforce_https();
+        }
         let mut timed = TimeoutConnector::new(https);
         timed.set_connect_timeout(Some(options.connect_timeout));
         timed.set_read_timeout(Some(options.read_timeout));
@@ -74,6 +129,7 @@ impl NativeHttpClient {
             .http1_max_buf_size(32 * 1024);
         Ok(Self {
             client: builder.build(timed),
+            metadata_endpoint,
         })
     }
 
@@ -84,7 +140,19 @@ impl NativeHttpClient {
     ) -> Result<Self, TransportError> {
         let mut connector = Connector::new(options.proxy.clone())?;
         connector.test_address = Some(address);
-        Self::build(options, connector)
+        Self::build(options, connector, None)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_managed_identity_test(
+        options: TransportOptions,
+        endpoint: Url,
+        address: std::net::SocketAddr,
+    ) -> Result<Self, TransportError> {
+        Self::validate_metadata_endpoint(&options, &endpoint)?;
+        let mut connector = Connector::new(ProxyPolicy::None)?;
+        connector.test_address = Some(address);
+        Self::build(options, connector, Some(endpoint))
     }
 }
 
@@ -97,7 +165,15 @@ impl fmt::Debug for NativeHttpClient {
 #[async_trait]
 impl HttpClient for NativeHttpClient {
     async fn execute_request(&self, request: &Request) -> azure_core::Result<AsyncRawResponse> {
-        if request.url().scheme() != "https"
+        let allowed = match &self.metadata_endpoint {
+            Some(endpoint) => {
+                request.method() == Method::Get
+                    && request.url().origin() == endpoint.origin()
+                    && request.url().path() == endpoint.path()
+            }
+            None => request.url().scheme() == "https",
+        };
+        if !allowed
             || !request.url().username().is_empty()
             || request.url().password().is_some()
             || request.url().fragment().is_some()

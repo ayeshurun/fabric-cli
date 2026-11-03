@@ -97,6 +97,62 @@ python -m unittest discover -s rust\scripts -p test_release_verify.py -v
 Those synthetic tests, including their real test-interpreter subprocess checks,
 are **not** a fab executable, downloaded-binary or clean-machine receipt.
 
+## Bounded offline native engineering harness
+
+[`native_acceptance.py`](../scripts/native_acceptance.py) collects a separate
+offline engineering subset for an exact frozen source tree and explicitly
+held default/optional-combined binaries. The [native harness contract and
+controller hooks](../tests/acceptance/native/README.md) specify executable
+commands, closed input schemas, feature/build custody, registered-native-host
+evidence and the shared-host lease required before execution.
+
+The harness adds no shipped Python dependency and performs no build, download,
+credential discovery, service call, signing or publishing. It requires an
+already isolated credential-free native execution identity, enforced outbound
+isolation, externally pinned controller records, absolute binary paths/digests,
+and an approved artifact root outside the candidate. A matching hash is not
+publisher trust or execution authorization. Dirty engineering trees require a
+complete exact dirty-file manifest and before/after rechecks.
+The candidate root must equal the Git worktree top level. Missing nondeleted
+source entries fail rather than becoming null digests. The controller also
+supplies independent Git/Python executable digests; tools are rechecked before
+and after execution and are never discovered through PATH.
+
+Cases cover offline help/version/redirected stdin; exact registered Unix
+FIFO/AKS/retarget tests; local updater replacement/recovery contracts; and real
+POSIX kernel-PTY lifecycle checks for quit, EOF, lexical failure and interrupt
+with raw/echo/canonical restoration. The source-frozen bounded-helper suite is
+selectable only with exact pins for both dedicated fixture binaries and an
+explicit budget covering its real parent-lifetime timeout.
+PTY protocol checks do not prove visual terminal UX. Standard-library Windows
+PTY is unavailable and remains explicitly unrun pending native/manual terminal
+evidence; no fake editor or new dependency substitutes for that requirement.
+
+Per-command and whole-run deadlines, bounded 64 KiB stream capture, owned
+Windows Job/POSIX process-group cleanup, exact artifact/feature/toolchain
+records and incremental metadata-only receipts preserve failures and partial
+coverage. Unknown schemas, wrong binaries/features/platforms, source drift and
+zero-test success are rejected. No `run` exit code means release acceptance:
+exit 1 is failure/rejection and exit 2 retains evidence with unresolved gates.
+Live broker/identity policy, trusted production updates/signing, durable health
+rollback, real terminal UX and strict tool-absence clean-machine proof stay
+blocked. Existing cross-compilation checks are not native runtime receipts.
+Bounded-helper source readiness is not execution evidence. Its gate stays
+blocked until all nine exact native fixture contracts pass on an approved
+host with unchanged source/artifacts; the legacy self-replace fixture is never
+selected as substitute evidence.
+Cursor-query replies use a bounded queue and nonblocking PTY writes; the
+synthetic raw-child flood counterexample must execute on POSIX, not be replaced
+by a Windows skip. JSON reads remain bounded even if a file grows, and duplicate
+keys, exponent-overflow/nonfinite numbers and excessive nesting reject safely.
+Development units run only after a fresh numbered controller grant, using the
+pinned interpreter and an approved artifact working directory. No current
+source-freeze unit or native execution result is implied by these instructions.
+
+No native execution, remote dispatch, publication authority or GA readiness is
+claimed by adding this tooling. The controller schedules actual native hosts
+only after candidate freeze, review and the required authorization.
+
 ## Clean-machine matrix and acceptance checklist
 
 Use a fresh disposable image, not a developer profile with cleared environment.

@@ -4,6 +4,8 @@
 [workspace]
 members = ["capabilities/*/*", "hosts/*/*", "infrastructure/*/*", "sdk/*"]
 default-members = [
+    "hosts/update/fabric-cli-update",
+    "hosts/repl/fabric-cli-repl",
     "infrastructure/core/fabric-core",
     "infrastructure/core/fabric-core-json",
     "infrastructure/identity/fabric-identity",
@@ -46,6 +48,9 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
+fabric-cli-repl = { path = "hosts/repl/fabric-cli-repl", default-features = false }
+fabric-cli-update = { path = "hosts/update/fabric-cli-update", default-features = false }
+reedline = { version = "=0.52.1", default-features = false }
 fabric-cli-context = { path = "hosts/cli/fabric-cli-context" }
 fabric-core = { path = "infrastructure/core/fabric-core" }
 fabric-core-json = { path = "infrastructure/core/fabric-core-json" }
@@ -78,6 +83,10 @@ fabric-sdk-http = { path = "infrastructure/http/fabric-sdk-http" }
 fabric-sdk-transport = { path = "infrastructure/http/fabric-sdk-transport", default-features = false }
 fabric-identity-windows = { path = "infrastructure/identity/fabric-identity-windows" }
 azure_core = { version = "1.1.0", default-features = false }
+azure_identity = { version = "=1.0.0", default-features = false }
+chrono = { version = "=0.4.45", default-features = false, features = ["clock", "std"] }
+ring = { version = "=0.17.14", default-features = false, features = ["alloc"] }
+semver = { version = "=1.0.28", default-features = false, features = ["std"] }
 base64 = "0.22.1"
 yaml-rust2 = { version = "=0.10.4", default-features = false }
 fancy-regex = { version = "=0.16.2", default-features = false, features = ["std", "unicode"] }
@@ -109,7 +118,7 @@ tokio-util = { version = "=0.7.20", default-features = false, features = ["io"] 
 rcgen = { version = "=0.14.10", default-features = false, features = ["ring", "crypto"] }
 tokio-rustls = { version = "=0.26.6", default-features = false, features = ["ring", "tls12"] }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
-windows = { version = "=0.62.2", default-features = false, features = ["std", "Security_Authentication_Web_Core", "Security_Credentials", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_WindowsAndMessaging"] }
+windows = { version = "=0.62.2", default-features = false, features = ["std", "Security_Authentication_Web_Core", "Security_Credentials", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_WindowsAndMessaging", "Win32_Security_Cryptography"] }
 windows-future = { version = "=0.3.2", default-features = false, features = ["std"] }
 
 [workspace.lints.rust]

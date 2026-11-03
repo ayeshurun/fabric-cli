@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::batch_state::CommandOutcome;
 #[cfg(windows)]
 use fabric_cli::auth_commands as commands;
 use fabric_cli::parser::AuthCommand;
 use serde_json::json;
-use std::{
-    io::{self, Write},
-    process::ExitCode,
-};
+use std::io::{self, Write};
 
-fn error(code: &'static str, message: &str, exit: u8) -> io::Result<ExitCode> {
+fn error(code: &'static str, message: &str, exit: u8) -> io::Result<CommandOutcome> {
     let mut stderr = io::stderr().lock();
     serde_json::to_writer(
         &mut stderr,
@@ -18,10 +16,10 @@ fn error(code: &'static str, message: &str, exit: u8) -> io::Result<ExitCode> {
     )
     .map_err(io::Error::other)?;
     writeln!(stderr)?;
-    Ok(ExitCode::from(exit))
+    Ok(CommandOutcome::Returned(exit))
 }
 
-pub(crate) fn run(command: &AuthCommand) -> io::Result<ExitCode> {
+pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
     #[cfg(windows)]
     {
         let options = match fabric_identity::LoginOptions::new(
@@ -55,7 +53,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<ExitCode> {
             )
             .await
         });
-        commands::write_result(result, io::stdout().lock(), io::stderr().lock()).map(ExitCode::from)
+        write_auth_outcome(result, io::stdout().lock(), io::stderr().lock())
     }
     #[cfg(not(windows))]
     {
@@ -66,6 +64,22 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<ExitCode> {
             1,
         )
     }
+}
+
+#[cfg(windows)]
+fn write_auth_outcome(
+    result: Result<serde_json::Value, commands::Failure>,
+    stdout: impl Write,
+    stderr: impl Write,
+) -> io::Result<CommandOutcome> {
+    let cancelled = matches!(&result, Err(("cancelled", _)));
+    let outcome = commands::write_outcome(result, stdout, stderr)?.into();
+    Ok(match (cancelled, outcome) {
+        (true, CommandOutcome::Stop(exit) | CommandOutcome::Returned(exit)) => {
+            CommandOutcome::Cancelled(exit)
+        }
+        (_, outcome) => outcome,
+    })
 }
 
 #[cfg(windows)]
@@ -81,6 +95,13 @@ pub(crate) fn broker_error(
         BrokerError::InvalidResponse => "invalid_broker_response",
         BrokerError::ProviderUnavailable => "broker_unavailable",
         BrokerError::CompletionUnconfirmed { .. } => "completion_unconfirmed",
+        BrokerError::IdentityCapacityExhausted { .. } => "identity_capacity_exhausted",
+        BrokerError::CapacityExhausted { .. } => "broker_capacity_exhausted",
+        BrokerError::OperationInProgress => "authentication_busy",
+        BrokerError::SessionInvalidated => "session_invalidated",
+        BrokerError::CleanupPending { .. } => "cleanup_pending",
+        BrokerError::TimedOut => "timed_out",
+        BrokerError::CoordinationFailed => "coordination_failed",
         _ => "authentication_failed",
     };
     (code, error.to_string())
@@ -89,6 +110,18 @@ pub(crate) fn broker_error(
 #[cfg(windows)]
 struct WindowsBroker {
     options: fabric_identity::LoginOptions,
+}
+
+#[cfg(windows)]
+fn token_metadata(credential: &fabric_identity::WindowsCredential) -> Vec<commands::TokenMetadata> {
+    credential
+        .metadata()
+        .iter()
+        .map(|metadata| commands::TokenMetadata {
+            scope: metadata.scope,
+            expires_on: metadata.expires_on,
+        })
+        .collect()
 }
 
 #[cfg(windows)]
@@ -109,14 +142,14 @@ impl commands::Broker for WindowsBroker {
             fabric_identity::WindowsCredential::login(self.options.clone(), allow_interaction)
                 .await
                 .map_err(broker_error)?;
-        Ok(credential
-            .metadata()
-            .iter()
-            .map(|metadata| commands::TokenMetadata {
-                scope: metadata.scope,
-                expires_on: metadata.expires_on,
-            })
-            .collect())
+        Ok(token_metadata(&credential))
+    }
+
+    async fn status(&self) -> Result<Vec<commands::TokenMetadata>, commands::Failure> {
+        let credential = fabric_identity::WindowsCredential::status(self.options.clone())
+            .await
+            .map_err(broker_error)?;
+        Ok(token_metadata(&credential))
     }
 
     async fn logout(&self) -> Result<(), commands::Failure> {
@@ -132,6 +165,31 @@ mod tests {
     use fabric_identity::windows_broker::{BrokerError, NativeStage};
 
     #[test]
+    fn auth_cancellation_retains_its_reason_without_confusing_timeouts() {
+        for (code, expected) in [
+            ("cancelled", CommandOutcome::Cancelled(1)),
+            ("timed_out", CommandOutcome::Stop(1)),
+            ("cleanup_pending", CommandOutcome::Stop(1)),
+            ("completion_unconfirmed", CommandOutcome::Stop(1)),
+            ("signal_failed", CommandOutcome::Stop(1)),
+            ("authentication_failed", CommandOutcome::Returned(1)),
+        ] {
+            let mut error = Vec::new();
+            let actual = write_auth_outcome(
+                Err((code, "Synthetic failure".into())),
+                Vec::new(),
+                &mut error,
+            )
+            .unwrap();
+            assert_eq!(actual, expected);
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&error).unwrap()["error"]["code"],
+                code
+            );
+        }
+    }
+
+    #[test]
     fn existing_broker_error_classes_and_numeric_diagnostics_are_preserved() {
         for (error, expected) in [
             (BrokerError::InvalidConfiguration, "invalid_configuration"),
@@ -145,6 +203,28 @@ mod tests {
                 BrokerError::CompletionUnconfirmed { code: -1 },
                 "completion_unconfirmed",
             ),
+            (
+                BrokerError::IdentityCapacityExhausted { limit: 64 },
+                "identity_capacity_exhausted",
+            ),
+            (
+                BrokerError::CapacityExhausted {
+                    active: 4,
+                    limit: 4,
+                },
+                "broker_capacity_exhausted",
+            ),
+            (BrokerError::OperationInProgress, "authentication_busy"),
+            (BrokerError::SessionInvalidated, "session_invalidated"),
+            (
+                BrokerError::CleanupPending {
+                    active: 4,
+                    limit: 4,
+                },
+                "cleanup_pending",
+            ),
+            (BrokerError::TimedOut, "timed_out"),
+            (BrokerError::CoordinationFailed, "coordination_failed"),
             (
                 BrokerError::AccountsUnavailable { status: 99 },
                 "authentication_failed",

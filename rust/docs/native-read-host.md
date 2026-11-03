@@ -21,8 +21,9 @@ currently requires explicit `--force`, never implicit consent.
 Default and `windows-broker`-only builds retain `NotConfigured` for reads.
 `cargo build --locked -p fabric-cli --features native-read` opts into the
 Windows broker and existing Hyper/Rustls transport. The SDK still has no default
-credential or transport dependency. On other platforms the host fails explicitly;
-it never tries another provider.
+credential or transport dependency. Broker-only native execution is unsupported
+off Windows; the separate `headless` feature selects unattended providers without
+an interactive fallback.
 
 Native reads require **all three** non-secret environment selectors:
 `FAB_RUST_TENANT` (public-cloud tenant GUID), `FAB_RUST_ACCOUNT` (explicit UPN),
@@ -49,6 +50,84 @@ open sign-in UI or request unrelated OneLake/ARM consent. The separate explicit
 Interaction-required, account mismatch, unavailable provider, cancellation and
 other broker failures retain distinct sanitized diagnostics.
 
+### Headless credentials
+
+`cargo build --locked -p fabric-cli --features headless` installs the same native
+service-command executors on Windows, macOS and Linux, using explicit unattended
+authentication. It does not enable Windows broker code. Combining `headless`
+with `native-read` preserves broker behavior: an omitted mode retains the
+existing broker selection; set `FAB_RUST_AUTH_MODE` to opt into a headless mode.
+Headless-only builds require an explicit mode, even when a secret is present.
+Help, version and invalid arguments still run before credential configuration.
+
+All headless modes require `FAB_RUST_TENANT` (GUID), with `AZURE_TENANT_ID`
+as an explicit alias. Application/client selection uses `FAB_RUST_CLIENT_ID`
+(GUID), with `AZURE_CLIENT_ID` as an alias. Conflicting alias values fail.
+`FAB_RUST_ACCOUNT` is used only by the broker and is not required for headless
+commands. Service-principal labels use client IDs, never a manufactured UPN.
+
+| `FAB_RUST_AUTH_MODE` | Additional explicit inputs |
+| --- | --- |
+| `client-secret` | Client ID and `FAB_RUST_CLIENT_SECRET`; the secret is read once per command, never accepted in argv or saved |
+| `client-assertion` | Client ID and absolute local `FAB_RUST_ASSERTION_FILE` |
+| `workload-identity` | Client ID and `FAB_RUST_ASSERTION_FILE` or matching `AZURE_FEDERATED_TOKEN_FILE`; configured AKS workload federation |
+| `azure-pipelines` | Client ID, GUID `FAB_RUST_PIPELINES_SERVICE_CONNECTION_ID`, explicit `FAB_RUST_PIPELINES_OIDC_URI`, secret `SYSTEM_ACCESSTOKEN`, and matching running-job variables listed below |
+| `managed-identity-vm` | `FAB_RUST_MANAGED_IDENTITY=system` or `client`; `client` additionally requires a client ID; alternate Azure managed-host environment selectors must be absent |
+| `managed-identity-app-service` | The same explicit identity selector, exact platform `IDENTITY_ENDPOINT` and secret `IDENTITY_HEADER`; other Azure managed-host selectors must be absent |
+
+Managed identity does not default to system-assigned when a selector is missing.
+Only the selected VM IMDS endpoint or literal loopback/link-local App Service HTTP endpoint
+is permitted; arbitrary metadata URLs, credentials in URLs and cross-host
+fallbacks are rejected. The selected tenant remains explicit request-context
+metadata, not verified managed-token claims.
+
+Headless commands do not call `auth login`. The selected official Azure provider
+acquires and renews access tokens lazily through the injected native transport.
+Fabric, OneLake and ARM each request their exact single public-cloud audience.
+No Python, `az`, `azd`, developer-tool chain, browser, raw access-token input,
+plaintext token cache or implicit account fallback is used. Assertion files are
+bounded UTF-8 regular files, reread when an access token renews; configured AKS
+projected-file rotation is supported without a ten-minute assertion cache.
+Selection is revalidated at each command boundary. Shared batch/interactive
+navigation cannot be reused under a different provider, tenant, client or
+assertion-file binding. Managed-host contracts are additionally checked at every
+token request, including cache hits.
+App Service's platform header may rotate; each outgoing header is compared with
+a fresh `IDENTITY_HEADER` read. Endpoint/source drift or a header-rotation race
+fails closed without implicit retry. Header contents are never a batch identity
+fingerprint. The dedicated metadata client cannot send service requests or follow
+redirects and rejects proxies. Local App Service addresses outside literal
+loopback/link-local IPs are unsupported pending review.
+
+For `azure-pipelines`, explicitly map the pipeline's secret system access token
+to `SYSTEM_ACCESSTOKEN` in the task environment; never put it in argv, configuration
+files or logs. Capture `FAB_RUST_PIPELINES_OIDC_URI` from the selected running job,
+not an arbitrary federation endpoint. It must equal `SYSTEM_OIDCREQUESTURI` and
+the URI independently assembled from `SYSTEM_COLLECTIONURI`,
+`SYSTEM_TEAMPROJECTID`, `SYSTEM_HOSTTYPE`, `SYSTEM_PLANID` and `SYSTEM_JOBID`.
+Only canonical `https://dev.azure.com/{organization}/` collections and
+`build`/`rm`/`checks` hubs are accepted, with GUID project/plan/job IDs and no
+query, fragment, credentials or alternate ports.
+
+The actual official `AzurePipelinesCredential` 1.0.0 fetches a renewable OIDC
+assertion using that service connection and system token, then exchanges it at
+the exact selected tenant's public Entra endpoint. Its API reads the OIDC URI
+from process environment; the adapter never mutates environment and revalidates
+the captured run before construction, token/cache access and every HTTP send.
+Source drift fails closed, with no redirects, retries or fallback. A cache
+refresh fetches a fresh assertion; the system token itself is a caller snapshot.
+Batch identity binding includes provider, service connection and run endpoint,
+never the secret system token. Existing batch hooks need no interface change.
+Legacy DevOps hosts and generic CI federation are not implied. The new offline
+provider tests await controller-granted execution and independent review.
+
+Client-certificate authentication remains blocked on an approved OpenSSL/native
+dependency, packaging and explicit input contract; it is not implemented. See the
+[identity adapter contracts and remaining limits](../infrastructure/identity/fabric-identity/README.md).
+Offline provider/command tests do not establish live service, tenant-policy or
+cross-platform acceptance. Team identity/core review and live acceptance are
+required before GA.
+
 The CLI owns one current-thread Tokio runtime, Ctrl+C handling and an overall
 240-second read command deadline. Synchronous jobs with an explicit finite
 timeout use the [derived job watchdog](native-job-reads.md#command-watchdog-versus-job-timeout)
@@ -63,6 +142,40 @@ certify that mutation work stopped.
 Ordinary SDK/path/query failures retain the existing command envelopes: JSON on
 stdout, Unauthorized exit 4 and other command failures exit 1.
 Writer and rendering failures never become successful results.
+
+### Native GET definition and output boundary
+
+GET source composition now selects `ReadSession::dispatch_get_with_storage`
+instead of the metadata-only read dispatcher. It shares the existing SDK,
+credential, operation executor, metadata session and runtime. Definition consent,
+`--force`, metadata-property queries, decoding, enrichment and projection stay
+in the shared GET engine. A negative answer is a quiet no-op; EOF or failed UI
+delivery does not grant consent. Non-GET command paths are unchanged.
+
+Nonempty `--output` writes the projected value through the existing explicit
+local/Lakehouse classifier. Service/authentication errors are not local-fallback
+authority. Local files activate only after projection and destination selection.
+The local output clock is sampled after root resolution and cannot fall back to
+UTC or an epoch timestamp. Absent/empty output activates neither capability.
+On Unix, current-user tilde requires an absolute `HOME`; named-user expansion is
+unsupported. No Python or external path helper is used.
+
+Ctrl+C and the watchdog latch a command-local cancellation signal in that same
+runtime. GET drains cooperatively for at most two seconds, retaining accepted
+operation IDs, original typed errors and completed or possibly partial files.
+The owned dispatch survives through the final one-shot stream write, including
+typed failed-writer evidence and the original `BrokenPipe` kind. A bounded drain
+or runtime shutdown is not remote cancellation, file rollback or guaranteed
+cleanup completion.
+
+This new composition requires fresh offline executable validation and
+independent review. GET validates its exact tenant/account/client/provider
+binding without initializing navigation or reading cwd; subsequent non-GET
+commands initialize their actual navigation normally. The isolated Unix
+missing-cwd and injected remote-output cases still require execution.
+Windows/macOS/Linux live service, terminal and signed-artifact acceptance remain
+separate unrun gates. See
+[GET capability and evidence contracts](get-option-support.md).
 
 The default REST origin remains `https://api.fabric.microsoft.com`.
 The optional `FAB_API_ENDPOINT_FABRIC` selector supplies a hostname, not a URL,
@@ -153,12 +266,13 @@ ASCII table width/key/repr properties are supplied; non-ASCII requiring missing
 Unicode properties fails explicitly. JSON has no such text-property restriction.
 This is not full terminal/Unicode parity.
 
-Definitions, exports, `--verbose`/`--force`, OneLake and hidden-collection reads,
-folder GET, unsupported item types, service-principal/managed identity, sovereign
-clouds, persisted sessions/context, proxy configuration, batch/REPL and the other
-command families remain unsupported. Listing hidden names is not reading those
-resources. Existing SDK safety and workspace-enrichment omission contracts remain
-unchanged; metadata-helper parity is not full specialized GET parity.
+The mounted GET branches and their remaining acceptance gates are described
+above. Hidden-collection and OneLake-resource GET, unsupported item types and
+sovereign clouds remain outside this GET slice. Listing hidden names is not
+reading those resources. Other command-family availability follows each scoped
+host document rather than this GET implementation. Existing SDK safety and
+workspace-enrichment omission contracts remain unchanged; metadata-helper parity
+is not full specialized GET parity.
 
 ## Offline evidence versus live setup
 

@@ -62,6 +62,37 @@ fn metadata() -> Vec<TokenMetadata> {
     ]
 }
 
+#[tokio::test]
+async fn status_uses_the_dedicated_silent_boundary_instead_of_explicit_login() {
+    struct StatusBroker;
+    impl Broker for StatusBroker {
+        fn tenant(&self) -> &str {
+            TENANT
+        }
+
+        fn account(&self) -> &str {
+            ACCOUNT
+        }
+
+        async fn login(&self, _: bool) -> Result<Vec<TokenMetadata>, Failure> {
+            panic!("status must not authorize explicit login");
+        }
+
+        async fn status(&self) -> Result<Vec<TokenMetadata>, Failure> {
+            Ok(metadata())
+        }
+
+        async fn logout(&self) -> Result<(), Failure> {
+            panic!("status must not sign out");
+        }
+    }
+    let result = run_auth(&parsed("status", &[]), &StatusBroker, pending(), pending())
+        .await
+        .unwrap();
+    assert_eq!(result["tokens"].as_array().unwrap().len(), 3);
+    assert_eq!(result["logged_in"], true);
+}
+
 #[derive(Debug, Eq, PartialEq)]
 enum Effect {
     Login {

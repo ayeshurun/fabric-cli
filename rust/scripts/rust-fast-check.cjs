@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {execFileSync, spawnSync} = require('node:child_process');
+const {reverseConsumers} = require('./impact-plan.cjs');
 
 const REPO = 'eisber/fabric-cli';
 const ARGV_BASELINE = '3fa71a553551b49ceb83671f2f45a5ca5c02df21';
@@ -30,6 +31,7 @@ const LANES = Object.freeze({
 const CI_FILES = [
   '.github/workflows/rust-fast-check.yml', '.github/rust-fast-candidate.json',
   'rust/scripts/rust-fast-check.cjs', 'rust/scripts/rust-fast-check.test.cjs',
+  'rust/scripts/impact-plan.cjs', 'rust/scripts/impact-plan.test.cjs',
   'rust/scripts/rust-fast-requirements.txt',
   'rust/scripts/rust-fast-wheelhouse.py', 'rust/scripts/test_rust_fast_wheelhouse.py',
   'rust/scripts/pinned_python_source.py', 'rust/scripts/test_pinned_python_source.py',
@@ -110,17 +112,7 @@ function select(metadata, selectedLane) {
   const names = new Set(packages.map(pkg => pkg.name));
   const selected = new Set(selectedLane === 'baseline' ? names : LANES[selectedLane]);
   for (const name of selected) requireThat(names.has(name), `Missing lane package: ${name}`);
-  let changed;
-  do {
-    changed = false;
-    for (const pkg of packages) {
-      if (!selected.has(pkg.name) && pkg.dependencies.some(dep => selected.has(dep.name))) {
-        selected.add(pkg.name);
-        changed = true;
-      }
-    }
-  } while (changed);
-  return [...selected].sort();
+  return reverseConsumers(packages, [...selected]);
 }
 function prepare() {
   requireThat(receipts && path.isAbsolute(receipts), 'FAST_RECEIPTS must be an absolute private directory');

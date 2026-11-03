@@ -15,6 +15,23 @@ use crate::{
 use fabric_cli_context::{Element, NodeKind};
 use fabric_cli_output::CommandError;
 
+/// Validate the additive source GET entry without imposing legacy host limits.
+///
+/// A present empty output is falsey in the source and grants no file authority.
+/// Parsed verbose remains inert. Runtime UI/files are validated at their source
+/// boundary, after target discovery and projection rather than before consent.
+///
+/// # Errors
+/// Rejects non-GET commands and invalid stream output formats before discovery.
+pub fn source_preflight(command: &ReadCommand) -> Result<(), CommandError> {
+    if command.kind != ReadKind::Get {
+        return Err(errors::unsupported("The source GET host only executes GET"));
+    }
+    fabric_cli_output::text::OutputFormat::resolve(command.output_format.as_deref(), Some("json"))
+        .map_err(|_| errors::error("InvalidInput", "Invalid output format"))?;
+    Ok(())
+}
+
 /// Whether Python treats a nonempty query as an item metadata property.
 ///
 /// This deliberately checks the exact root before the first dot, not a parsed

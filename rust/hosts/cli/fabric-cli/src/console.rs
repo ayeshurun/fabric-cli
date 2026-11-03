@@ -3,7 +3,7 @@
 
 //! Explicit user-input adapters owned by the executable, not SDK libraries.
 
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 use fabric_cli_output::CommandError;
 use std::io::{self, BufRead, Write};
 
@@ -141,7 +141,7 @@ pub fn read_selection_with_prompt(
 /// Stdin and stderr are confined to a blocking worker so input cannot block the
 /// current-thread async runtime. Dropping this future does not interrupt an OS
 /// read; the native host's bounded runtime shutdown still applies.
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 pub async fn confirm(question: &str) -> Result<bool, CommandError> {
     let question = question.to_owned();
     prompt(
@@ -156,7 +156,7 @@ pub async fn confirm(question: &str) -> Result<bool, CommandError> {
 ///
 /// The caller controls prompt eligibility and cancellation. Dropping this
 /// future does not interrupt an OS read; the native host uses bounded shutdown.
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 pub async fn select_items(names: &[String]) -> Result<Vec<String>, CommandError> {
     let names = names.to_vec();
     prompt(
@@ -167,7 +167,7 @@ pub async fn select_items(names: &[String]) -> Result<Vec<String>, CommandError>
     .await
 }
 
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 async fn prompt<T: Send + 'static>(
     work: impl FnOnce() -> io::Result<T> + Send + 'static,
     worker_code: &'static str,
@@ -184,7 +184,7 @@ async fn prompt<T: Send + 'static>(
         .map_err(|error| CommandError::new(Some(error.to_string()), Some(input_code.into())))
 }
 
-#[cfg(all(test, feature = "native-read"))]
+#[cfg(all(test, feature = "native-host"))]
 mod tests {
     use super::*;
     use std::{sync::mpsc, time::Duration};

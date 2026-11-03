@@ -2,21 +2,29 @@
 // Licensed under the MIT License.
 
 //! Experimental CLI entry point, not a replacement for the Python `fab`.
+#![cfg_attr(test, deny(unnameable_test_items))]
 
 #[cfg(feature = "windows-broker")]
 mod auth;
+mod batch_state;
+#[cfg(feature = "headless")]
+mod headless;
 mod local_host;
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 mod native_read;
+#[cfg(feature = "repl")]
+mod repl_host;
+#[cfg(feature = "self-update")]
+mod update_host;
 
-#[cfg(not(feature = "native-read"))]
+use batch_state::{BatchState, CommandOutcome};
+#[cfg(not(feature = "native-host"))]
 use fabric_cli::HostError;
 use fabric_cli::parser::{
     Invocation,
-    batch::{self, BatchHost, BatchInvocation, CommandOutcome, CommandParseError},
+    batch::{self, BatchHost, BatchInvocation, CommandOutcome as BatchOutcome, CommandParseError},
     invalid_arguments_message, parse_args,
 };
-use fabric_cli_local::NavigationState;
 use fabric_cli_output::{json_dumps, text::OutputFormat};
 use serde::Serialize;
 use std::{
@@ -34,27 +42,67 @@ struct CommandError {
     message: String,
 }
 
-fn run() -> io::Result<ExitCode> {
-    dispatch(parse_args(std::env::args_os()), &mut None)
+#[cfg(feature = "self-update")]
+type UpdateLifetime = fabric_cli_update::ParentLifetime;
+#[cfg(not(feature = "self-update"))]
+type UpdateLifetime = ();
+
+fn run(_update_lifetime: &mut UpdateLifetime) -> io::Result<ExitCode> {
+    let arguments = std::env::args_os().collect::<Vec<_>>();
+    #[cfg(feature = "repl")]
+    if arguments.len() == 1 {
+        return repl_host::run();
+    }
+    let invocation = parse_args(arguments);
+    #[cfg(feature = "self-update")]
+    if let Ok(invocation) = &invocation {
+        if let Invocation::Update(command) = invocation {
+            return update_host::run(command, _update_lifetime).map(exit_status);
+        }
+        if let Some(outcome) = update_host::startup(invocation, _update_lifetime)? {
+            return Ok(exit_status(outcome));
+        }
+    }
+    let mut state = BatchState::capture();
+    dispatch(invocation, &mut state).map(exit_status)
+}
+
+fn exit_status(outcome: CommandOutcome) -> ExitCode {
+    match outcome {
+        CommandOutcome::Returned(exit)
+        | CommandOutcome::Stop(exit)
+        | CommandOutcome::Cancelled(exit) => ExitCode::from(exit),
+    }
 }
 
 fn dispatch(
     invocation: Result<Invocation, clap::Error>,
-    local_state: &mut Option<NavigationState>,
-) -> io::Result<ExitCode> {
+    local_state: &mut BatchState,
+) -> io::Result<CommandOutcome> {
     let (error, exit) = match invocation {
         Ok(Invocation::Batch(invocation)) => {
-            return batch::run(&invocation, &mut BatchExecution { local_state: None })
-                .map(ExitCode::from);
+            return batch::run(&invocation, &mut BatchExecution { local_state })
+                .map(CommandOutcome::Returned);
         }
         Ok(Invocation::Display(text)) => {
             write!(io::stdout().lock(), "{text}")?;
-            return Ok(ExitCode::SUCCESS);
+            return Ok(CommandOutcome::Returned(0));
         }
-        #[cfg(feature = "native-read")]
-        Ok(invocation @ Invocation::Local(_)) if matches!(&invocation, Invocation::Local(command) if local_host::needs_remote(command)) =>
+        #[cfg(feature = "self-update")]
+        Ok(Invocation::Update(_)) => {
+            write_error(
+                CommandError {
+                    code: "update_context",
+                    message: "Run fab-rs update as a separate invocation, outside batches and the interactive shell.".into(),
+                },
+                2,
+            )?;
+            return Ok(CommandOutcome::Returned(2));
+        }
+        #[cfg(feature = "native-host")]
+        Ok(invocation @ Invocation::Local(_)) if matches!(&invocation, Invocation::Local(command) if local_host::needs_remote(command, local_state)) =>
         {
-            return native_read::run_family(&invocation);
+            return native_read::run_family(&invocation, local_state);
         }
         Ok(Invocation::Local(command)) => return local_host::run(&command, local_state),
         Ok(Invocation::Access(command))
@@ -65,7 +113,7 @@ fn dispatch(
         {
             return local_host::local_access(&command);
         }
-        #[cfg(feature = "native-read")]
+        #[cfg(feature = "native-host")]
         Ok(
             invocation @ (Invocation::Access(_)
             | Invocation::Resource(_)
@@ -73,9 +121,9 @@ fn dispatch(
             | Invocation::Deploy(_)
             | Invocation::Table(_)),
         ) => {
-            return native_read::run_family(&invocation);
+            return native_read::run_family(&invocation, local_state);
         }
-        #[cfg(not(feature = "native-read"))]
+        #[cfg(not(feature = "native-host"))]
         Ok(
             Invocation::Access(_)
             | Invocation::Resource(_)
@@ -89,15 +137,19 @@ fn dispatch(
             },
             1,
         ),
-        #[cfg(feature = "native-read")]
-        Ok(Invocation::Read(command)) => return native_read::run(&command),
-        #[cfg(feature = "native-read")]
-        Ok(Invocation::JobRead(command)) => return native_read::run_job(&command),
-        #[cfg(feature = "native-read")]
-        Ok(Invocation::JobRun(command)) => return native_read::run_job_execution(&command),
-        #[cfg(feature = "native-read")]
-        Ok(Invocation::JobMutation(command)) => return native_read::run_job_mutation(&command),
-        #[cfg(not(feature = "native-read"))]
+        #[cfg(feature = "native-host")]
+        Ok(Invocation::Read(command)) => return native_read::run(&command, local_state),
+        #[cfg(feature = "native-host")]
+        Ok(Invocation::JobRead(command)) => return native_read::run_job(&command, local_state),
+        #[cfg(feature = "native-host")]
+        Ok(Invocation::JobRun(command)) => {
+            return native_read::run_job_execution(&command, local_state);
+        }
+        #[cfg(feature = "native-host")]
+        Ok(Invocation::JobMutation(command)) => {
+            return native_read::run_job_mutation(&command, local_state);
+        }
+        #[cfg(not(feature = "native-host"))]
         Ok(
             Invocation::Read(_)
             | Invocation::JobRead(_)
@@ -120,7 +172,12 @@ fn dispatch(
             2,
         ),
     };
-    write_error(error, exit)
+    write_error(error, exit)?;
+    Ok(if exit == 2 {
+        CommandOutcome::Stop(exit)
+    } else {
+        CommandOutcome::Returned(exit)
+    })
 }
 
 fn write_error(error: CommandError, exit: u8) -> io::Result<ExitCode> {
@@ -131,19 +188,19 @@ fn write_error(error: CommandError, exit: u8) -> io::Result<ExitCode> {
     Ok(ExitCode::from(exit))
 }
 
-struct BatchExecution {
-    local_state: Option<NavigationState>,
+struct BatchExecution<'a> {
+    local_state: &'a mut BatchState,
 }
 
-impl BatchHost for BatchExecution {
+impl BatchHost for BatchExecution<'_> {
     type Error = io::Error;
 
-    fn execute(&mut self, arguments: &[&str]) -> io::Result<CommandOutcome> {
+    fn execute(&mut self, arguments: &[&str]) -> io::Result<BatchOutcome> {
         let (invocation, exits) = match batch::parse_command(arguments) {
             Ok(parsed) => parsed,
             Err(CommandParseError::Arguments(error)) => {
-                dispatch(Err(error), &mut self.local_state)?;
-                return Ok(CommandOutcome::Stop(2));
+                dispatch(Err(error), self.local_state)?;
+                return Ok(BatchOutcome::Stop(2));
             }
             Err(CommandParseError::UnknownCommand) => {
                 write_error(
@@ -153,50 +210,18 @@ impl BatchHost for BatchExecution {
                     },
                     1,
                 )?;
-                return Ok(CommandOutcome::Stop(1));
+                return Ok(BatchOutcome::Stop(1));
             }
         };
-        #[cfg(feature = "windows-broker")]
-        if matches!(&invocation, Invocation::Auth(_)) {
-            write_error(
-                CommandError {
-                    code: "NotSupported",
-                    message: "Batch authentication requires a host that distinguishes cancellation from handled failure. Use a separate explicit auth invocation.".into(),
-                },
-                1,
-            )?;
-            return Ok(CommandOutcome::Stop(1));
+        #[cfg(feature = "self-update")]
+        if matches!(&invocation, Invocation::Update(_)) {
+            dispatch(Ok(invocation), self.local_state)?;
+            return Ok(BatchOutcome::Stop(2));
         }
-        #[cfg(feature = "native-read")]
-        if matches!(&invocation, Invocation::Local(command)
-            if matches!(command.command, fabric_cli_local::LocalCommand::ChangeDirectory { .. })
-                && local_host::needs_remote(command))
-        {
-            write_error(
-                CommandError {
-                    code: "NotSupported",
-                    message: "Remote batch navigation requires a shared native context host; this command was not executed.".into(),
-                },
-                1,
-            )?;
-            return Ok(CommandOutcome::Stop(1));
-        }
-        let code = dispatch(Ok(invocation), &mut self.local_state)?;
-        // Existing executable dispatchers return only ExitCode. Two is terminal
-        // misuse/cancellation, whereas handled command failures (1/4) continue.
-        let exit = if code == ExitCode::SUCCESS {
-            0
-        } else if code == ExitCode::from(2) {
-            2
-        } else if code == ExitCode::from(4) {
-            4
-        } else {
-            1
-        };
-        Ok(if exits || exit == 2 {
-            CommandOutcome::Stop(exit)
-        } else {
-            CommandOutcome::Returned(exit)
+        let outcome = dispatch(Ok(invocation), self.local_state)?;
+        Ok(match outcome {
+            CommandOutcome::Returned(exit) if exits => BatchOutcome::Stop(exit),
+            outcome => outcome.into(),
         })
     }
 
@@ -265,7 +290,11 @@ impl BatchHost for BatchExecution {
 }
 
 fn main() -> ExitCode {
-    match run() {
+    #[cfg(feature = "self-update")]
+    let mut update_lifetime = fabric_cli_update::ParentLifetime::new();
+    #[cfg(not(feature = "self-update"))]
+    let mut update_lifetime = ();
+    match run(&mut update_lifetime) {
         Ok(code) => code,
         Err(error) => {
             eprintln!("fab-rs: output failed: {error}");

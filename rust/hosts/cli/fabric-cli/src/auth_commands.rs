@@ -55,6 +55,18 @@ pub trait Broker {
         allow_interaction: bool,
     ) -> impl Future<Output = Result<Vec<TokenMetadata>, Failure>>;
 
+    /// Validate the selected session silently, without authorizing session reopening.
+    ///
+    /// The default preserves compatibility for injected hosts. Stateful hosts
+    /// should override this to keep status distinct from explicit login.
+    ///
+    /// # Errors
+    ///
+    /// Returns the selected host's classified, sanitized validation failure.
+    fn status(&self) -> impl Future<Output = Result<Vec<TokenMetadata>, Failure>> {
+        self.login(false)
+    }
+
     /// Sign out only this application's selected account on this device.
     ///
     /// # Errors
@@ -67,8 +79,8 @@ pub trait Broker {
 ///
 /// `cancelled` has the same result contract as the executable's Ctrl+C future.
 /// Dropping pending broker work requests its existing cooperative cleanup, not
-/// rollback. Status deliberately uses the same acquisition path as login, with
-/// interaction disabled.
+/// rollback. Status uses the host's silent validation boundary, not permission
+/// to reopen an explicitly signed-out session.
 ///
 /// # Errors
 ///
@@ -107,9 +119,12 @@ async fn execute(
             json!({"logged_in": false, "signed_out": true, "scope": "application_on_this_device"}),
         );
     }
-    let tokens: Vec<Value> = broker
-        .login(action == AuthAction::Login && allow_interaction)
-        .await?
+    let metadata = if action == AuthAction::Status {
+        broker.status().await?
+    } else {
+        broker.login(allow_interaction).await?
+    };
+    let tokens: Vec<Value> = metadata
         .iter()
         .map(|metadata| {
             json!({
@@ -141,8 +156,42 @@ pub fn write_result(
             write_json(stdout, &data)?;
             Ok(0)
         }
+
         Err((code, message)) => write_error(code, &message, 1, stderr),
     }
+}
+
+/// Preserve terminal authentication cancellation independently of its exit code.
+///
+/// The existing sanitized broker classification, not exit 1, identifies a
+/// cancellation. Non-cancelled handled provider failures return to the loop.
+///
+/// # Errors
+///
+/// Propagates output failure without replaying broker work.
+pub fn write_outcome(
+    result: Result<Value, Failure>,
+    stdout: impl Write,
+    stderr: impl Write,
+) -> io::Result<crate::parser::batch::CommandOutcome> {
+    use crate::parser::batch::CommandOutcome;
+    let stop = matches!(
+        &result,
+        Err((
+            "cancelled"
+                | "signal_failed"
+                | "timed_out"
+                | "cleanup_pending"
+                | "completion_unconfirmed",
+            _
+        ))
+    );
+    let exit = write_result(result, stdout, stderr)?;
+    Ok(if stop {
+        CommandOutcome::Stop(exit)
+    } else {
+        CommandOutcome::Returned(exit)
+    })
 }
 
 /// Write a sanitized configuration, runtime or authentication failure.
@@ -164,6 +213,8 @@ pub fn write_error(
 }
 
 fn write_json(mut stream: impl Write, value: &Value) -> io::Result<()> {
-    serde_json::to_writer(&mut stream, value).map_err(io::Error::other)?;
+    serde_json::to_writer(&mut stream, value).map_err(|error| {
+        io::Error::new(error.io_error_kind().unwrap_or(io::ErrorKind::Other), error)
+    })?;
     writeln!(stream)
 }

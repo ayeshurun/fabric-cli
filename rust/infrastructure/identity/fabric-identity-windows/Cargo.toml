@@ -13,6 +13,10 @@ description = "Isolated Windows desktop broker interop with a safe Rust API"
 [package.metadata.fabric]
 layer = "identity"
 
+[features]
+default = []
+certificate-store = []
+
 [dependencies]
 thiserror.workspace = true
 

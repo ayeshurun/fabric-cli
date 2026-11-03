@@ -138,6 +138,13 @@ fn clean_notebook(value: PythonValue) -> Result<PythonValue, Kind> {
 }
 
 fn store(value: &PythonValue, storage: ExportStorage) -> Result<Vec<u8>, Kind> {
+    store_projected(value, storage).map(|(bytes, _)| bytes)
+}
+
+pub(super) fn store_projected(
+    value: &PythonValue,
+    storage: ExportStorage,
+) -> Result<(Vec<u8>, bool), Kind> {
     let options = Options {
         format: if storage == ExportStorage::Local {
             Format::Pretty(Indent::Four)
@@ -146,15 +153,20 @@ fn store(value: &PythonValue, storage: ExportStorage) -> Result<Vec<u8>, Kind> {
         },
         ensure_ascii: storage == ExportStorage::Lakehouse,
     };
+    let mut is_json = false;
     let encoded = match value {
         PythonValue::String(text) => {
             let text = text.try_to_string().map_err(native_error)?;
             match parse(&text, false)? {
-                Some(value) => encode_python_with_options(&value, options).map_err(native_error)?,
+                Some(value) => {
+                    is_json = true;
+                    encode_python_with_options(&value, options).map_err(native_error)?
+                }
                 None => text,
             }
         }
         PythonValue::Dict(_) | PythonValue::List(_) => {
+            is_json = true;
             encode_python_with_options(value, options).map_err(native_error)?
         }
         _ if storage == ExportStorage::Lakehouse => return Err(Kind::InvalidDefinition),
@@ -169,7 +181,7 @@ fn store(value: &PythonValue, storage: ExportStorage) -> Result<Vec<u8>, Kind> {
             encode_python_with_options(value, options).map_err(native_error)?
         }
     };
-    Ok(encoded.into_bytes())
+    Ok((encoded.into_bytes(), is_json))
 }
 
 #[derive(Debug)]

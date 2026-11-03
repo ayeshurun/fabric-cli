@@ -8,18 +8,29 @@ pub(crate) mod snapshot;
 #[path = "get_options.rs"]
 pub mod get_options;
 
-use crate::{PythonQuery, ReadConfig, ReadHost, errors, parser::ReadCommand};
-use fabric_cli_context::{Element, HomeContext};
+#[path = "get_host.rs"]
+pub mod get_host;
+
+use crate::{
+    PythonQuery, ReadConfig, ReadHost, errors,
+    parser::{ReadCommand, ReadKind},
+};
+use fabric_cli_context::{Element, HomeContext, NodeKind};
 use fabric_cli_output::{
-    CommandError, OutputEnvelope, Timestamp,
+    CommandError, OutputEnvelope, OutputInput, Timestamp,
     text::{self, OutputFormat, Presentation, TextOptions, TextPlan},
 };
 use fabric_sdk::{
     Client, capacities::CapacityExecutor, folders::FolderExecutor, items::ItemExecutor,
     workspaces::WorkspaceExecutor,
 };
-use fabric_sdk_operations::OperationExecutor;
-use std::{future::Future, pin::pin, sync::Arc};
+use fabric_sdk_operations::{OperationError, OperationExecutor};
+use std::{
+    future::{Future, poll_fn},
+    pin::pin,
+    sync::Arc,
+    task::Poll,
+};
 
 /// Run a parsed root auth command through the same engine as the native adapter.
 ///
@@ -74,6 +85,56 @@ pub struct ReadSession<'a> {
     pub config: ReadConfig,
 }
 
+/// Rendered read output retaining its original command failure for the caller.
+///
+/// The plan's exit status and serialized output are not an error classifier.
+/// Callers can inspect the original typed command error without parsing either.
+#[derive(Debug)]
+pub struct ReadDispatch {
+    /// Existing presentation plan, including quiet success and failure output.
+    pub plan: TextPlan,
+    /// Original command failure, or a workspace operation classification.
+    ///
+    /// Absent for successful or quiet no-op reads. The original operation is
+    /// additionally retained in [`Self::operation_error`], without projection.
+    /// Operation rendering uses its separate original output, not this field.
+    pub error: Option<CommandError>,
+    /// Original workspace operation failure before its command-error projection.
+    ///
+    /// Retains typed cancellation, accepted IDs, raw terminal error data and
+    /// uncertain remote effects. Rendering never consumes or reconstructs it.
+    pub operation_error: Option<Box<OperationError>>,
+}
+
+pub(crate) struct ReadFailure {
+    pub(crate) command: CommandError,
+    pub(crate) operation: Option<Box<OperationError>>,
+    pub(crate) operation_output: Option<Box<OutputInput>>,
+}
+
+impl From<CommandError> for ReadFailure {
+    fn from(command: CommandError) -> Self {
+        Self {
+            command,
+            operation: None,
+            operation_output: None,
+        }
+    }
+}
+
+impl From<OperationError> for ReadFailure {
+    fn from(operation: OperationError) -> Self {
+        let projected = fabric_cli_mutations::MutationError::from(operation.resource_error());
+        // Preserve source output independently of command-error falsey defaults.
+        let operation_output = Box::new(projected.output());
+        Self {
+            command: CommandError::new(Some(projected.message), Some(projected.code)),
+            operation: Some(Box::new(operation)),
+            operation_output: Some(operation_output),
+        }
+    }
+}
+
 /// Explicit source-synchronous workspace GET policy over the unchanged read session.
 ///
 /// The borrowed operation executor supplies the same caller-owned HTTP/time
@@ -94,6 +155,21 @@ impl SourceOperationReadSession<'_, '_> {
         command: &ReadCommand,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<TextPlan, text::TextError> {
+        self.dispatch_with_evidence(command, cancelled)
+            .await
+            .map(|dispatch| dispatch.plan)
+    }
+
+    /// Dispatch with source operation reconciliation and the original command error.
+    ///
+    /// # Errors
+    /// Returns rendering failures unchanged, including any partial presentation.
+    /// Renderable command failures remain in [`ReadDispatch::error`].
+    pub async fn dispatch_with_evidence(
+        &self,
+        command: &ReadCommand,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<ReadDispatch, text::TextError> {
         self.base
             .dispatch_with_source_operations(command, Some(self.operations), cancelled)
             .await
@@ -130,6 +206,24 @@ impl<'session> ReadSession<'session> {
         command: &ReadCommand,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<TextPlan, text::TextError> {
+        self.dispatch_with_evidence(command, cancelled)
+            .await
+            .map(|dispatch| dispatch.plan)
+    }
+
+    /// Execute and render while retaining the original typed command failure.
+    ///
+    /// Successful no-op reads return an empty plan and no error. Command failures
+    /// retain the same envelope, streams and exit status as [`Self::dispatch`].
+    ///
+    /// # Errors
+    /// Returns rendering failures unchanged, including any partial presentation.
+    /// Renderable command failures remain in [`ReadDispatch::error`].
+    pub async fn dispatch_with_evidence(
+        &self,
+        command: &ReadCommand,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<ReadDispatch, text::TextError> {
         self.dispatch_with_source_operations(command, None, cancelled)
             .await
     }
@@ -139,21 +233,39 @@ impl<'session> ReadSession<'session> {
         command: &ReadCommand,
         operations: Option<&dyn OperationExecutor>,
         cancelled: impl Future<Output = ()> + Send,
-    ) -> Result<TextPlan, text::TextError> {
+    ) -> Result<ReadDispatch, text::TextError> {
         let format = OutputFormat::resolve(command.output_format.as_deref(), Some("json"))?;
         let mut cancelled = pin!(cancelled);
         let result = self.execute(command, operations, cancelled.as_mut()).await;
-        let envelope = match result {
-            Ok(Some(input)) => OutputEnvelope::new(self.timestamp.clone(), input),
+        let (envelope, error, operation_error) = match result {
+            Ok(Some(input)) => (
+                OutputEnvelope::new(self.timestamp.clone(), input),
+                None,
+                None,
+            ),
             Ok(None) => {
-                return Ok(TextPlan {
-                    records: Vec::new(),
-                    exit_code: 0,
+                return Ok(ReadDispatch {
+                    plan: TextPlan {
+                        records: Vec::new(),
+                        exit_code: 0,
+                    },
+                    error: None,
+                    operation_error: None,
                 });
             }
-            Err(error) => error.envelope(self.timestamp.clone(), Some(command.name.clone())),
+            Err(failure) => {
+                let envelope = if let Some(mut input) = failure.operation_output {
+                    input.command = Some(command.name.clone());
+                    OutputEnvelope::new(self.timestamp.clone(), *input)
+                } else {
+                    failure
+                        .command
+                        .envelope(self.timestamp.clone(), Some(command.name.clone()))
+                };
+                (envelope, Some(failure.command), failure.operation)
+            }
         };
-        text::render(
+        let plan = text::render(
             &envelope,
             format,
             &TextOptions {
@@ -162,7 +274,12 @@ impl<'session> ReadSession<'session> {
             },
             &text::ascii_width,
             Presentation::default(),
-        )
+        )?;
+        Ok(ReadDispatch {
+            plan,
+            error,
+            operation_error,
+        })
     }
 
     async fn execute(
@@ -170,16 +287,13 @@ impl<'session> ReadSession<'session> {
         command: &ReadCommand,
         operations: Option<&dyn OperationExecutor>,
         cancelled: impl Future<Output = ()> + Send,
-    ) -> Result<Option<fabric_cli_output::OutputInput>, CommandError> {
+    ) -> Result<Option<fabric_cli_output::OutputInput>, ReadFailure> {
         if self.tenant.id() != Some(self.sdk.selection().tenant())
             || self.tenant.kind() != fabric_cli_context::NodeKind::Tenant
             || self.sdk.selection().audience() != fabric_sdk::Audience::Fabric
             || !self.current_path.starts_with('/')
         {
-            return Err(errors::error(
-                "InvalidInput",
-                "Invalid selected read context",
-            ));
+            return Err(errors::error("InvalidInput", "Invalid selected read context").into());
         }
         get_options::preflight(command)?;
         let mut cancelled = pin!(cancelled);
@@ -212,9 +326,23 @@ impl<'session> ReadSession<'session> {
         };
         let mut normalized = command.clone();
         normalized.output_format = Some("json".into());
+        if operations.is_some()
+            && normalized.kind == ReadKind::Get
+            && matches!(target.kind(), NodeKind::Workspace(_))
+        {
+            if poll_fn(|cx| Poll::Ready(cancelled.as_mut().poll(cx).is_ready())).await {
+                return Err(
+                    errors::error("LongRunningOperationCancelled", "Operation cancelled").into(),
+                );
+            }
+            return host
+                .workspace_get_with_evidence(&target, &normalized, operations, cancelled.as_mut())
+                .await;
+        }
         host.with_folders(self.executor)
             .with_scalar_query()
             .execute_with_source_operations(&normalized, operations, cancelled.as_mut())
             .await
+            .map_err(Into::into)
     }
 }

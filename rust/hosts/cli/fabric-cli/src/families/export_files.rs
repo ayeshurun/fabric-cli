@@ -5,7 +5,7 @@
 
 use super::{context::CommandContext, storage_client};
 use crate::session::ReadSession;
-use fabric_cli_context::{NodeKind, PathInput, PathKind, ResolveOptions};
+use fabric_cli_context::{ErrorKind, NodeKind, PathInput, PathKind, ResolveOptions};
 use fabric_cli_transfer::{TransferFiles, TransferFuture};
 use fabric_deploy::definitions::{
     DefinitionEntry, DefinitionFile, DefinitionFileSystem, DefinitionImportFileSystem,
@@ -39,7 +39,7 @@ impl fmt::Display for IncompleteUpload {
 
 impl std::error::Error for IncompleteUpload {}
 
-pub(super) struct ExportFiles<'a, 'session> {
+pub(crate) struct ExportFiles<'a, 'session> {
     local: &'a mut dyn TransferFiles,
     reads: &'a ReadSession<'session>,
     http: &'a HttpExecutor,
@@ -47,7 +47,7 @@ pub(super) struct ExportFiles<'a, 'session> {
 }
 
 impl<'a, 'session> ExportFiles<'a, 'session> {
-    pub(super) fn new(
+    pub(crate) fn new(
         local: &'a mut dyn TransferFiles,
         reads: &'a ReadSession<'session>,
         http: &'a HttpExecutor,
@@ -171,6 +171,12 @@ impl TransferFiles for ExportFiles<'_, '_> {
                 .await;
             match resolved {
                 Err(error) => {
+                    if let Some(original) = context.resolution_error()
+                        && original.kind == ErrorKind::Lookup
+                        && original.code == "HostCapabilityUnavailable"
+                    {
+                        return Err(io::Error::new(io::ErrorKind::Unsupported, original.clone()));
+                    }
                     let error = error.envelope(self.reads.timestamp.clone(), None);
                     if !matches!(
                         error.result().error_code(),

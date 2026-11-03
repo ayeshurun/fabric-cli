@@ -3,9 +3,11 @@
 
 //! Subprocess contracts without inherited credentials or developer tools.
 
+#![deny(unnameable_test_items)]
+
 use std::process::{Command, Output};
 
-fn invoke(args: &[&str]) -> Output {
+fn process(args: &[&str]) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_fab-rs"));
     command.env_clear();
     for name in ["SystemRoot", "WINDIR", "TEMP", "TMP"] {
@@ -13,9 +15,12 @@ fn invoke(args: &[&str]) -> Output {
             command.env(name, value);
         }
     }
+    command.env("NO_COLOR", "1").args(args);
     command
-        .env("NO_COLOR", "1")
-        .args(args)
+}
+
+fn invoke(args: &[&str]) -> Output {
+    process(args)
         .output()
         .expect("the scaffold binary must start without external tools")
 }
@@ -58,7 +63,6 @@ fn version_has_an_exact_stdout_contract() {
 #[test]
 fn invalid_commands_fail_with_sanitized_json_on_stderr() {
     for args in [
-        vec![],
         vec!["unknown-command"],
         vec!["auth", "login"],
         vec!["deploy"],
@@ -90,6 +94,49 @@ fn invalid_commands_fail_with_sanitized_json_on_stderr() {
             })
         );
     }
+}
+
+#[test]
+fn no_arguments_preserve_default_error_or_require_a_real_optional_terminal() {
+    let output = invoke(&[]);
+    assert!(output.stdout.is_empty());
+    let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    if cfg!(feature = "repl") {
+        assert_eq!(output.status.code(), Some(1));
+        assert_eq!(
+            error,
+            serde_json::json!({"error": {
+                "code": "InteractiveInputUnavailable",
+                "message": "Interactive mode requires terminal stdin and stdout."
+            }})
+        );
+    } else {
+        assert_eq!(output.status.code(), Some(2));
+        assert_eq!(
+            error,
+            serde_json::json!({"error": {
+                "code": "invalid_arguments",
+                "message": "Invalid arguments. Run fab-rs --help for available commands and usage."
+            }})
+        );
+    }
+}
+
+#[cfg(feature = "repl")]
+#[test]
+fn rejected_terminal_precedes_configuration_and_identity_selection() {
+    let output = process(&[])
+        .env("FAB_RUST_CONTEXT", "private-invalid-context")
+        .env("FAB_RUST_CONFIG_ROOT", "private-relative-config")
+        .env("FAB_RUST_ACCOUNT", "private-invalid-account")
+        .env("FAB_RUST_TENANT", "private-invalid-tenant")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(error["error"]["code"], "InteractiveInputUnavailable");
+    assert!(!String::from_utf8_lossy(&output.stderr).contains("private-"));
 }
 
 #[cfg(feature = "windows-broker")]

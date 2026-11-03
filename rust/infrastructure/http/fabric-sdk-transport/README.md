@@ -29,6 +29,20 @@ global runtime or logger are initialized.
 Poll requests and timers on a caller-owned Tokio runtime with I/O and time
 enabled. Timer cancellation does not undo a server-side mutation.
 
+## Dedicated managed-identity HTTP
+
+`NativeHttpClient::for_managed_identity(options, exact_endpoint)` is a separate,
+explicit capability. It accepts one literal loopback/link-local HTTP endpoint
+without user information, query or fragment and rejects proxy configuration.
+Only GET requests to that exact origin, port and path are allowed; all other
+destinations, including HTTPS service URLs, fail before network I/O. Credential
+adapters must additionally validate the provider's query parameters and rotating
+App Service header. No DNS broadening or redirect following is introduced.
+
+The CLI uses this client only for the selected Azure VM/App Service credential.
+Its service executor uses a separate ordinary client. `NativeHttpClient::new`
+remains HTTPS-only and still configures the connector to enforce HTTPS.
+
 ## Transport guarantees
 
 - Redirects are returned as responses, never followed.

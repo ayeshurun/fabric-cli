@@ -36,6 +36,8 @@ capabilities\
   local\           Local configuration and navigation commands
 hosts\
   cli\             Executable composition, context, query and presentation
+  repl\            Optional Reedline editor and removable shell loop
+  update\          Pinned-trust release verification and update orchestration
 infrastructure\
   core\            Shared contracts and JSON encoding
   identity\        Credential selection and optional Windows broker
@@ -58,6 +60,8 @@ front-ends are not implemented by this layout.
 | [Native transport](infrastructure/http/fabric-sdk-transport/README.md) | Optional `hyper-rustls` backend and asynchronous timers |
 | [Deployment](capabilities/deployment/fabric-deploy/README.md) | Configuration, parameters, repository planning, item publication and orphan removal |
 | [CLI](hosts/cli/fabric-cli/README.md) | Argument parsing, command sessions and native host composition |
+| [Interactive shell](hosts/repl/fabric-cli-repl/README.md) | Optional terminal editor and shell loop, independent of SDK and command implementations |
+| [Release updates](hosts/update/fabric-cli-update/README.md) | Explicit release trust, bounded downloads and installation-custody checks |
 | [Path context](hosts/cli/fabric-cli-context/README.md) | Immutable hierarchy, path resolution and command context |
 | [Output](hosts/cli/fabric-cli-output/README.md) | Structured envelopes, text presentation and stream handling |
 | [Workflow skills](skills/README.md) | Boundaries for workflows that compose CLI commands |
@@ -66,9 +70,31 @@ Focused SDK crates provide additional service APIs, including jobs, OneLake,
 access, catalog, tables and raw requests. Each crate documents its own public
 interface and supported operations.
 
-Libraries do not discover credentials, prompt users, create a runtime, initialize
+Service and deployment libraries do not discover credentials, prompt users, create a runtime, initialize
 global logging, or terminate the process. The caller supplies these capabilities
 and owns cancellation and output delivery.
+
+The CLI's optional `repl` feature enables a terminal-only interactive shell when
+started without arguments. Its separate package and feature edge allow a future
+major version to remove it without changing shared commands or SDK consumers.
+The default CLI and SDK dependency graphs do not include Reedline.
+
+## Unattended authentication
+
+The optional `headless` feature composes the native service host with explicitly
+selected unattended credentials. `FAB_RUST_AUTH_MODE` selects client-secret,
+renewable assertion-file, workload-identity, or a supported managed-identity host
+contract. It does not discover a credential chain, open login UI, launch another
+authentication tool, or persist a local token cache.
+
+Headless service commands acquire tokens when needed; they do not require a
+desktop `auth login`. Identity inputs and service permissions must be configured
+for the selected environment. Never supply secrets as command-line arguments.
+See the [identity guide](infrastructure/identity/fabric-identity/README.md) for
+provider inputs, assertion renewal and managed-host limits.
+
+The SDK continues to accept caller-injected credentials independently of these
+CLI features. Public SDK package publication is separate from CLI releases.
 
 ## Configure remote commands
 

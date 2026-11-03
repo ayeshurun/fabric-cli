@@ -4,12 +4,12 @@
 use crate::{
     BrokerError, EntraOptions, Interaction, NativeOperation, NativeStage, TokenAudience,
     entra_contract::{needs_interaction, request_status, response_identity, unix_expiry},
-    native::{ParentWindow, native_error, spawn, start_interactive, wait},
+    native::{ParentWindow, native_error, spawn, spawn_with_timeout, start_interactive, wait},
     request::Shared,
 };
 use std::{
     fmt,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use windows::{
     Security::{
@@ -95,12 +95,16 @@ pub fn acquire(
     audiences: Vec<TokenAudience>,
     interaction: Interaction,
 ) -> NativeOperation<EntraSession> {
-    spawn(move |shared| {
+    let timeout = match interaction {
+        Interaction::Silent => Duration::from_secs(120),
+        Interaction::Allowed => Duration::from_secs(600),
+    };
+    spawn_with_timeout(timeout, move |shared| {
         if audiences.is_empty() {
             return Err(BrokerError::InvalidConfiguration);
         }
         let provider = provider(&options, shared)?;
-        let mut account = find_account(&provider, &options, account_id.as_deref(), shared)?;
+        let mut account = find_account(&provider, &options, account_id.as_deref(), false, shared)?;
         if account.is_none() && interaction == Interaction::Silent {
             return Err(BrokerError::InteractionRequired);
         }
@@ -202,21 +206,49 @@ fn unix_now() -> Result<i64, BrokerError> {
 /// Never removes a Windows account. Missing accounts succeed without trying
 /// another identity. This is a live broker/cache operation, not server revocation.
 pub fn logout(options: EntraOptions) -> NativeOperation<()> {
-    spawn(move |shared| {
-        let provider = provider(&options, shared)?;
-        if let Some(account) = find_account(&provider, &options, None, shared)? {
-            cancelled(shared)?;
-            let operation = account
-                .SignOutWithClientIdAsync(&HSTRING::from(options.client()))
-                .map_err(|error| native_error(NativeStage::Logout, error))?;
-            wait(operation, shared)?;
-        }
-        Ok(())
-    })
+    spawn(move |shared| perform_logout(&options, None, shared).map(|_| ()))
+}
+
+/// Signs out the original native account without selecting a replacement.
+///
+/// The returned identifier is non-secret identity metadata, not permission to
+/// log it. Absence of the original account is idempotent success. A different
+/// same-UPN account is rejected. This does not revoke already returned tokens.
+pub fn logout_bound(
+    options: EntraOptions,
+    account_id: Option<String>,
+) -> NativeOperation<Option<String>> {
+    spawn(move |shared| perform_logout(&options, account_id.as_deref(), shared))
+}
+
+fn perform_logout<T>(
+    options: &EntraOptions,
+    account_id: Option<&str>,
+    shared: &Shared<T>,
+) -> Result<Option<String>, BrokerError> {
+    let provider = provider(options, shared)?;
+    let Some(account) = find_account(&provider, options, account_id, true, shared)? else {
+        return Ok(account_id.map(str::to_owned));
+    };
+    let id = account
+        .Id()
+        .map_err(|error| native_error(NativeStage::Account, error))?
+        .to_string();
+    if id.is_empty() {
+        return Err(BrokerError::InvalidResponse);
+    }
+    cancelled(shared)?;
+    let operation = account
+        .SignOutWithClientIdAsync(&HSTRING::from(options.client()))
+        .map_err(|error| native_error(NativeStage::Logout, error))?;
+    wait(operation, shared)?;
+    Ok(Some(id))
 }
 
 fn cancelled<T>(shared: &Shared<T>) -> Result<(), BrokerError> {
-    if shared.is_cancelled() {
+    if shared.expired() {
+        Err(BrokerError::TimedOut)
+    } else if shared.is_cancelled() {
         Err(BrokerError::Cancelled)
     } else {
         Ok(())
@@ -245,6 +277,7 @@ fn find_account<T>(
     provider: &WebAccountProvider,
     options: &EntraOptions,
     binding: Option<&str>,
+    missing_bound_ok: bool,
     shared: &Shared<T>,
 ) -> Result<Option<WebAccount>, BrokerError> {
     cancelled(shared)?;
@@ -272,6 +305,7 @@ fn find_account<T>(
         .Accounts()
         .map_err(|error| native_error(NativeStage::Account, error))?;
     let mut matched = None;
+    let mut other_binding = false;
     for index in 0..accounts
         .Size()
         .map_err(|error| native_error(NativeStage::Account, error))?
@@ -285,16 +319,19 @@ fn find_account<T>(
         let id = account
             .Id()
             .map_err(|error| native_error(NativeStage::Account, error))?;
-        if username.to_string().eq_ignore_ascii_case(options.account())
-            && binding.is_none_or(|expected| expected == id)
-        {
+        if !username.to_string().eq_ignore_ascii_case(options.account()) {
+            continue;
+        }
+        if binding.is_some_and(|expected| expected != id) {
+            other_binding = true;
+        } else {
             if matched.is_some() {
                 return Err(BrokerError::AmbiguousAccount);
             }
             matched = Some(account);
         }
     }
-    if binding.is_some() && matched.is_none() {
+    if binding.is_some() && matched.is_none() && (!missing_bound_ok || other_binding) {
         return Err(BrokerError::IdentityMismatch);
     }
     Ok(matched)
@@ -340,10 +377,14 @@ fn interactive<T>(
     cancelled(shared)?;
     let request = request(provider, options, audience, true)?;
     let mut parent = ParentWindow::new()?;
+    parent.track_cleanup(shared.control());
     let result = cancelled(shared)
         .and_then(|()| start_interactive(request, account, &parent))
         .and_then(|operation| wait(operation, shared));
-    parent.close()?;
+    if let Err(error) = parent.close() {
+        shared.uncertain_cleanup();
+        return Err(error);
+    }
     result
 }
 

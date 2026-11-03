@@ -7,6 +7,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const {sha, lane, runnerLane, laneBranch, metadataTargets, ciDelta, activeRunsArgs, select, plan, execute, options, requireFastPass, parallelCandidate, commandTimeout, verifyRequest015} = require('./rust-fast-check.cjs');
+const {CHECK_IDS, commandsFor} = require('./validation-checks.cjs');
+const nativeContext = {
+  root: path.resolve(__dirname, '..', '..'),
+  artifacts: path.resolve(path.parse(__dirname).root, 'native-validation-test-artifacts'),
+  platform: 'windows',
+};
 
 test('publication projects bounded active-run fields before buffering provider history', () => {
   assert.deepEqual(activeRunsArgs(), [
@@ -616,10 +622,20 @@ test('definition examples use unique native filenames and retain both unchanged 
       definitions[index].stdout,
     ]);
   }
-  const workflow = fs.readFileSync(path.resolve(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
-  assert.ok(workflow.includes('-p fabric-core-json --example core_definition_json > "$RUNNER_TEMP/core-definition-json.json"'));
-  assert.ok(workflow.includes('-p fabric-cli-output --example definition_json > "$RUNNER_TEMP/cli-definition-json.json"'));
-  assert.ok(!workflow.includes('-p fabric-core-json --example definition_json'));
+  const native = commandsFor('json-parity', nativeContext);
+  for (const [pkg, example, output] of [
+    ['fabric-core-json', 'core_definition_json', 'core-definition-json.json'],
+    ['fabric-cli-output', 'definition_json', 'cli-definition-json.json'],
+  ]) {
+    const observation = native.find(command =>
+      command.args.includes(pkg) && command.args.includes(example));
+    assert.ok(observation);
+    assert.equal(observation.stdout, path.join(nativeContext.artifacts, output));
+    assert.ok(native.some(command => command.args.includes(observation.stdout) &&
+      command.args.includes(path.join('tests', 'compatibility', 'output', 'definition_reference.py'))));
+  }
+  assert.ok(!native.some(command =>
+    command.args.includes('fabric-core-json') && command.args.includes('definition_json')));
   const coreExamples = path.resolve(__dirname, '../infrastructure/core/fabric-core-json/examples');
   assert.ok(fs.existsSync(path.join(coreExamples, 'core_definition_json.rs')));
   assert.ok(!fs.existsSync(path.join(coreExamples, 'definition_json.rs')));
@@ -704,46 +720,48 @@ test('full dispatch requires real fast success at the combined immutable head', 
 
 test('full native matrix restores the pinned deployment oracle before comparisons', () => {
   const workflow = fs.readFileSync(path.resolve(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
-  const restore = workflow.indexOf('      - name: Restore pinned deployment oracle dependencies');
-  const compare = workflow.indexOf('      - name: Require immutable configuration and scoped parameter source receipts');
-  assert.ok(restore >= 0 && compare > restore);
-  const step = workflow.slice(restore, workflow.indexOf('      - name:', restore + 1));
-  assert.ok(step.includes("contains(fromJSON(needs.changes.outputs.packages), 'fabric-deploy')"));
-  assert.ok(step.includes('-r scripts/rust-fast-requirements.txt'));
+  assert.ok(workflow.includes('--restore-oracle-deps --execute'));
+  const runner = fs.readFileSync(path.join(__dirname, 'validate-impact.cjs'), 'utf8');
+  assert.ok(runner.includes("path.join('scripts', 'rust-fast-requirements.txt')"));
+  const restore = runner.indexOf('restoreOracleDependencies(context, checkRun, probeCommand);');
+  assert.ok(restore >= 0 && runner.indexOf('checkRun({...command', restore) > restore);
+  assert.ok(runner.includes("['definitions-oracle', 'parameters-oracle', 'import-oracle', 'export-oracle']"));
 });
 
 test('full native workflow routes every oracle through isolated source and absolute candidate probes', () => {
   const workflow = fs.readFileSync(path.resolve(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
-  assert.ok(workflow.includes('scripts/pinned_python_source.py prepare'));
-  assert.ok(workflow.includes('--candidate-root "$GITHUB_WORKSPACE"'));
-  assert.ok(workflow.includes('scripts/pinned_python_source.py verify'));
-  assert.ok(workflow.includes('unittest discover -s scripts -p test_pinned_python_source.py -v'));
-  assert.ok(workflow.includes("if: always() && steps.pinned-python.outcome == 'success'"));
-  const candidateChecks = [
-    'python -B -m unittest discover -s scripts -p test_release_verify.py -v',
-    'python -B -m unittest discover -s tests/acceptance/identity -p test_check_report.py -v',
-  ];
-  for (const command of candidateChecks) {
-    assert.equal(workflow.split(command).length - 1, 1);
-    assert.ok(workflow.indexOf(command) < workflow.indexOf('scripts/pinned_python_source.py prepare'));
+  assert.ok(workflow.includes('node rust/scripts/validate-impact.cjs'));
+  assert.ok(workflow.includes('node --test rust/scripts/impact-plan.test.cjs'));
+  const setup = commandsFor('oracle-tools', nativeContext);
+  const prepare = setup.findIndex(command => command.kind === 'prepare-oracle');
+  assert.equal(prepare, setup.length - 1);
+  assert.ok(setup[prepare].args.includes('--candidate-root'));
+  assert.ok(setup[prepare].args.includes(nativeContext.root));
+  for (const script of ['test_release_verify.py', 'test_check_report.py', 'test_pinned_python_source.py']) {
+    assert.equal(setup.filter(command => command.args.includes(script)).length, 1);
+    assert.ok(setup.findIndex(command => command.args.includes(script)) < prepare);
   }
-  const calls = workflow.split('\n').filter(line => line.includes('python -B') &&
-    !line.includes('scripts/pinned_python_source.py') && !line.includes('test_pinned_python_source.py') &&
-    !candidateChecks.some(command => line.trim() === command));
-  assert.equal(calls.length, 33);
-  const batch = workflow.slice(workflow.indexOf('      - name: Verify independent pinned batch observations'),
-    workflow.indexOf('      - name: Use repository-pinned toolchain'));
-  assert.ok(batch.includes("contains(fromJSON(needs.changes.outputs.packages), 'fabric-cli')"));
-  assert.ok(batch.includes('--check hosts/cli/fabric-cli/tests/batch_source.json'));
-  assert.ok(calls.every(line => line.includes('(cd "$PINNED_RUST_ROOT" && python -B ')));
-  assert.ok(!workflow.includes('--probes target/'));
-  assert.ok(!/--(?:read-probe|query-probe|folder-probe|rust-probe|probe) "target\//.test(workflow));
-  assert.equal((workflow.match(/\$GITHUB_WORKSPACE\/rust\/target\/debug\/examples/g) || []).length, 9);
-  const assertions = workflow.slice(workflow.indexOf("            const assert = require("),
-    workflow.indexOf('            const root = process.env.GITHUB_WORKSPACE;'));
-  const info = [];
-  new Function('require', 'core', assertions)(require, {info: value => info.push(value)});
-  assert.deepEqual(info, ['Affected-crate selection assertions passed']);
+  const verify = commandsFor('frozen-verify', nativeContext);
+  assert.equal(verify.length, 1);
+  assert.equal(verify[0].kind, 'verify-oracle');
+  assert.ok(verify[0].args.includes('verify'));
+  const pinned = path.join(nativeContext.artifacts, 'pinned-python', 'source', 'rust');
+  const candidatePython = new Set(['oracle-tools', 'frozen-verify', 'repl']);
+  const calls = CHECK_IDS.filter(id => id !== 'dependency-graph').flatMap(id =>
+    commandsFor(id, nativeContext).map(command => ({...command, check: id})));
+  const references = calls.filter(command => command.program === 'python' &&
+    !candidatePython.has(command.check));
+  assert.ok(references.length >= 33);
+  assert.ok(references.every(command => command.cwd === pinned));
+  const batch = commandsFor('batch-oracle', nativeContext)[0];
+  assert.ok(batch.args.includes('--check'));
+  assert.ok(batch.args.includes(path.join('hosts', 'cli', 'fabric-cli', 'tests', 'batch_source.json')));
+  const probes = calls.flatMap(command => command.args.flatMap((arg, index) =>
+    /^--(?:read-probe|query-probe|folder-probe|rust-probe|probe|probes)$/.test(arg)
+      ? [command.args[index + 1]] : []));
+  assert.equal(probes.length, 9);
+  assert.ok(probes.every(probe => path.isAbsolute(probe) &&
+    probe.startsWith(path.join(nativeContext.root, 'rust', 'target', 'debug', 'examples'))));
 });
 
 test('workflow limits runner context to steps and retains pinned bounded push gate', () => {

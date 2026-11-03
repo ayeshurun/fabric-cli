@@ -1,18 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(feature = "certificate-store")]
+#[path = "native_certificate.rs"]
+pub(crate) mod certificate;
+
 use crate::{
     BrokerError, NativeStage, WebAccount, WebTokenRequest,
-    request::{RequestFuture, Shared},
+    request::{RequestFuture, Shared, WorkerExit, worker_pool},
 };
 use std::{
     fmt,
     future::Future,
     pin::Pin,
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     task::{Context, Poll},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use windows::{
     Security::Authentication::Web::Core::{WebAuthenticationCoreManager, WebTokenRequestResult},
@@ -67,6 +74,11 @@ pub struct NativeOperation<T> {
 }
 
 impl<T> NativeOperation<T> {
+    /// Gets secret-free cancellation and actual teardown state.
+    pub fn control(&self) -> crate::OperationControl {
+        self.inner.0.control()
+    }
+
     /// Requests cancellation; no alternate identity or backend is attempted.
     pub fn cancel(&self) {
         self.inner.0.cancel();
@@ -84,11 +96,30 @@ impl<T> Future for NativeOperation<T> {
 pub(crate) fn spawn<T: Send + 'static>(
     work: impl FnOnce(&Shared<T>) -> Result<T, BrokerError> + Send + 'static,
 ) -> NativeOperation<T> {
-    let shared = Shared::new();
+    spawn_with_timeout(Duration::from_secs(120), work)
+}
+
+pub(crate) fn spawn_with_timeout<T: Send + 'static>(
+    timeout: Duration,
+    work: impl FnOnce(&Shared<T>) -> Result<T, BrokerError> + Send + 'static,
+) -> NativeOperation<T> {
+    let shared = Shared::with_timeout(timeout);
+    let permit = match worker_pool().reserve() {
+        Ok(permit) => permit,
+        Err(error) => {
+            shared.complete(Err(error));
+            shared.no_worker();
+            return NativeOperation {
+                inner: RequestFuture(shared),
+            };
+        }
+    };
+    let worker_permit = permit.clone();
     let worker_shared = Arc::clone(&shared);
     let spawned = thread::Builder::new()
         .name("fabric-entra".into())
         .spawn(move || {
+            let exit = WorkerExit::new(Arc::clone(&worker_shared), worker_permit);
             worker_shared.attach_worker(thread::current());
             let result = (|| {
                 if worker_shared.is_cancelled() {
@@ -98,9 +129,11 @@ pub(crate) fn spawn<T: Send + 'static>(
                 work(&worker_shared)
             })();
             worker_shared.complete(result);
+            exit.finish();
         });
     if spawned.is_err() {
         shared.complete(Err(BrokerError::ThreadStart));
+        WorkerExit::new(Arc::clone(&shared), permit).finish();
     }
     NativeOperation {
         inner: RequestFuture(shared),
@@ -108,6 +141,11 @@ pub(crate) fn spawn<T: Send + 'static>(
 }
 
 impl BrokerRequest {
+    /// Gets cancellation and actual worker teardown state, separate from delivery.
+    pub fn control(&self) -> crate::OperationControl {
+        self.inner.0.control()
+    }
+
     /// Requests cancellation without delivering any later success.
     ///
     /// Native cancellation is cooperative. Normal completion waits for cleanup.
@@ -140,16 +178,30 @@ impl Future for BrokerRequest {
 /// classified separately; completion is not proof of a successful login.
 pub fn request_interactive(request: WebTokenRequest, account: Option<WebAccount>) -> BrokerRequest {
     let shared = Shared::new();
+    let permit = match worker_pool().reserve() {
+        Ok(permit) => permit,
+        Err(error) => {
+            shared.complete(Err(error));
+            shared.no_worker();
+            return BrokerRequest {
+                inner: RequestFuture(shared),
+            };
+        }
+    };
+    let worker_permit = permit.clone();
     let worker_shared = Arc::clone(&shared);
     let spawned = thread::Builder::new()
         .name("fabric-wam".into())
         .spawn(move || {
+            let exit = WorkerExit::new(Arc::clone(&worker_shared), worker_permit);
             worker_shared.attach_worker(thread::current());
             let result = run_request(request, account, &worker_shared);
             worker_shared.complete(result);
+            exit.finish();
         });
     if spawned.is_err() {
         shared.complete(Err(BrokerError::ThreadStart));
+        WorkerExit::new(Arc::clone(&shared), permit).finish();
     }
     BrokerRequest {
         inner: RequestFuture(shared),
@@ -181,7 +233,7 @@ impl Drop for Apartment {
     }
 }
 
-pub(crate) struct ParentWindow(Option<HWND>);
+pub(crate) struct ParentWindow(Option<HWND>, Option<crate::OperationControl>);
 
 impl ParentWindow {
     pub(crate) fn new() -> Result<Self, BrokerError> {
@@ -204,7 +256,11 @@ impl ParentWindow {
             )
         }
         .map_err(|error| native_error(NativeStage::ParentWindow, error))?;
-        Ok(Self(Some(window)))
+        Ok(Self(Some(window), None))
+    }
+
+    pub(crate) fn track_cleanup(&mut self, control: crate::OperationControl) {
+        self.1 = Some(control);
     }
 
     fn handle(&self) -> HWND {
@@ -226,7 +282,10 @@ impl Drop for ParentWindow {
     fn drop(&mut self) {
         // Normal paths call close and return its error; this is panic-path cleanup
         // or a best-effort retry after a reported close failure.
-        let _ = self.close();
+        let failed = self.close().is_err();
+        if let Some(control) = &self.1 {
+            control.cleanup_uncertain(failed);
+        }
     }
 }
 
@@ -240,8 +299,12 @@ fn run_request(
     }
     let _apartment = Apartment::new()?;
     let mut parent = ParentWindow::new()?;
+    parent.track_cleanup(shared.control());
     let result = run_operation(request, account, shared, &parent);
-    parent.close()?;
+    if let Err(error) = parent.close() {
+        shared.uncertain_cleanup();
+        return Err(error);
+    }
     result
 }
 
@@ -332,26 +395,43 @@ pub(crate) fn wait<T: Send + 'static, O>(
     shared: &Shared<O>,
 ) -> Result<T, BrokerError> {
     let completed = Arc::new(Mutex::new(None));
+    let poisoned = Arc::new(AtomicBool::new(false));
+    let callback_poisoned = Arc::clone(&poisoned);
     let callback_completed = Arc::clone(&completed);
     let worker = thread::current();
     let callback_error = operation
         .completed(move |result| {
-            *callback_completed.lock().unwrap() = Some(result);
+            match callback_completed.lock() {
+                Ok(mut completed) => *completed = Some(result),
+                Err(_) => callback_poisoned.store(true, Ordering::Release),
+            }
             worker.unpark();
         })
         .err()
         .map(|error| native_error(NativeStage::Completion, error));
     let mut cancel_sent = false;
     let mut cleanup_error = callback_error;
+    let mut cancellation_started = None;
     if let Some(BrokerError::Native { code, .. }) = callback_error {
         shared.complete(Err(BrokerError::CompletionUnconfirmed { code }));
     }
     let result = loop {
-        if let Some(result) = completed.lock().unwrap().take() {
+        shared.check_deadline();
+        let callback_result = match completed.lock() {
+            Ok(mut completed) => completed.take(),
+            Err(_) => {
+                poisoned.store(true, Ordering::Release);
+                None
+            }
+        };
+        if poisoned.load(Ordering::Acquire) {
+            cleanup_error = Some(BrokerError::CoordinationFailed);
+            shared.complete(Err(BrokerError::CoordinationFailed));
+        }
+        if let Some(result) = callback_result {
             break result.map_err(|error| native_error(NativeStage::Completion, error));
         }
-        if callback_error.is_some()
-            && let Ok(status) = operation.status()
+        if let Ok(status) = operation.status()
             && status != AsyncStatus::Started
         {
             break operation
@@ -360,9 +440,16 @@ pub(crate) fn wait<T: Send + 'static, O>(
         }
         if (shared.is_cancelled() || cleanup_error.is_some()) && !cancel_sent {
             cancel_sent = true;
+            cancellation_started = Some(Instant::now());
             if let Err(error) = operation.cancel() {
-                cleanup_error = Some(native_error(NativeStage::Cancellation, error));
+                let error = native_error(NativeStage::Cancellation, error);
+                cleanup_error = Some(error);
+                shared.complete(Err(error));
             }
+        }
+        if cancellation_started.is_some_and(|start| start.elapsed() >= Duration::from_secs(5)) {
+            let (active, limit) = crate::OperationControl::worker_counts();
+            shared.complete(Err(BrokerError::CleanupPending { active, limit }));
         }
         let mut message = MSG::default();
         // SAFETY: The MSG out-pointer is valid and HWND=None reads only this

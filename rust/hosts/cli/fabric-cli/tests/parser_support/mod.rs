@@ -49,6 +49,8 @@ pub fn observe(input: &Value) -> Option<Value> {
         }
         #[cfg(feature = "windows-broker")]
         Ok(Invocation::Auth(_)) => json!({"error": true}),
+        #[cfg(feature = "self-update")]
+        Ok(Invocation::Update(_)) => json!({"error": true}),
         Err(_) => json!({"error": true}),
     };
     Some(json!({"id": input["id"], "parse": result}))

@@ -5,8 +5,8 @@
 
 pub(crate) mod context;
 mod deploy_http;
-mod export_files;
-#[cfg(feature = "native-read")]
+pub(crate) mod export_files;
+#[cfg(feature = "native-host")]
 pub mod native_resource_files;
 pub mod resource_files;
 pub mod transfer_files;
@@ -57,6 +57,8 @@ use std::{
 pub enum FamilyEvidence {
     /// Local execution has no remote mutation result.
     Local,
+    /// Original command failure, including cancellation during metadata resolution.
+    CommandFailure(CommandError),
     /// Access result retains original accepted-operation uncertainty.
     Access(Result<fabric_cli_resources::CommandValue, fabric_cli_resources::CommandError>),
     /// Fabric mutation result retains earlier creation and cache evidence.
@@ -749,7 +751,7 @@ impl FamilySession<'_, '_> {
                         ui: self.transfer_ui,
                         definition_limits: Default::default(),
                         operation_limits: Default::default(),
-                        command_line: true,
+                        command_line: self.navigation.is_command_line(),
                     }
                     .execute(command, cancelled.as_mut())
                     .await
@@ -812,7 +814,7 @@ impl FamilySession<'_, '_> {
         )?;
         Ok(FamilyOutput {
             plan,
-            evidence: FamilyEvidence::Local,
+            evidence: FamilyEvidence::CommandFailure(error),
         })
     }
 }

@@ -10,6 +10,7 @@
 
 mod bulk;
 mod codec;
+mod get_output;
 mod get_value;
 mod import;
 mod local;
@@ -28,6 +29,7 @@ pub use get_value::{
     GetDefinitionPreprocess, GetDefinitionValue, GetDefinitionValueError,
     decode_get_definition_value,
 };
+pub use get_output::{GetOutputNewline, GetOutputValue, serialize_get_projected_result};
 pub use import::{
     DefinitionEntry, DefinitionEntryKind, DefinitionImportFileSystem, ImportAction,
     ImportDefinition, ImportOutcome, ImportTarget, PreparedImport, load_import_definition,

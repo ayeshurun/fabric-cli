@@ -1,0 +1,51 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+[package]
+name = "fabric-cli-update"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Caller-controlled, pinned-trust GitHub Releases updater engine"
+
+[package.metadata.fabric]
+layer = "cli"
+
+[features]
+default = []
+bounded-helper = []
+running-replacement = ["bounded-helper"]
+fixture-harness = ["bounded-helper"]
+
+[[bin]]
+name = "fab-rs-update-helper"
+path = "src/bin/update_helper.rs"
+required-features = ["bounded-helper"]
+test = false
+bench = false
+
+[[bin]]
+name = "fabric-update-lifecycle-fixture"
+path = "tests/fixtures/lifecycle.rs"
+required-features = ["fixture-harness"]
+test = false
+bench = false
+
+[[bin]]
+name = "fabric-update-helper-fixture"
+path = "tests/fixtures/helper.rs"
+required-features = ["fixture-harness"]
+test = false
+bench = false
+
+[dependencies]
+ring.workspace = true
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

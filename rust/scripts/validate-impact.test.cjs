@@ -1,0 +1,239 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const {test} = require('node:test');
+const {packageArgs, ownFeatures, testCommands, coreCommands, commandResult,
+  oracleVersions, restoreOracleDependencies, runContracts, options} =
+  require('./validate-impact.cjs');
+const {selection, equalSelection} = require('./impact-ci.cjs');
+
+function temporary(t) {
+  const directory = fs.mkdtempSync(path.join(process.env.IMPACT_TEST_ROOT ||
+    process.env.RUNNER_TEMP || os.tmpdir(), 'fabric-impact-runner-'));
+  t.after(() => fs.rmSync(directory, {recursive: true, force: true}));
+  return directory;
+}
+
+function plan() {
+  return {
+    schema: 1, mode: 'affected', files: ['rust/notebook.rs'],
+    packages: ['deploy', 'cli'], checks: [],
+    tests: [{package: 'deploy', target: 'test:notebook'}, {package: 'cli', target: 'test:deploy_mount'}],
+    profiles: [{
+      id: 'native', packages: ['cli', 'identity'],
+      features: ['cli/native-read', 'identity/windows-broker'],
+      platforms: ['windows', 'linux', 'macos'], checks: ['native-read'],
+    }],
+  };
+}
+
+test('Cargo package arguments are sorted, deduplicated and not shell text', () => {
+  assert.deepEqual(packageArgs(['z', 'a', 'z']), ['--package', 'a', '--package', 'z']);
+});
+
+test('complete target selection keeps Notebook and downstream contracts, not unrelated suites', () => {
+  const commands = coreCommands(plan(), 'windows');
+  const tests = commands.filter(command => command.test && command.id !== 'default:doc');
+  assert.equal(tests.length, 3);
+  assert.deepEqual(tests.map(command => command.args.filter(arg => ['notebook', 'deploy_mount'].includes(arg))),
+    [['deploy_mount'], ['notebook'], ['deploy_mount']]);
+  assert.ok(tests.every(command => !command.args.includes('--all-targets')));
+  assert.ok(commands.some(command => command.id === 'default:doc'));
+  assert.ok(commands.some(command => command.id === 'native:check' &&
+    command.args.includes('--all-targets') && command.args.includes('identity')));
+  assert.ok(!tests.some(command => command.args.includes('identity')));
+});
+
+test('default full packages are grouped but exact target commands remain separate', () => {
+  const commands = testCommands([
+    {package: 'a', target: 'all'}, {package: 'b', target: 'all'},
+    {package: 'a', target: 'test:duplicate'}, {package: 'c', target: 'lib'},
+    {package: 'c', target: 'bin:demo'}, {package: 'c', target: 'example:probe'},
+  ]);
+  assert.equal(commands.length, 2);
+  assert.deepEqual(commands[0].args, ['test', '--offline', '--locked',
+    '--package', 'a', '--package', 'b', '--all-targets']);
+  assert.deepEqual(commands[1].args.slice(-5), ['--bin', 'demo', '--example', 'probe', '--lib']);
+});
+
+test('feature tests use the tested package feature forwarding, never unrelated workspace features', () => {
+  const p = plan();
+  assert.deepEqual(ownFeatures(p.profiles[0], 'cli'), ['cli/native-read']);
+  const command = coreCommands(p, 'linux').find(command => command.id === 'native:test:cli');
+  assert.ok(command.args.includes('cli/native-read'));
+  assert.ok(!command.args.join(',').includes('identity/windows-broker'));
+});
+
+test('platform-only feature profiles are not passed off as native execution elsewhere', () => {
+  const p = plan();
+  p.profiles[0].platforms = ['windows'];
+  assert.ok(!coreCommands(p, 'linux').some(command => command.id.startsWith('native:')));
+  assert.throws(() => coreCommands(p, 'freebsd'), /Unsupported host/);
+});
+
+test('required-feature targets run in their assigned profile, never a default or unrelated variant', () => {
+  const p = plan();
+  const gated = {package: 'cli', target: 'test:native_case', default_available: false};
+  p.tests.push(gated);
+  p.profiles[0].tests = [gated];
+  const commands = coreCommands(p, 'windows');
+  assert.ok(!commands.some(command => command.id.startsWith('default:test:') &&
+    command.args.includes('native_case')));
+  const native = commands.find(command => command.id === 'native:test:cli');
+  assert.ok(native.args.includes('native_case'));
+  assert.ok(!native.args.includes('deploy_mount'));
+});
+
+test('no target-name test filters or invalid Cargo selectors can silently run zero tests', () => {
+  assert.throws(() => testCommands([{package: 'a', target: 'test:abc', filter: 'missing'}]), /complete Cargo/);
+  assert.throws(() => testCommands([{package: 'a', target: 'abc'}]), /Unsupported Cargo/);
+  assert.throws(() => testCommands([{package: 'a', target: 'test:a --ignored'}]), /Unsupported Cargo/);
+});
+
+test('recorded command execution retains failures, output hashes, counts and literal arguments', t => {
+  const root = temporary(t);
+  const context = {root, artifacts: root, commandTimeout: 1000, deadline: Date.now() + 10000, results: []};
+  const command = {id: 'literal:test', program: 'cargo', args: ['test', 'space ; value']};
+  const execute = (program, args, opts) => {
+    assert.equal(program, 'cargo');
+    assert.deepEqual(args, command.args);
+    assert.equal(opts.shell, false);
+    return {status: 0, stdout: 'test result: ok. 4 passed; 0 failed; 1 ignored;\n', stderr: ''};
+  };
+  commandResult(command, context, execute);
+  assert.equal(context.results[0].tests_passed, 4);
+  assert.equal(context.results[0].tests_ignored, 1);
+  assert.match(context.results[0].stdout_sha256, /^[a-f0-9]{64}$/);
+  assert.throws(() => commandResult(command, context, () => ({
+    status: null, error: new Error('deadline exceeded'), stdout: '', stderr: 'partial',
+  })), /Validation failed/);
+  assert.equal(context.results.length, 2);
+  assert.equal(context.results[1].exit, null);
+});
+
+test('missing full-gate marker profiles fail, rather than passing an empty contract', t => {
+  const root = temporary(t);
+  fs.mkdirSync(path.join(root, 'rust', 'validation'), {recursive: true});
+  fs.writeFileSync(path.join(root, 'rust', 'validation', 'impact-graph.json'),
+    JSON.stringify({checks: [{id: 'headless'}]}));
+  const context = {root, artifacts: root, platform: 'linux',
+    plan: {checks: ['headless'], profiles: []}};
+  const registry = {validateRegistry: () => {}, commandsFor: () => []};
+  assert.throws(() => runContracts(context, registry, () => {}), /No execution profile/);
+  context.plan.tests = [];
+  context.plan.profiles = [{checks: ['headless'], platforms: ['linux'], packages: ['identity']}];
+  assert.throws(() => runContracts(context, registry, () => {}), /with test targets/);
+});
+
+test('oracle dependencies are restored only for missing modules, before source preparation', t => {
+  const root = path.resolve(__dirname, '..', '..');
+  const context = {root, python: 'python', restoreOracleDeps: true,
+    plan: {checks: ['parameters-oracle']}};
+  const restored = [];
+  restoreOracleDependencies(context, command => restored.push(command), () => ({
+    status: 1, stderr: 'ModuleNotFoundError: missing test-only dependency',
+  }));
+  assert.equal(restored.length, 2);
+  assert.ok(restored[1].args.includes(path.join('scripts', 'rust-fast-requirements.txt')));
+  assert.ok(restored.every(command => command.args.includes('install')));
+  assert.throws(() => restoreOracleDependencies(context, () => assert.fail('must not install'), () => ({
+    status: 1, stderr: 'ImportError: broken installed module',
+  })), /probe failed/);
+  assert.throws(() => restoreOracleDependencies({...context, restoreOracleDeps: false},
+    () => assert.fail('must not install'), () => ({status: 1, stderr: 'ModuleNotFoundError'})),
+  /Missing oracle dependencies/);
+  const mismatched = [];
+  restoreOracleDependencies(context, command => mismatched.push(command),
+    () => ({status: 42, stdout: '{"jmespath":"0.0.0"}'}));
+  assert.equal(mismatched.length, 2);
+});
+
+test('oracle versions come from actual pinned manifests, with unsafe or ambiguous includes rejected', t => {
+  const root = temporary(t);
+  const manifest = path.join(root, 'requirements.txt');
+  fs.writeFileSync(manifest, '# example\njmespath==1.0.1\n-r child.txt\n');
+  fs.writeFileSync(path.join(root, 'child.txt'), 'cachetools==5.5.2\n');
+  assert.deepEqual(oracleVersions(root, 'requirements.txt'), {jmespath: '1.0.1', cachetools: '5.5.2'});
+  fs.writeFileSync(path.join(root, 'child.txt'), 'jmespath==0.0.1\n');
+  assert.throws(() => oracleVersions(root, 'requirements.txt'), /Conflicting/);
+  fs.writeFileSync(path.join(root, 'child.txt'), '-r requirements.txt\n');
+  assert.throws(() => oracleVersions(root, 'requirements.txt'), /inclusion cycle/);
+  fs.writeFileSync(manifest, `-r ${path.join('..', 'outside.txt')}\n`);
+  assert.throws(() => oracleVersions(root, 'requirements.txt'), /escaped/);
+  fs.writeFileSync(manifest, 'jmespath>=1\n');
+  assert.throws(() => oracleVersions(root, 'requirements.txt'), /exactly pinned/);
+});
+
+test('a failed source comparison still verifies frozen source and overlays exactly once', t => {
+  const root = temporary(t);
+  const frozen = path.join(root, 'frozen');
+  fs.mkdirSync(frozen);
+  fs.mkdirSync(path.join(root, 'rust', 'validation'), {recursive: true});
+  fs.mkdirSync(path.join(root, 'rust', 'tests', 'compatibility'), {recursive: true});
+  fs.writeFileSync(path.join(root, 'rust', 'tests', 'compatibility', 'requirements.txt'), 'jmespath==1.0.1\n');
+  const checks = [{id: 'oracle-tools'}, {id: 'comparison', depends_on: ['oracle-tools']},
+    {id: 'frozen-verify'}];
+  fs.writeFileSync(path.join(root, 'rust', 'validation', 'impact-graph.json'), JSON.stringify({checks}));
+  const context = {root, artifacts: root, platform: 'linux', python: 'python',
+    plan: {checks: ['oracle-tools', 'comparison', 'frozen-verify'], profiles: []}};
+  const registry = {
+    validateRegistry: () => {},
+    commandsFor: id => [{kind: id === 'oracle-tools' ? 'prepare-oracle' : 'command',
+      program: 'python', args: [id]}],
+  };
+  const calls = [];
+  const run = command => {
+    calls.push(command.args[0]);
+    if (command.args[0] === 'oracle-tools') return JSON.stringify({rust_root: frozen});
+    if (command.args[0] === 'comparison') throw new Error('comparison rejected mismatch');
+    return '';
+  };
+  assert.throws(() => runContracts(context, registry, run,
+    () => ({status: 0})), /comparison rejected mismatch/);
+  assert.deepEqual(calls, ['oracle-tools', 'comparison', 'frozen-verify']);
+});
+
+test('CI comparison binds scopes despite host-specific metadata, and rejects missing consumers', () => {
+  const expected = plan();
+  const actual = structuredClone(expected);
+  actual.packages.reverse();
+  actual.provenance = {root: 'another platform checkout'};
+  assert.deepEqual(selection(expected), selection(actual));
+  equalSelection(expected, actual);
+  actual.tests.pop();
+  assert.throws(() => equalSelection(expected, actual), /differs/);
+});
+
+test('the executor refuses unbounded timeouts, in-checkout artifacts and execution platform impersonation', t => {
+  const artifact = temporary(t);
+  const root = path.resolve(__dirname, '..', '..');
+  const args = ['--plan', path.join(artifact, 'plan.json'), '--artifacts', path.join(artifact, 'logs')];
+  assert.throws(() => options([...args, '--budget-seconds', 'Infinity']), /Invalid timeout/);
+  assert.throws(() => options(['--plan', path.join(artifact, 'plan.json'),
+    '--artifacts', root]), /outside the checkout/);
+  assert.throws(() => options([...args, '--budget-seconds', '10', '--budget-seconds', '20']), /Duplicate option/);
+  assert.throws(() => options([...args, '--stage', 'unknown']), /Stage must/);
+  const other = process.platform === 'win32' ? 'linux' : 'windows';
+  assert.throws(() => options([...args, '--platform', other, '--execute']), /actual native host/);
+});
+
+test('workflow always tests the planner, covers merge groups and periodic full runs, and has a stable fail-closed gate', () => {
+  const workflow = fs.readFileSync(path.resolve(__dirname, '..', '..', '.github', 'workflows', 'rust-ci.yml'), 'utf8');
+  assert.match(workflow, /merge_group:/);
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /node --test rust\/scripts\/impact-plan\.test\.cjs/);
+  assert.match(workflow, /node rust\/scripts\/impact-ci\.cjs select/);
+  assert.match(workflow, /node rust\/scripts\/impact-ci\.cjs native/);
+  assert.match(workflow, /node rust\/scripts\/validate-impact\.cjs/);
+  assert.match(workflow, /name: Rust validation/);
+  assert.match(workflow, /if: always\(\)/);
+  assert.match(workflow, /needs: \[changes, native\]/);
+  assert.match(workflow, /"\$RUN_NATIVE" == true && "\$NATIVE_RESULT" == success/);
+  assert.match(workflow, /"\$RUN_NATIVE" == false && "\$NATIVE_RESULT" == skipped/);
+  assert.ok(!workflow.includes('function select(files'));
+});

@@ -9,7 +9,93 @@ independent review, combined-candidate validation, and any later promotion.
 No SDK, crate, Cargo dependency, lockfile, identity registration, or production
 configuration changes are part of this work.
 
+## Current owner direction
+
+The original packet below records preparation at its named revision, not the
+current decision state. Subsequent owner decisions supersede its preview and
+manual-update recommendations:
+
+- The release target is a full CLI replacement and production GA, not a
+  Windows-only preview. Missing functionality remains a gate.
+- Automatic updating is required, using **`microsoft/fabric-cli` GitHub Releases**
+  as the production publisher. A fork or arbitrary release URL is not a fallback.
+  Rust release selection must distinguish this product from other releases in
+  the same repository.
+- Native distribution must have appropriate publisher signing. GitHub hosting,
+  checksums, build provenance, Windows Authenticode, Apple Developer ID and
+  Linux package-feed signatures are different trust mechanisms.
+- Windows release signing will reuse Microsoft's existing internal signing
+  service. This does not authorize creating a signing identity or assuming
+  access to another product's signing profile.
+- Automatic installation remains within the installed major version. A major
+  upgrade requires explicit opt-in; future breaking command or REPL changes
+  must not arrive through silent automatic replacement.
+- Repository maintainers are the accountable release and support owners. This
+  ownership decision is closed; concrete signing, registration and environment
+  access still require their normal authorization.
+- SDK publication remains separate. Workspace `publish = false` is unchanged.
+- Reedline is a separate optional component, and ICU-backed Unicode support was
+  approved. Neither dependency decision establishes platform or GA acceptance.
+
+Automatic checking, downloading and installation are distinct operations.
+Standalone installations may enroll in automatic updates; package-manager
+installations must retain their manager's custody. Unknown custody, missing
+pinned publisher trust, an invalid signature, an unsupported target, or expired
+metadata must prevent installation. Updating must not replay a Fabric command,
+modify PATH, elevate privileges, or interrupt a service operation.
+
+Publisher setup still needs the approved internal Windows signing service/profile
+and workflow references,
+Apple Developer ID and notarization references for macOS distribution, Linux
+repository signing where applicable, and independently pinned update-verification
+public keys with rotation/revocation policy. Never place private keys, passwords,
+service tokens or certificate exports in repository files or chat.
+
+GitHub CLI is useful distribution prior art, not an existing self-update engine.
+Its [version notifier](https://github.com/cli/cli/blob/v2.103.3/internal/update/update.go)
+checks periodically; package managers own upgrades. Its
+[release workflow](https://github.com/cli/cli/blob/v2.103.3/.github/workflows/deployment.yml)
+signs Windows executables/MSIs and macOS binaries, notarizes macOS archives, and
+signs Linux package/feed material. Do not copy its universal PKG step name as
+proof of package signing: the corresponding
+[installer documentation](https://github.com/cli/cli/blob/v2.103.3/docs/install_macos.md)
+identifies that package as unsigned.
+
+Our support matrix must specify tested OS floor, architecture, runtime/libc,
+authentication mode and installation channel independently. GitHub CLI's static
+Go Linux binaries do not establish glibc independence for Rust GNU artifacts.
+Native clean-machine, interactive-terminal, identity-policy, installation,
+update and rollback evidence still gates the exact release candidate.
+
 ## What can be established offline
+
+### Separately versioned production-assembly preparation
+
+The additive [native release assembly tool](release-assembly.md) consumes
+independently pinned native CLI **and separately built installed helper**
+artifacts, native build records, compiled publisher-key/channel/feature pins
+and declared OS/runtime floors. It generates an exact two-binary inventory and
+the current revision-2 standalone receipt shape, or a deliberately separate
+manager-owned record that never authorizes self-overwrite.
+
+This is a **new assembly contract**, not an extension or relaxation of the
+schema-1 preview bundle below. Source/minimum-OS/helper/receipt bindings live in
+a separately signed assembly manifest; the frozen updater protocol still signs
+only its current raw-CLI fields and does not update the helper.
+Unsigned engineering assembly and separately verified signed assembly have
+distinct results. Promotion requires external exact-byte Ed25519 signatures,
+an independently pinned approved verifier, signer policy and native-signature
+attestation covering both binaries. Missing public key, internal signing
+profile, Apple notarization policy, production workflow or release authority
+remains an actionable blocker, never a bypass.
+
+No build, native acceptance, signing, protected installation, workflow dispatch
+or publication is established by this addition. All tool results remain
+`publishable: false`; maintainers still supply the consolidated publisher inputs
+and approve independent platform/GA evidence. See the assembly document for
+closed schemas, proposed CI gates and the grant-gated synthetic unit selector.
+
+### Existing schema-1 preview verification
 
 [`release_verify.py`](../scripts/release_verify.py) consumes the existing
 [schema-1 preview bundle](preview-builds.md#bundle-contract-schema-version-1).
@@ -75,10 +161,11 @@ Preserve failures and partial matrices. An upload is not a verified download;
 download verification is not clean-machine acceptance; offline smoke is not
 live-service proof. Do not fill missing provider receipts with synthetic tests.
 
-## Owner decision register
+## Original preparation-stage decision register
 
-Every entry is **OPEN**. Recommendations are proposals, not consent. The
-controller collects choices; this unattended lane does not pick for the owner.
+The entries below were open at the original packet's named source revision.
+Recommendations are historical proposals, not consent; the current owner
+direction above takes precedence where a decision has since been made.
 
 | ID | Choice needed | Safe recommendation | Alternatives, costs, and tradeoffs |
 | --- | --- | --- | --- |

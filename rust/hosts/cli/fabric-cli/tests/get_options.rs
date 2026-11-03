@@ -11,16 +11,17 @@ mod folder_support;
 use fabric_cli::{
     PythonQuery, ReadConfig, ReadHost, WriteError,
     parser::{Invocation, ReadCommand, parse_args},
-    session::{ReadSession, get_options::is_metadata_property_query},
+    session::{ReadDispatch, ReadSession, get_options::is_metadata_property_query},
 };
 use fabric_cli_context::{Catalog, Element, HomeContext, ItemType, NodeKind, WorkspaceType};
 use fabric_cli_output::{Timestamp, text::TextPlan};
 use folder_support::{Credential, Http, Reply, Timer, complete, executor, reply, sdk};
 use serde_json::{Value, json};
 use std::{
-    future::{Future, pending, ready},
+    future::{Future, pending, poll_fn, ready},
     io::{self, Write},
     sync::Arc,
+    task::Poll,
 };
 
 fn command(args: &[&str]) -> ReadCommand {
@@ -72,10 +73,82 @@ fn session(
     (plan, requests, tokens)
 }
 
+fn session_evidence(
+    command: &ReadCommand,
+    replies: Vec<Reply>,
+    cancelled: impl Future<Output = ()> + Send,
+    source_operations: bool,
+) -> (
+    Result<ReadDispatch, fabric_cli_output::text::TextError>,
+    Vec<String>,
+    usize,
+) {
+    let http = Arc::new(Http::new(replies));
+    let executor = executor(http.clone(), Arc::new(Timer::default()));
+    let credential = Arc::new(Credential::default());
+    let sdk = sdk(credential.clone());
+    let reads = ReadSession {
+        sdk: &sdk,
+        executor: &executor,
+        tenant: Element::tenant("Tenant", "offline-tenant"),
+        current_path: "/",
+        home: HomeContext::Unspecified,
+        timestamp: Timestamp::parse("2000-01-01T00:00:00Z").unwrap(),
+        config: ReadConfig::default(),
+    };
+    let result = if source_operations {
+        complete(
+            reads
+                .with_source_operations(&executor)
+                .dispatch_with_evidence(command, cancelled),
+        )
+    } else {
+        complete(reads.dispatch_with_evidence(command, cancelled))
+    };
+    http.assert_consumed();
+    let requests = http.requests.lock().unwrap().clone();
+    let tokens = credential.scopes.lock().unwrap().len();
+    (result, requests, tokens)
+}
+
 fn streams(plan: &TextPlan) -> (Vec<u8>, Vec<u8>) {
     let (mut out, mut err) = (Vec::new(), Vec::new());
     plan.write_to(&mut out, &mut err).unwrap();
     (out, err)
+}
+
+fn assert_legacy_operation_envelope(dispatch: &ReadDispatch, command: &ReadCommand) {
+    use fabric_cli_output::{
+        CommandError, OutputEnvelope,
+        text::{self, OutputFormat, Presentation, TextOptions},
+    };
+
+    let original = dispatch
+        .operation_error
+        .as_ref()
+        .expect("original operation error");
+    let mut input = fabric_cli_mutations::operation_error_output(original);
+    input.command = Some(command.name.clone());
+    assert_eq!(
+        dispatch.error,
+        Some(CommandError::new(
+            input.message.clone(),
+            input.error_code.clone()
+        ))
+    );
+    let expected = text::render(
+        &OutputEnvelope::new(Timestamp::parse("2000-01-01T00:00:00Z").unwrap(), input),
+        OutputFormat::Json,
+        &TextOptions {
+            subcommand: Some(&command.name),
+            ..TextOptions::default()
+        },
+        &text::ascii_width,
+        Presentation::default(),
+    )
+    .unwrap();
+    assert_eq!(dispatch.plan.exit_code, expected.exit_code);
+    assert_eq!(streams(&dispatch.plan), streams(&expected));
 }
 
 fn failure_code(plan: &TextPlan) -> Value {
@@ -391,6 +464,356 @@ fn direct_read_host_uses_the_same_option_gate_without_a_session_wrapper() {
     let error =
         complete(host.run(&selected, pending(), &mut BrokenWriter, &mut Vec::new())).unwrap_err();
     assert!(matches!(error, WriteError::Io(error) if error.kind() == io::ErrorKind::BrokenPipe));
+    assert_eq!(http.requests.lock().unwrap().len(), 2);
+    http.assert_consumed();
+}
+
+#[test]
+fn read_dispatch_evidence_preserves_success_and_quiet_noop_plans() {
+    for query in ["id", "description"] {
+        let selected = command(&["get", "Demo.Workspace/Book.Notebook", "-q", query]);
+        let replies = || vec![workspaces(), items(), metadata()];
+        let (expected, expected_requests, expected_tokens) =
+            session(&selected, replies(), pending());
+        for source_operations in [false, true] {
+            let (result, requests, tokens) =
+                session_evidence(&selected, replies(), pending(), source_operations);
+            let dispatch = result.unwrap();
+            assert!(dispatch.error.is_none());
+            assert!(dispatch.operation_error.is_none());
+            assert_eq!(dispatch.plan.exit_code, expected.exit_code);
+            assert_eq!(streams(&dispatch.plan), streams(&expected));
+            assert_eq!(requests, expected_requests);
+            assert_eq!(tokens, expected_tokens);
+            if query == "description" {
+                assert!(dispatch.plan.records.is_empty());
+                assert_eq!(dispatch.plan.exit_code, 0);
+            }
+        }
+    }
+}
+
+#[test]
+fn read_dispatch_evidence_keeps_original_cancellation_without_requests() {
+    let selected = command(&["get", "Demo.Workspace/Book.Notebook", "-q", "id"]);
+    for source_operations in [false, true] {
+        let (result, requests, tokens) =
+            session_evidence(&selected, vec![], ready(()), source_operations);
+        let dispatch = result.unwrap();
+        assert!(dispatch.operation_error.is_none());
+        assert_eq!(
+            dispatch.error,
+            Some(fabric_cli_output::CommandError::new(
+                Some("Operation cancelled".into()),
+                Some("LongRunningOperationCancelled".into()),
+            ))
+        );
+        assert_eq!(
+            failure_code(&dispatch.plan),
+            "LongRunningOperationCancelled"
+        );
+        assert!(requests.is_empty());
+        assert_eq!(tokens, 0);
+    }
+}
+
+#[test]
+fn read_dispatch_evidence_keeps_original_service_and_unexpected_errors_without_plan_inference() {
+    for (status, code, message) in [
+        (401, "Unauthorized", "Access is unauthorized"),
+        (
+            403,
+            "Forbidden",
+            "Access is forbidden. You do not have permission to access this resource",
+        ),
+        (404, "NotFound", "The requested resource could not be found"),
+        (400, "UnexpectedError", "synthetic service failure"),
+    ] {
+        let selected = command(&["get", "Demo.Workspace/Book.Notebook", "-q", "id"]);
+        let replies = || {
+            let mut denied =
+                reply(json!({"errorCode":code, "message":"synthetic service failure"}));
+            denied.status = status;
+            vec![workspaces(), items(), denied]
+        };
+        let (expected, expected_requests, expected_tokens) =
+            session(&selected, replies(), pending());
+        for source_operations in [false, true] {
+            let (result, requests, tokens) =
+                session_evidence(&selected, replies(), pending(), source_operations);
+            let dispatch = result.unwrap();
+            assert!(dispatch.operation_error.is_none());
+            assert_eq!(
+                dispatch.error,
+                Some(fabric_cli_output::CommandError::new(
+                    Some(message.into()),
+                    Some(code.into()),
+                ))
+            );
+            assert_eq!(dispatch.plan.exit_code, expected.exit_code);
+            assert_eq!(streams(&dispatch.plan), streams(&expected));
+            assert_eq!(requests, expected_requests);
+            assert_eq!(tokens, expected_tokens);
+        }
+    }
+}
+
+#[test]
+fn read_dispatch_evidence_returns_render_failures_without_command_error_substitution() {
+    let mut selected = command(&["get", "Demo.Workspace/Book.Notebook", "-q", "id"]);
+    selected.output_format = Some("invalid".into());
+    for source_operations in [false, true] {
+        let (result, requests, tokens) =
+            session_evidence(&selected, vec![], pending(), source_operations);
+        assert!(matches!(
+            result.unwrap_err(),
+            fabric_cli_output::text::TextError::UnsupportedFormat(format) if format == "invalid"
+        ));
+        assert!(requests.is_empty());
+        assert_eq!(tokens, 0);
+    }
+}
+
+#[test]
+fn read_dispatch_evidence_retains_source_workspace_operation_errors() {
+    let selected = command(&["get", "Demo.Workspace", "-q", "id"]);
+    let mut denied = reply(json!({
+        "errorCode":"UnexpectedError",
+        "message":"synthetic operation failure"
+    }));
+    denied.status = 400;
+    let (result, requests, _) =
+        session_evidence(&selected, vec![workspaces(), denied], pending(), true);
+    let dispatch = result.unwrap();
+    let original = dispatch.operation_error.as_ref().unwrap();
+    assert!(matches!(
+        &original.kind,
+        fabric_sdk_operations::OperationErrorKind::Http { status: 400, code: Some(code), .. }
+            if code == "UnexpectedError"
+    ));
+    assert_eq!(
+        original.raw_service_error.as_deref(),
+        Some(&json!({"errorCode":"UnexpectedError","message":"synthetic operation failure"}))
+    );
+    assert!(original.operation_id.is_none());
+    assert!(!original.mutation_may_have_occurred);
+    assert_legacy_operation_envelope(&dispatch, &selected);
+    assert_eq!(
+        dispatch.error,
+        Some(fabric_cli_output::CommandError::new(
+            Some("synthetic operation failure".into()),
+            Some("UnexpectedError".into()),
+        ))
+    );
+    assert_eq!(failure_code(&dispatch.plan), "UnexpectedError");
+    assert_eq!(requests.len(), 2);
+}
+
+#[test]
+fn read_dispatch_preserves_empty_operation_message_in_legacy_and_evidence_output() {
+    let selected = command(&["get", "Demo.Workspace", "-q", "id"]);
+    let expected_stdout = concat!(
+        "{\n",
+        "    \"timestamp\": \"2000-01-01T00:00:00Z\",\n",
+        "    \"status\": \"Failure\",\n",
+        "    \"command\": \"get\",\n",
+        "    \"result\": {\n",
+        "        \"error_code\": \"UnexpectedError\",\n",
+        "        \"message\": \"\"\n",
+        "    }\n",
+        "}\n",
+    )
+    .as_bytes();
+    for with_evidence in [false, true] {
+        let mut denied = reply(json!({"errorCode":"UnexpectedError","message":"."}));
+        denied.status = 400;
+        let http = Arc::new(Http::new([workspaces(), denied]));
+        let executor = executor(http.clone(), Arc::new(Timer::default()));
+        let sdk = sdk(Arc::new(Credential::default()));
+        let reads = ReadSession {
+            sdk: &sdk,
+            executor: &executor,
+            tenant: Element::tenant("Tenant", "offline-tenant"),
+            current_path: "/",
+            home: HomeContext::Unspecified,
+            timestamp: Timestamp::parse("2000-01-01T00:00:00Z").unwrap(),
+            config: ReadConfig::default(),
+        };
+        let source = reads.with_source_operations(&executor);
+        let plan = if with_evidence {
+            let dispatch = complete(source.dispatch_with_evidence(&selected, pending())).unwrap();
+            assert_legacy_operation_envelope(&dispatch, &selected);
+            assert_eq!(
+                dispatch
+                    .operation_error
+                    .as_ref()
+                    .unwrap()
+                    .raw_service_error
+                    .as_deref(),
+                Some(&json!({"errorCode":"UnexpectedError","message":"."}))
+            );
+            dispatch.plan
+        } else {
+            complete(source.dispatch(&selected, pending())).unwrap()
+        };
+        let (stdout, stderr) = streams(&plan);
+        assert_eq!(stdout, expected_stdout);
+        assert!(stderr.is_empty());
+        assert_eq!(plan.exit_code, 1);
+        assert_eq!(http.requests.lock().unwrap().len(), 2);
+        http.assert_consumed();
+    }
+}
+
+#[test]
+fn read_dispatch_evidence_retains_inflight_source_workspace_operation_cancellation() {
+    let selected = command(&["get", "Demo.Workspace", "-q", "id"]);
+    let mut http = Http::new([workspaces()]);
+    http.hold_after = Some(2);
+    let http = Arc::new(http);
+    let executor = executor(http.clone(), Arc::new(Timer::default()));
+    let credential = Arc::new(Credential::default());
+    let sdk = sdk(credential);
+    let reads = ReadSession {
+        sdk: &sdk,
+        executor: &executor,
+        tenant: Element::tenant("Tenant", "offline-tenant"),
+        current_path: "/",
+        home: HomeContext::Unspecified,
+        timestamp: Timestamp::parse("2000-01-01T00:00:00Z").unwrap(),
+        config: ReadConfig::default(),
+    };
+    let signal_http = http.clone();
+    let cancelled = poll_fn(move |cx| {
+        if signal_http.requests.lock().unwrap().len() >= 2 {
+            Poll::Ready(())
+        } else {
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
+    });
+    let dispatch = complete(
+        reads
+            .with_source_operations(&executor)
+            .dispatch_with_evidence(&selected, cancelled),
+    )
+    .unwrap();
+    let original = dispatch.operation_error.as_ref().unwrap();
+    assert!(matches!(
+        original.kind,
+        fabric_sdk_operations::OperationErrorKind::Cancelled
+    ));
+    assert!(original.operation_id.is_none());
+    assert!(!original.mutation_may_have_occurred);
+    assert!(original.raw_service_error.is_none());
+    assert_legacy_operation_envelope(&dispatch, &selected);
+    assert_eq!(
+        failure_code(&dispatch.plan),
+        "LongRunningOperationCancelled"
+    );
+    assert_eq!(http.requests.lock().unwrap().len(), 2);
+    http.assert_consumed();
+}
+
+#[test]
+fn read_dispatch_evidence_retains_terminal_cancelled_operation_id_raw_error_and_output_failure() {
+    const OPERATION: &str = "33333333-3333-3333-3333-333333333333";
+    let selected = command(&["get", "Demo.Workspace", "-q", "id"]);
+    let mut accepted = reply(json!({}));
+    accepted.status = 202;
+    accepted
+        .headers
+        .insert("x-ms-operation-id".into(), OPERATION.into());
+    accepted.headers.insert("retry-after".into(), "0".into());
+    let detail = json!({
+        "errorCode":"SyntheticCancellation",
+        "message":"synthetic terminal cancellation",
+        "details":[{"field":"retained"}]
+    });
+    let terminal = reply(json!({"status":"Cancelled","error":detail}));
+    let (result, requests, _) = session_evidence(
+        &selected,
+        vec![workspaces(), accepted, terminal],
+        pending(),
+        true,
+    );
+    let dispatch = result.unwrap();
+    let original = dispatch.operation_error.as_ref().unwrap();
+    assert!(matches!(
+        &original.kind,
+        fabric_sdk_operations::OperationErrorKind::OperationFailed { status, .. }
+            if status == "Cancelled"
+    ));
+    assert_eq!(original.operation_id.as_deref(), Some(OPERATION));
+    assert_eq!(original.raw_service_error.as_deref(), Some(&detail));
+    assert!(!original.mutation_may_have_occurred);
+    assert_legacy_operation_envelope(&dispatch, &selected);
+    assert_eq!(
+        failure_code(&dispatch.plan),
+        "LongRunningOperationCancelled"
+    );
+    assert_eq!(requests.len(), 3);
+    assert_eq!(
+        requests[2],
+        format!("https://api.fabric.microsoft.com/v1/operations/{OPERATION}")
+    );
+    let before = original.as_ref().clone();
+    assert_eq!(
+        dispatch
+            .plan
+            .write_to(&mut BrokenWriter, &mut Vec::new())
+            .unwrap_err()
+            .kind(),
+        io::ErrorKind::BrokenPipe
+    );
+    assert_eq!(dispatch.operation_error.as_deref(), Some(&before));
+}
+
+#[test]
+fn read_dispatch_evidence_retains_accepted_id_when_cancelled_before_polling_without_replay() {
+    const OPERATION: &str = "33333333-3333-3333-3333-333333333333";
+    let selected = command(&["get", "Demo.Workspace", "-q", "id"]);
+    let mut accepted = reply(json!({}));
+    accepted.status = 202;
+    accepted
+        .headers
+        .insert("x-ms-operation-id".into(), OPERATION.into());
+    accepted.headers.insert("retry-after".into(), "0".into());
+    let http = Arc::new(Http::new([workspaces(), accepted]));
+    let executor = executor(http.clone(), Arc::new(Timer::default()));
+    let sdk = sdk(Arc::new(Credential::default()));
+    let reads = ReadSession {
+        sdk: &sdk,
+        executor: &executor,
+        tenant: Element::tenant("Tenant", "offline-tenant"),
+        current_path: "/",
+        home: HomeContext::Unspecified,
+        timestamp: Timestamp::parse("2000-01-01T00:00:00Z").unwrap(),
+        config: ReadConfig::default(),
+    };
+    let signal_http = http.clone();
+    let cancelled = poll_fn(move |cx| {
+        if signal_http.requests.lock().unwrap().len() >= 2 {
+            Poll::Ready(())
+        } else {
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
+    });
+    let dispatch = complete(
+        reads
+            .with_source_operations(&executor)
+            .dispatch_with_evidence(&selected, cancelled),
+    )
+    .unwrap();
+    let original = dispatch.operation_error.as_ref().unwrap();
+    assert!(matches!(
+        original.kind,
+        fabric_sdk_operations::OperationErrorKind::Cancelled
+    ));
+    assert_eq!(original.operation_id.as_deref(), Some(OPERATION));
+    assert!(!original.mutation_may_have_occurred);
+    assert_legacy_operation_envelope(&dispatch, &selected);
     assert_eq!(http.requests.lock().unwrap().len(), 2);
     http.assert_consumed();
 }

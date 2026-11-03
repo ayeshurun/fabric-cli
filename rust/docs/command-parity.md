@@ -100,8 +100,11 @@ placeholder crates or claims of delivered code.
 - `auth`, `config`, `acl`, `label`, `job`, `table` with no subcommand have
   source help behavior. Nested parser error/help handling also needs comparison.
 - No-command starts the Python REPL. Preserve prompt/context changes, history,
-  completion, `help`, `exit`/`quit`, cancellation, error recovery and shutdown.
-  The current Rust no-argument error is not parity.
+  `help`, `exit`/`quit`, cancellation, error recovery and shutdown. The pinned
+  `PromptSession` has no completer configured. Rust's optional `repl` feature
+  provides the separate Reedline host; default no-argument errors are retained.
+  Pure shell/source contracts do not prove terminal editing, key-binding,
+  appearance, OS-signal or native three-platform interactive acceptance.
 - Root `-c`/`--command` is repeatable batch execution; command splitting,
   separators, summaries and exit-code propagation are observable.
 - Root `-v`/`--version`, automatic `-h`/`--help`, custom `-help`, per-parser

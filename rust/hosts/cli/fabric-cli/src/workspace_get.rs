@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{ReadHost, errors, parser::ReadCommand, reads::required_id};
+use crate::{ReadHost, errors, parser::ReadCommand, reads::required_id, session::ReadFailure};
 use fabric_cli_context::Element;
 use fabric_cli_output::{CommandError, OutputInput};
 use fabric_sdk::workspaces::{
@@ -47,14 +47,36 @@ impl ReadHost<'_> {
         operations: Option<&dyn OperationExecutor>,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<Option<OutputInput>, CommandError> {
+        match self
+            .workspace_get_with_evidence(target, command, operations, cancelled)
+            .await
+        {
+            Ok(output) => Ok(output),
+            Err(failure) => {
+                if let Some(mut output) = failure.operation_output {
+                    output.command = Some(command.name.clone());
+                    Ok(Some(*output))
+                } else {
+                    Err(failure.command)
+                }
+            }
+        }
+    }
+
+    pub(crate) async fn workspace_get_with_evidence(
+        &self,
+        target: &Element,
+        command: &ReadCommand,
+        operations: Option<&dyn OperationExecutor>,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<Option<OutputInput>, ReadFailure> {
         let mut cancelled = pin!(cancelled);
         let workspace = required_id(target)?;
         let result = if let Some(operations) = operations {
             if workspace.contains(['?', '#']) {
-                return Err(errors::error(
-                    "InvalidInput",
-                    "Invalid workspace request identifier",
-                ));
+                return Err(
+                    errors::error("InvalidInput", "Invalid workspace request identifier").into(),
+                );
             }
             let operation = ResourceOperation::encoded(
                 ResourceMethod::Get,
@@ -74,14 +96,10 @@ impl ReadHost<'_> {
                 OperationLimits::default(),
                 cancelled.as_mut(),
             );
-            let response = match session.execute(operation).await {
-                Ok(response) => response,
-                Err(error) => {
-                    let mut output = fabric_cli_mutations::operation_error_output(&error);
-                    output.command = Some(command.name.clone());
-                    return Ok(Some(output));
-                }
-            };
+            let response = session
+                .execute(operation)
+                .await
+                .map_err(ReadFailure::from)?;
             // The source handler ignores accepted and other non-200 primary replies.
             if response.status != 200 {
                 return Ok(None);
@@ -93,9 +111,14 @@ impl ReadHost<'_> {
                         "Fabric returned invalid workspace metadata",
                     )
                 })?;
-            session.check_cancelled().await.map_err(|_| {
-                errors::error("LongRunningOperationCancelled", "Operation cancelled")
-            })?;
+            session
+                .check_cancelled()
+                .await
+                .map_err(|operation| ReadFailure {
+                    command: errors::error("LongRunningOperationCancelled", "Operation cancelled"),
+                    operation: Some(Box::new(operation)),
+                    operation_output: None,
+                })?;
             drop(session);
             self.sdk
                 .enrich_workspace_metadata(
@@ -145,10 +168,9 @@ impl ReadHost<'_> {
             false,
         )?;
         if poll_fn(|cx| Poll::Ready(cancelled.as_mut().poll(cx).is_ready())).await {
-            return Err(errors::error(
-                "LongRunningOperationCancelled",
-                "Operation cancelled",
-            ));
+            return Err(
+                errors::error("LongRunningOperationCancelled", "Operation cancelled").into(),
+            );
         }
         let print = match &data {
             Value::Null => false,

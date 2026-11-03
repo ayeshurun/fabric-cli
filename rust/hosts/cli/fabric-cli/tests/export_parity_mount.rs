@@ -1042,7 +1042,19 @@ async fn root_cancelled_before_discovery_has_no_http_or_filesystem_effect() {
         )
         .await;
     assert_ne!(output.plan.exit_code, 0);
-    assert!(matches!(output.evidence, FamilyEvidence::Local));
+    let FamilyEvidence::CommandFailure(error) = &output.evidence else {
+        panic!("pre-discovery cancellation must retain the original command failure");
+    };
+    assert_eq!(
+        error
+            .envelope(
+                fabric_cli_output::Timestamp::parse("2026-10-28T12:00:00Z").unwrap(),
+                None,
+            )
+            .result()
+            .error_code(),
+        Some("LongRunningOperationCancelled")
+    );
     let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
     assert_ne!(output.write_to(&mut stdout, &mut stderr).unwrap(), 0);
     let envelope: Value = serde_json::from_slice(&stdout).unwrap();

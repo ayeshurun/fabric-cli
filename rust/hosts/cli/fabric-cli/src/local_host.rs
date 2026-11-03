@@ -3,17 +3,18 @@
 
 //! Explicit binary inputs for credential-free local execution.
 
-use fabric_cli_context::{Catalog, Element, HierarchyCatalog, HomeContext, PathElement};
+use crate::batch_state::{BatchState, CommandOutcome};
+use fabric_cli_context::{Catalog, HierarchyCatalog};
 use fabric_cli_local::{
     AnsiTerminal, BrowserIdentity, BrowserLauncher, Capacity, ConfigStore, LocalCommand,
-    LocalEffects, LocalError, LocalInvocation, NavigationHost, NavigationState,
-    SystemBrowserLauncher, TerminalControl,
+    LocalEffects, LocalError, LocalInvocation, NavigationHost, SystemBrowserLauncher,
+    TerminalControl,
 };
 use fabric_cli_output::{
     Timestamp,
     text::{self, OutputFormat, Presentation, TextOptions, TextPlan},
 };
-use std::{io, path::PathBuf, process::ExitCode};
+use std::{io, path::PathBuf};
 
 pub(crate) fn timestamp() -> Result<Timestamp, LocalError> {
     let now = azure_core::time::OffsetDateTime::now_utc();
@@ -83,7 +84,7 @@ impl LocalEffects for Effects {
 fn execute(
     command: &LocalInvocation,
     timestamp: Timestamp,
-    session: &mut Option<NavigationState>,
+    session: &mut BatchState,
 ) -> Result<TextPlan, LocalError> {
     if matches!(command.command, LocalCommand::Version) {
         return fabric_cli::local_commands::dispatch(
@@ -94,13 +95,6 @@ fn execute(
         );
     }
     let store = store()?;
-    let mut initial = NavigationState::new(
-        PathElement::from_fabric(Element::tenant("", "")),
-        HomeContext::Unspecified,
-        std::env::current_dir()?.to_string_lossy().into_owned(),
-        session_id()?,
-        true,
-    )?;
     let navigation = matches!(
         &command.command,
         LocalCommand::ChangeDirectory { .. }
@@ -110,21 +104,20 @@ fn execute(
     if !navigation {
         return fabric_cli::local_commands::dispatch(command, &store, &mut Effects, timestamp);
     }
-    if session.is_none() && context_selection()?.0 != "/" {
+    if session.path()? != "/" {
         return Err(LocalError::command(
             "NotConfigured",
             "This context requires the configured native metadata host",
         ));
     }
     let lookup = HierarchyCatalog::new(Catalog::new(Vec::new()), Vec::new(), Vec::new());
-    let restored = if session.is_none() {
-        let restored = initial.restore(&store, &lookup)?;
-        *session = Some(initial);
-        restored
-    } else {
-        false
-    };
-    let state = session.as_mut().expect("navigation state initialized");
+    session.initialize_local()?;
+    let restored = session.take_restored()?;
+    let state = session
+        .navigation
+        .as_mut()
+        .expect("navigation state initialized");
+    let before = std::sync::Arc::clone(state.current());
     let restored_path = state.current().path();
     let mut effects = Effects;
     let mut host = NavigationHost {
@@ -133,7 +126,9 @@ fn execute(
         store: &store,
         effects: &mut effects,
     };
-    let mut plan = fabric_cli::local_commands::dispatch(command, &store, &mut host, timestamp)?;
+    let result = fabric_cli::local_commands::dispatch(command, &store, &mut host, timestamp);
+    session.commit_navigation(&before);
+    let mut plan = result?;
     if restored {
         let path = restored_path;
         let message = format!(
@@ -166,29 +161,42 @@ pub(crate) fn session_id() -> Result<u32, LocalError> {
 
 pub(crate) fn run(
     command: &LocalInvocation,
-    session: &mut Option<NavigationState>,
-) -> io::Result<ExitCode> {
+    session: &mut BatchState,
+) -> io::Result<CommandOutcome> {
     let timestamp = timestamp().map_err(io::Error::other)?;
-    let plan = match execute(command, timestamp.clone(), session) {
-        Ok(plan) => plan,
-        Err(error) => text::render(
-            &error
-                .command_error()
-                .envelope(timestamp, Some(command.command.command_path().into())),
-            OutputFormat::Json,
-            &TextOptions::default(),
-            &text::ascii_width,
-            Presentation::default(),
-        )
-        .map_err(io::Error::other)?,
+    let (plan, outcome) = match execute(command, timestamp.clone(), session) {
+        Ok(plan) => {
+            let outcome = CommandOutcome::Returned(plan.exit_code);
+            (plan, outcome)
+        }
+        Err(LocalError::Text(error)) => {
+            if let Some(partial) = error.partial_output() {
+                partial.write_to(&mut io::stdout().lock(), &mut io::stderr().lock())?;
+            }
+            return Err(io::Error::other(error));
+        }
+        Err(error) => {
+            let plan = text::render(
+                &error
+                    .command_error()
+                    .envelope(timestamp, Some(command.command.command_path().into())),
+                OutputFormat::Json,
+                &TextOptions::default(),
+                &text::ascii_width,
+                Presentation::default(),
+            )
+            .map_err(io::Error::other)?;
+            let outcome = crate::batch_state::error_outcome(&error.command_error(), plan.exit_code);
+            (plan, outcome)
+        }
     };
     plan.write_to(&mut io::stdout().lock(), &mut io::stderr().lock())?;
-    Ok(ExitCode::from(plan.exit_code))
+    Ok(outcome)
 }
 
-#[cfg(feature = "native-read")]
-pub(crate) fn needs_remote(command: &LocalInvocation) -> bool {
-    let selected_remote = context_selection().is_ok_and(|(path, _)| path != "/");
+#[cfg(feature = "native-host")]
+pub(crate) fn needs_remote(command: &LocalInvocation, state: &BatchState) -> bool {
+    let selected_remote = state.path().is_ok_and(|path| path != "/");
     match &command.command {
         LocalCommand::Open { .. } => true,
         LocalCommand::ChangeDirectory { path } => path.join(" ") != "/" || selected_remote,
@@ -203,6 +211,10 @@ pub(crate) fn needs_remote(command: &LocalInvocation) -> bool {
 }
 
 pub(crate) fn context_selection() -> Result<(String, bool), LocalError> {
+    context_selection_for(true)
+}
+
+pub(crate) fn context_selection_for(command_line: bool) -> Result<(String, bool), LocalError> {
     match std::env::var("FAB_RUST_CONTEXT") {
         Ok(path) if path.starts_with('/') => return Ok((path, false)),
         Ok(_) | Err(std::env::VarError::NotUnicode(_)) => {
@@ -213,13 +225,14 @@ pub(crate) fn context_selection() -> Result<(String, bool), LocalError> {
         }
         Err(std::env::VarError::NotPresent) => {}
     }
-    if std::env::var_os("FAB_RUST_CONFIG_ROOT").is_none() {
+    if !command_line || std::env::var_os("FAB_RUST_CONFIG_ROOT").is_none() {
         return Ok(("/".into(), false));
     }
     let store = store()?;
-    if store
-        .read()?
+    let settings = store.read()?;
+    if settings
         .get("context_persistence_enabled")
+        .or_else(|| settings.get("fab_context_persistence_enabled"))
         .and_then(serde_json::Value::as_str)
         != Some("true")
     {
@@ -245,7 +258,7 @@ pub(crate) fn context_selection() -> Result<(String, bool), LocalError> {
 
 pub(crate) fn local_access(
     command: &fabric_cli_resources::frontdoor::AccessCommand,
-) -> io::Result<ExitCode> {
+) -> io::Result<CommandOutcome> {
     let timestamp = timestamp().map_err(io::Error::other)?;
     let result = (|| {
         let store = store()?;
@@ -269,7 +282,7 @@ pub(crate) fn local_access(
         Ok(output) => {
             let exit = output.plan.exit_code;
             output.write_to(&mut io::stdout().lock(), &mut io::stderr().lock())?;
-            Ok(ExitCode::from(exit))
+            Ok(CommandOutcome::Returned(exit))
         }
         Err(error) => {
             let plan = text::render(
@@ -283,7 +296,7 @@ pub(crate) fn local_access(
             )
             .map_err(io::Error::other)?;
             plan.write_to(&mut io::stdout().lock(), &mut io::stderr().lock())?;
-            Ok(ExitCode::from(plan.exit_code))
+            Ok(CommandOutcome::Returned(plan.exit_code))
         }
     }
 }

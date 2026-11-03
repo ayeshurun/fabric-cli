@@ -442,7 +442,7 @@ pub(crate) fn required_id(element: &Element) -> Result<&str, CommandError> {
         .ok_or_else(|| errors::error("NotFound", "The requested resource could not be found"))
 }
 
-fn unsupported_get(kind: ItemType) -> bool {
+pub(crate) fn unsupported_get(kind: ItemType) -> bool {
     matches!(
         kind.as_str(),
         "Dashboard"

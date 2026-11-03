@@ -34,6 +34,16 @@ pub struct JobReadSession<'a, 'session> {
     pub jobs: Arc<dyn JobExecutor>,
 }
 
+/// Rendered job streams together with the original command or operation failure.
+///
+/// Rendering does not erase cancellation or accepted-operation uncertainty.
+pub struct JobDispatch {
+    /// Deferred streams and the existing process exit code.
+    pub plan: TextPlan,
+    /// Original failure, retained without parsing the rendered output.
+    pub error: Option<JobCommandError>,
+}
+
 impl JobReadSession<'_, '_> {
     /// Resolve context, execute a read-only leaf and render its actual streams.
     ///
@@ -45,6 +55,17 @@ impl JobReadSession<'_, '_> {
         command: &JobReadCommand,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<TextPlan, text::TextError> {
+        self.dispatch_with_evidence(command, cancelled)
+            .await
+            .map(|output| output.plan)
+    }
+
+    /// Resolve and render while preserving the original failure classification.
+    pub async fn dispatch_with_evidence(
+        &self,
+        command: &JobReadCommand,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<JobDispatch, text::TextError> {
         let family = command.family_command();
         JobSession {
             reads: self.reads,
@@ -53,7 +74,7 @@ impl JobReadSession<'_, '_> {
             ui: &ReadOnlyUi,
             config: JobConfig::default(),
         }
-        .dispatch(&family, cancelled)
+        .dispatch_with_evidence(&family, cancelled)
         .await
     }
 }
@@ -85,6 +106,20 @@ impl JobSession<'_, '_> {
         command: &JobCommand,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<TextPlan, text::TextError> {
+        self.dispatch_with_evidence(command, cancelled)
+            .await
+            .map(|output| output.plan)
+    }
+
+    /// Load context and render without discarding the original typed failure.
+    ///
+    /// The caller can distinguish cancellation from a handled error independently
+    /// of its exit code. Rendering failure still propagates without job replay.
+    pub async fn dispatch_with_evidence(
+        &self,
+        command: &JobCommand,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<JobDispatch, text::TextError> {
         let format = OutputFormat::resolve(command.output_format.as_deref(), Some("json"))?;
         let mut cancelled = pin!(cancelled);
         let result = async {
@@ -140,17 +175,21 @@ impl JobSession<'_, '_> {
             .await
         }
         .await;
-        let (envelope, headers, key_value, after) = match result {
+        let (envelope, headers, key_value, after, error) = match result {
             Ok(Some(output)) => (
                 OutputEnvelope::new(self.reads.timestamp.clone(), output.input),
                 output.show_headers,
                 output.show_key_value_list,
                 output.after_output,
+                None,
             ),
             Ok(None) => {
-                return Ok(TextPlan {
-                    records: Vec::new(),
-                    exit_code: 0,
+                return Ok(JobDispatch {
+                    plan: TextPlan {
+                        records: Vec::new(),
+                        exit_code: 0,
+                    },
+                    error: None,
                 });
             }
             Err(error) => (
@@ -158,6 +197,7 @@ impl JobSession<'_, '_> {
                 false,
                 false,
                 Vec::new(),
+                Some(error),
             ),
         };
         let mut plan = text::render(
@@ -174,7 +214,7 @@ impl JobSession<'_, '_> {
         for event in after {
             plan.records.extend(render_job_event(&event)?.records);
         }
-        Ok(plan)
+        Ok(JobDispatch { plan, error })
     }
 }
 

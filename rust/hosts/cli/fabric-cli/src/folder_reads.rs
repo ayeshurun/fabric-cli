@@ -379,7 +379,7 @@ pub(crate) struct FolderGraph {
 
 impl FolderGraph {
     /// Materialize the validated source-ordered graph for transfer snapshots.
-    #[cfg(feature = "native-read")]
+    #[cfg(feature = "native-host")]
     pub(crate) fn elements(
         &self,
         workspace: Arc<Element>,

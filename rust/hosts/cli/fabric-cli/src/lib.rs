@@ -12,7 +12,7 @@ pub mod auth_commands;
 pub mod console;
 pub mod deploy;
 mod errors;
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 pub mod families;
 mod folder_reads;
 pub mod jobs;
@@ -21,7 +21,7 @@ pub mod parser;
 mod projection;
 mod reads;
 pub mod session;
-#[cfg(feature = "native-read")]
+#[cfg(feature = "native-host")]
 pub mod tables;
 mod workspace_get;
 

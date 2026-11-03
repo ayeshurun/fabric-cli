@@ -6,6 +6,10 @@
 //! Default builds do not discover credentials or launch UI. Windows broker login
 //! is explicitly opt-in; it uses no developer-tool fallback or plaintext cache.
 
+/// Explicit unattended credentials over a caller-injected HTTP client.
+#[cfg(feature = "headless")]
+pub mod headless;
+
 #[cfg(all(windows, feature = "windows-broker"))]
 mod windows;
 #[cfg(all(windows, feature = "windows-broker"))]

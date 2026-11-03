@@ -99,6 +99,67 @@ fn data(plan: &TextPlan) -> Value {
 }
 
 #[test]
+fn metadata_failures_retain_typed_job_evidence_without_replaying_requests() {
+    for cancelled in [true, false] {
+        let http = Arc::new(Http::new(if cancelled {
+            Vec::new()
+        } else {
+            vec![Reply {
+                status: 403,
+                body: json!({"errorCode": "Forbidden", "message": "Synthetic denial"}),
+                headers: Default::default(),
+            }]
+        }));
+        let executor = executor(http.clone(), Arc::new(Timer::default()));
+        let sdk = sdk(Arc::default());
+        let timestamp = Timestamp::parse("2000-01-01T00:00:00Z").unwrap();
+        let reads = ReadSession {
+            sdk: &sdk,
+            executor: &executor,
+            tenant: Element::tenant("Tenant", "offline-tenant"),
+            current_path: "/",
+            home: HomeContext::Unspecified,
+            timestamp: timestamp.clone(),
+            config: ReadConfig::default(),
+        };
+        let Invocation::JobRead(command) =
+            parse_args(["fab-rs", "job", "run-list", "Demo.Workspace/Book.Notebook"]).unwrap()
+        else {
+            panic!("expected job read");
+        };
+        let output = complete(
+            JobReadSession {
+                reads: &reads,
+                jobs: Arc::new(HttpJobExecutor::new(executor.clone())),
+            }
+            .dispatch_with_evidence(&command, async {
+                if !cancelled {
+                    pending::<()>().await;
+                }
+            }),
+        )
+        .unwrap();
+        let error = output
+            .error
+            .expect("metadata failure must retain its cause");
+        let actual = data(&output.plan);
+        assert_eq!(
+            error.envelope(timestamp, None).result().error_code(),
+            actual["result"]["error_code"].as_str(),
+        );
+        if cancelled {
+            assert_eq!(
+                actual["result"]["error_code"],
+                "LongRunningOperationCancelled"
+            );
+        }
+        assert_ne!(output.plan.exit_code, 0);
+        assert_eq!(http.requests.lock().unwrap().len(), usize::from(!cancelled));
+        http.assert_consumed();
+    }
+}
+
+#[test]
 fn list_pages_reuse_the_real_pager_credential_and_source_projection() {
     let mut replies = metadata();
     replies.extend([

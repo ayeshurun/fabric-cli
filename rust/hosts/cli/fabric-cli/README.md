@@ -24,10 +24,97 @@ broker-only builds do not install a remote execution host.
 | Default | Arguments, local commands and unconfigured-host diagnostics |
 | `windows-broker` | Explicit experimental Windows login, status and logout |
 | `native-read` | Windows service command host, including reads, jobs, transfers and deployment |
+| `headless` | Cross-platform service host with explicitly selected unattended credentials |
+| `repl` | Optional Reedline shell for terminal-only, no-argument invocation |
+| `self-update` | Optional signed-release checking and standalone update host |
 
 See [native host configuration](../../../docs/native-read-host.md) and
 [Windows authentication](../../../README.md#windows-authentication) for selectors,
 platform limits and live-operation requirements.
+
+## Headless service commands
+
+Build with `--features headless` and explicitly set `FAB_RUST_AUTH_MODE`.
+Supported modes are `client-secret`, `client-assertion`, `workload-identity`,
+`managed-identity-vm` and `managed-identity-app-service`. Select a public-cloud
+tenant and the documented provider inputs; the presence of a secret never
+selects a credential. Service commands acquire tokens lazily, without interactive
+login. Service-principal identity labels are client IDs, not user UPNs or
+independently verified claims.
+
+See the exact [environment bindings and host contracts](../../../docs/native-read-host.md#headless-credentials).
+Credentials are not command arguments or saved settings. The
+[identity API](../../../infrastructure/identity/fabric-identity/README.md)
+documents renewal, redaction and unsupported providers. Offline tests do not
+establish live platform support, service authorization or GA readiness.
+
+## Optional release updates
+
+The `self-update` feature adds outer-only update commands:
+
+```text
+fab-rs update --check
+fab-rs update --apply
+```
+
+Release builds pin the `microsoft/fabric-cli` publisher and an independently
+approved verification public key. Discovery uses the `rust-vSEMVER` namespace;
+other product releases in the repository are not update candidates. Missing
+publisher trust fails before networking. No GitHub credential, Fabric credential,
+downloaded verification key or alternate repository is used.
+
+Automatic checking or installation is opt-in through `FAB_RUST_UPDATE_POLICY`
+(`off`, `check` or `install`) and an explicit absolute
+`FAB_RUST_UPDATE_STATE_ROOT`. Checks are rate-limited across processes. Help,
+version, authentication, batch, redirected and CI execution do not start an
+automatic check. Explicit updates cannot run inside a batch or interactive shell.
+
+Installation requires standalone build and installer receipts. Unknown and
+package-manager-owned installations are not overwritten. Automatic installation
+stays within the current major version; major upgrades require explicit opt-in.
+After a successful automatic replacement, the process exits with status **75**
+and states that the original command did not run and must be rerun. Pre-commit
+update failures warn without suppressing the requested command; uncertain native
+replacement stops for recovery. Commands are never replayed automatically.
+
+See the [update component contract](../../update/fabric-cli-update/README.md)
+for signed metadata, exact target/feature matching, bounded downloads, Windows
+working-directory/helper restrictions, retained recovery files and acceptance
+limits. Update-manifest signatures do not establish native package signing,
+notarization, helper cleanup or post-install health. Production trust setup and
+native update/recovery acceptance remain release gates.
+
+## Optional interactive shell
+
+Build with `--features repl` to start the interactive shell when no arguments are
+supplied. Combine it with `native-read` to use the configured remote host:
+
+```text
+cargo run --locked -p fabric-cli --features repl
+cargo run --locked -p fabric-cli --features native-read,repl
+```
+
+The terminal editor and shell loop live in the separate
+[`fabric-cli-repl`](../../repl/fabric-cli-repl/README.md) package. They are not SDK
+dependencies and are excluded from the application's default dependency graph.
+Removing the optional feature and private entry module does not require changing
+shared command, batch or SDK libraries.
+
+The shell delegates commands to the existing parser and dispatcher, retains
+navigation in memory and does not restore or write command-line context files.
+History is bounded and memory-only. `help`, `version`, `quit` and `exit` are
+interactive aliases. Input is tokenized with quoting and escapes, not evaluated
+by an operating-system shell. No completer or persistent history is configured.
+Both stdin and stdout must be terminals; redirected input fails before editor,
+configuration or credential setup. Use command arguments or `-c` for automation.
+Help and version arguments never enter the editor.
+Unclosed quotes and trailing escapes end the session after a diagnostic with a
+normal session exit status. Resource-limit and terminal-editor failures instead
+return a nonzero status; output failures propagate.
+
+Real-terminal editing, key bindings, signal handling and terminal-state
+restoration require native Windows, macOS and Linux acceptance. Fake-input tests
+and dependency-graph checks do not establish that platform support.
 
 ## Embed command execution
 
@@ -50,7 +137,7 @@ Libraries do not discover credentials, create a runtime, install transport,
 read global state or terminate the process. Cancellation is a supplied future;
 partial pages never become successful complete results.
 
-## Source command batches
+## Command batches
 
 Repeat `-c` or `--command` to execute ordered command strings through the same
 per-command parser and dispatcher:
@@ -60,11 +147,10 @@ fab-rs -c "config set show_hidden true" -c "config get show_hidden"
 fab-rs --output_format json -c version -c version
 ```
 
-This is the bounded translation of `main.py` and `core/fab_parser_setup.py` at
-Python `cf67fd52ea8b47e24c725e73d792de6f4a08e2e4`, not a shell-language
-implementation. Preserve these source oddities:
+Batch input is bounded command tokenization, not a shell-language interpreter.
+The execution contract is:
 
-- Split on Python Unicode whitespace, including U+001C through U+001F. Quotes
+- Split on Unicode whitespace, including U+001C through U+001F. Quotes
   remain in tokens; semicolons and pipes are ordinary data, not separators.
 - Skip empty entries. After a returned nonempty entry, write the 30-hyphen
   separator to stderr unless that entry has the last **raw list index**.
@@ -77,14 +163,13 @@ implementation. Preserve these source oddities:
 - The outer output override applies only to the summary. Each inner command
   parses its own override or reads configuration at its execution point. The
   summary reads the configuration after all commands return.
-- A normal subcommand following root batch options replaces the command list,
-  matching Python's shared destination. Root version does not replace a batch;
+- A normal subcommand following root batch options replaces the command list.
+  Root version does not replace a batch;
   root help still exits before dispatch. Nested `-c` is rejected.
 
-The existing sanitized invalid-argument envelope remains an intentional
-compatibility exception. Unknown batch command keys stop with exit 1 and a
-sanitized `UnexpectedError`, never the source's echoed dictionary key. Debug
-formatting of batch invocations also omits command strings.
+Invalid arguments use the sanitized error envelope. Unknown batch commands stop
+with exit 1 and a sanitized `UnexpectedError`. Diagnostics and debug formatting
+of batch invocations omit supplied command strings.
 
 `parser::batch::run` takes a `BatchInvocation` and caller-owned `BatchHost`.
 `execute` receives split arguments and returns `CommandOutcome::Returned(u8)` or
@@ -93,20 +178,29 @@ error stops without replay. `parse_command` reuses the existing parser and
 distinguishes explicit help exits from returning bare-group help. No library
 runtime, process exit, prompt, environment access or mutable global is added.
 
-The binary retains one lazy local `NavigationState` throughout a batch; settings
-use the existing file store. Remote context-changing `cd` in native batches is
-explicitly unsupported until the native dispatcher exposes a shared context
-hook. Batch authentication is explicitly unsupported because the existing auth
-dispatcher erases cancellation into the same exit status as handled failure.
-Separate explicit authentication remains unchanged. Default local execution has
-no installed Ctrl+C handler; real OS-signal parity remains an integration gate,
-not evidence supplied by synthetic cancellation tests. These limits prevent a
-claim of complete source mode parity.
+The binary captures the initial context selection once at batch entry and borrows
+one caller-owned `NavigationState` across native family commands. Remote `cd`,
+relative reads/jobs and `pwd` use the updated in-memory path even when context
+persistence is disabled. Settings still use the existing file store; enabling
+persistence or changing settings later does not reload the initial context.
+Context persistence remains opt-in: the batch host does not force context-file
+writes or modify environment variables. A completed context change is not rolled
+back by a subsequent output failure.
 
-New source-derived evidence is in `tests/batch_source.json`, captured by
-`tests/batch_reference.py` from immutable Git objects with synthetic handlers and
-state. The existing references and fixtures are unchanged. Recheck it without
-rewriting expected outputs:
+Authentication uses the same explicit broker selection and command engine as a
+single invocation. Its typed outcome distinguishes cancellation from a handled
+provider failure even though both retain exit 1. Cancellation, timeout and
+signal-handler failure stop before the next command and suppress the summary.
+No new credential backend, acquisition rule or token input is introduced.
+
+Default local execution has no installed Ctrl+C handler. The existing Tokio
+signal support is feature-gated with authentication; a portable default/local
+batch signal host still needs a reviewed dependency/runtime contract. Synthetic
+cancellation tests do not establish OS-signal handling. Portable signal
+acceptance remains a release gate, independent of the shared native context hook.
+
+Offline contract fixtures and their independent checks are maintained under
+`tests/`. Recheck them without rewriting expected outputs:
 
 ```text
 python hosts/cli/fabric-cli/tests/batch_reference.py --check hosts/cli/fabric-cli/tests/batch_source.json
@@ -114,36 +208,8 @@ cargo test --offline --locked -p fabric-cli --test batch_commands --test batch_p
 ```
 
 The same executable selectors and an all-target check are also required with
-`--features native-read`. Source-only captures do not establish Rust compilation,
-actual native cancellation, remote context reuse or platform parity.
-
-## Interactive-shell decision boundary
-
-The pinned `core/fab_interactive.py` requires a styled, escaped current-context
-prompt, blinking cursor, in-memory editing/history with history search, and
-POSIX `shlex.split` input. It contains exact raw quit/help/version aliases,
-`fab` prefix guidance, per-command `SystemExit` containment and Ctrl+C
-hint-and-continue behavior. EOF is caught by the inner generic exception
-handler before the outer goodbye branch; padded aliases and malformed quotes
-also have source-specific behavior that must not be silently improved.
-
-No completer is supplied to `PromptSession`: command/path completion is not an
-implemented REPL requirement to invent. `argcomplete` belongs to command-line
-completion, and config completers are separate parser callbacks. The source
-depends on `prompt_toolkit>=3.0.41` and `argcomplete>=3.6.2`, without an upper
-version pin. Rust currently has no selected terminal editor dependency.
-
-| Option | Decision and impact |
-| --- | --- |
-| Keep the current no-argument contract until backend review | Recommended. No invented REPL, dependency, lock change or platform support claim. Batch delivery remains independent. |
-| Stdlib line-oriented shell | Can implement input and dispatch but cannot provide source-faithful portable editing/history-search/cursor/signal behavior. Requires explicit approval as a reduced contract, not REPL parity. |
-| Reviewed terminal editor/backend | Can target the complete source contract, but requires dependency/security/license review, Windows/macOS/Linux terminal and redirected-input tests, and an explicit cancellation/runtime design. No backend is selected here. |
-
-A complete source-faithful minimal REPL is therefore not feasible with only
-stdlib and existing APIs. Any future backend-neutral shell contract should own
-one mutable command session, inject input/prompt/history/output/cancellation,
-and keep source `shlex` rules distinct from batch whitespace rules. Parent review
-must establish this scope before central host redesign.
+`--features native-read`. Contract captures do not establish actual native
+cancellation, remote context reuse or platform acceptance.
 
 ## Deployment and transfers
 
@@ -174,5 +240,5 @@ limits and Ctrl+C handling without an arbitrary whole-command cutoff.
 
 Windows credentials require explicit account, tenant and client selection.
 Other platforms can use injected library credentials; native credential
-execution there fails explicitly. Resource/access skill headers, interactive
-shell mode and several resource-specific capabilities remain unavailable.
+execution there fails explicitly. Resource/access skill headers and several
+resource-specific capabilities remain unavailable.

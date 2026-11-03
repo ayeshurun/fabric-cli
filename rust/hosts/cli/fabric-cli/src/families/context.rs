@@ -45,6 +45,7 @@ pub(crate) struct CommandContext {
     capacities: Option<Vec<fabric_cli_local::Capacity>>,
     properties: BTreeMap<String, Option<OneLakeProperties>>,
     local: BTreeMap<String, ResourceLocalSnapshot>,
+    resolution_error: Option<ContextError>,
 }
 
 impl Lookup for CommandContext {
@@ -154,6 +155,10 @@ impl LocalLookup for LocalLoading<'_> {
 }
 
 impl CommandContext {
+    pub(crate) fn resolution_error(&self) -> Option<&ContextError> {
+        self.resolution_error.as_ref()
+    }
+
     pub(crate) fn local_files(
         &self,
         path: &str,
@@ -329,6 +334,7 @@ impl CommandContext {
         inputs: LocalResolution<'_>,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<Arc<PathElement>, CommandError> {
+        self.resolution_error = None;
         let LocalResolution {
             options,
             files,
@@ -369,6 +375,7 @@ impl CommandContext {
             match needed {
                 None => {
                     return result.map(|result| result.element).map_err(|failure| {
+                        self.resolution_error = Some(failure.error.clone());
                         errors::error(
                             if failure.error.code == "HostCapabilityUnavailable" {
                                 "NotSupported"

@@ -12,6 +12,15 @@ The [bounded candidate preflight](fast-check.md) documents the separate Linux
 fast workflow, immutable product/CI receipts, and guarded native-dispatch relay.
 Fast success is not a replacement for the three native OS gates.
 
+Current local and PR selection uses the shared
+[dependency-aware validator](dependency-validation.md). Cargo metadata supplies
+package consumers; capability declarations add test-target, non-code,
+feature/platform and independent contract dependencies. Leaf changes select
+related complete test targets, while shared or unknown changes widen coverage.
+The command registry and executor are identical locally and in CI. The
+historical results below describe their recorded checkpoints, not a pass of a
+newly generated impact plan.
+
 ## Frozen references alongside current upstream source
 
 The integration branch includes upstream `main` through
@@ -208,7 +217,8 @@ references. This runs on each selected Windows, Linux and macOS runner, after
 the existing Rust checks. Python 3.13 and development-only `jmespath==1.0.1`
 and `cachetools==5.5.2`
 are installed for that comparison; neither becomes a Rust product dependency.
-The affected-crate selector and Python product workflows are unchanged.
+The dependency-aware Rust selector retains these comparisons for relevant
+capabilities and full runs. Python product workflows are unchanged.
 
 [`run_read_parity.py`](../tests/compatibility/run_read_parity.py) requires all
 current command comparisons, additive metadata cases, all specialized collection
