@@ -5,6 +5,8 @@ use crate::batch_state::CommandOutcome;
 #[cfg(windows)]
 use fabric_cli::auth_commands as commands;
 use fabric_cli::parser::AuthCommand;
+use fabric_cli_output::text::OutputFormat;
+#[cfg(all(test, windows))]
 use serde_json::json;
 use std::io::{self, Write};
 #[cfg(windows)]
@@ -51,18 +53,66 @@ impl AuthProgress {
     }
 }
 
-fn error(code: &'static str, message: &str, exit: u8) -> io::Result<CommandOutcome> {
-    let mut stderr = io::stderr().lock();
-    serde_json::to_writer(
-        &mut stderr,
-        &json!({"error": {"code": code, "message": message}}),
+fn error(
+    code: &'static str,
+    message: &str,
+    exit: u8,
+    format: OutputFormat,
+) -> io::Result<CommandOutcome> {
+    fabric_cli::auth_commands::write_error_with_format(
+        code,
+        message,
+        exit,
+        format,
+        io::stderr().lock(),
     )
-    .map_err(io::Error::other)?;
-    writeln!(stderr)?;
-    Ok(CommandOutcome::Returned(exit))
+    .map(CommandOutcome::Returned)
+}
+
+fn selected_format(
+    command: &AuthCommand,
+) -> Result<OutputFormat, fabric_cli::auth_commands::Failure> {
+    if let Some(format) = &command.output_format {
+        return OutputFormat::resolve(Some(format), None).map_err(|_| {
+            (
+                "invalid_configuration",
+                "Invalid authentication output format.".into(),
+            )
+        });
+    }
+    let settings = crate::local_host::available_store()
+        .and_then(|store| store.map(|store| store.read()).transpose())
+        .map_err(|_| ("invalid_configuration", "Cannot read authentication output settings. Check the Fabric CLI configuration directory and config.json.".into()))?;
+    let configured = settings.as_ref().and_then(|settings| {
+        settings
+            .get("output_format")
+            .or_else(|| settings.get("fab_output_format"))
+    });
+    if configured.is_some_and(|value| !value.is_string()) {
+        return Err((
+            "invalid_configuration",
+            "Invalid saved output_format setting.".into(),
+        ));
+    }
+    OutputFormat::resolve(
+        None,
+        configured
+            .and_then(serde_json::Value::as_str)
+            .or(Some("text")),
+    )
+    .map_err(|_| {
+        (
+            "invalid_configuration",
+            "Invalid saved output_format setting.".into(),
+        )
+    })
 }
 
 pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
+    let format = match selected_format(command) {
+        Ok(format) => format,
+        Err((code, message)) => return error(code, &message, 2, OutputFormat::Text),
+    };
     #[cfg(windows)]
     {
         use crate::auth_binding::{Hints, Store};
@@ -102,6 +152,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
                     } else {
                         1
                     },
+                    format,
                 );
             }
         };
@@ -115,6 +166,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
                     "runtime_failed",
                     "The authentication runtime could not start.",
                     1,
+                    format,
                 );
             }
         };
@@ -129,7 +181,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
             .await
         });
         let result = persist_result(command.action, store.as_ref(), previous.as_ref(), result);
-        write_auth_outcome(result, io::stdout().lock(), io::stderr().lock())
+        write_auth_outcome_with_format(result, format, io::stdout().lock(), io::stderr().lock())
     }
     #[cfg(not(windows))]
     {
@@ -138,6 +190,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
             "unsupported",
             "Windows broker authentication requires Windows.",
             1,
+            format,
         )
     }
 }
@@ -254,14 +307,24 @@ async fn execute_selected(
     Ok((value, options))
 }
 
-#[cfg(windows)]
+#[cfg(all(test, windows))]
 fn write_auth_outcome(
     result: Result<serde_json::Value, commands::Failure>,
     stdout: impl Write,
     stderr: impl Write,
 ) -> io::Result<CommandOutcome> {
+    write_auth_outcome_with_format(result, OutputFormat::Json, stdout, stderr)
+}
+
+#[cfg(windows)]
+fn write_auth_outcome_with_format(
+    result: Result<serde_json::Value, commands::Failure>,
+    format: OutputFormat,
+    stdout: impl Write,
+    stderr: impl Write,
+) -> io::Result<CommandOutcome> {
     let cancelled = matches!(&result, Err(("cancelled", _)));
-    let outcome = commands::write_outcome(result, stdout, stderr)?.into();
+    let outcome = commands::write_outcome_with_format(result, format, stdout, stderr)?.into();
     Ok(match (cancelled, outcome) {
         (true, CommandOutcome::Stop(exit) | CommandOutcome::Returned(exit)) => {
             CommandOutcome::Cancelled(exit)

@@ -114,12 +114,20 @@ fn read_paths_and_queries_named_auth_keep_the_existing_read_semantics() {
 }
 
 #[test]
-fn read_only_global_options_cannot_be_silently_ignored_by_auth() {
-    for prefix in [vec!["--output_format", "json"], vec![]] {
-        let mut args = vec!["fab-rs"];
-        args.extend(prefix);
-        args.extend(["auth", "login", "--tenant", "tenant", "--account", "get"]);
-        args.extend(["--output_format", "json"]);
-        assert!(parse_args(args).is_err());
+fn auth_accepts_output_format_at_every_global_option_position() {
+    for action in ["login", "status", "logout"] {
+        for format in ["json", "text"] {
+            for args in [
+                vec!["fab-rs", "--output_format", format, "auth", action],
+                vec!["fab-rs", "auth", "--output_format", format, action],
+                vec!["fab-rs", "auth", action, "--output_format", format],
+            ] {
+                let Invocation::Auth(command) = parse_args(args).unwrap() else {
+                    panic!("expected auth");
+                };
+                assert_eq!(command.output_format.as_deref(), Some(format));
+            }
+        }
     }
+    assert!(parse_args(["fab-rs", "auth", "status", "--output_format", "xml"]).is_err());
 }

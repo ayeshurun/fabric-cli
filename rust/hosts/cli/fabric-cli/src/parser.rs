@@ -156,7 +156,9 @@ pub fn command() -> Command {
                         .long("all")
                         .action(ArgAction::SetTrue),
                 )
-                .arg(Arg::new("query").short('q').long("query")),
+                .arg(Arg::new("query").short('q').long("query")
+                    .help("JMESPath expression over the listing array; use --long -q '[].id' for item IDs"))
+                .after_help("Examples:\n  fab-rs ls 'Demo.Workspace' --long -q '[].id'\n  fab-rs ls / -q \"[?name=='Demo.Workspace'].id\"\nTo inspect the workspace itself, use: fab-rs get 'Demo.Workspace' -q id\nA bare field such as 'id' queries the whole listing array, not each item. Workspace item IDs are available only with --long."),
         )
         .subcommand(
             Command::new("get")

@@ -215,6 +215,53 @@ fn workspace_item_list_resolves_snapshot_path_sort_type_suffixes_and_config_hidd
 }
 
 #[test]
+fn list_query_targets_the_listing_array_not_the_containing_workspace_object() {
+    for (long, query, expected) in [
+        (false, "id", json!(["None"])),
+        (false, "[].id", json!([])),
+        (true, "id", json!(["None"])),
+        (true, "[].id", json!(["notebook-id", "report-id"])),
+        (true, "[0].id", json!(["notebook-id"])),
+        (
+            true,
+            "[].{name:name,id:id}",
+            json!([
+                {"name":"Book.Notebook","id":"notebook-id"},
+                {"name":"Report.Report","id":"report-id"},
+            ]),
+        ),
+    ] {
+        let root = Element::tenant("Tenant", "tenant");
+        let workspace = workspace(&root, "SemPy PR", "workspace-id");
+        let catalog = Catalog::new(vec![workspace]);
+        let client = sdk(Arc::default());
+        let backend = Backend::new([reply(json!({"value":[
+            {"id":"notebook-id","displayName":"Book","type":"Notebook"},
+            {"id":"report-id","displayName":"Report","type":"Report"},
+        ]}))]);
+        let host = host(&client, &backend, &catalog, root, &fabric_cli::PythonQuery);
+        let mut arguments = vec![
+            "ls",
+            "SemPy PR.Workspace",
+            "-q",
+            query,
+            "--output_format",
+            "json",
+        ];
+        if long {
+            arguments.push("--long");
+        }
+        let (value, exit) = output(&host, &arguments);
+        assert_eq!(exit, 0);
+        assert_eq!(value["result"]["data"], expected, "query={query}");
+        assert_eq!(
+            backend.requests.lock().unwrap().as_slice(),
+            ["https://api.fabric.microsoft.com/v1/workspaces/workspace-id/items"],
+        );
+    }
+}
+
+#[test]
 fn bytype_uses_python_enum_names_not_rest_type_names() {
     let root = Element::tenant("Tenant", "tenant");
     let ws = workspace(&root, "W", "w");

@@ -153,6 +153,8 @@ fn auth_help_and_invalid_selectors_never_start_a_login() {
             "not-a-guid",
             "--account",
             "must-not-be-echoed",
+            "--output_format",
+            "json",
         ]);
         assert!(!output.status.success());
         assert!(output.stdout.is_empty());

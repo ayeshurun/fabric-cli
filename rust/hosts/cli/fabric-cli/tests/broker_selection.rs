@@ -148,7 +148,11 @@ fn bare_status_logout_and_silent_login_never_open_a_picker_when_no_binding_exist
         vec!["auth", "logout"],
         vec!["auth", "login", "--no-interactive"],
     ] {
-        let result = process(&root.0).args(&args).output().unwrap();
+        let result = process(&root.0)
+            .args(&args)
+            .args(["--output_format", "json"])
+            .output()
+            .unwrap();
         error(
             &result,
             if args.contains(&"login") {
@@ -159,6 +163,53 @@ fn bare_status_logout_and_silent_login_never_open_a_picker_when_no_binding_exist
         );
         assert!(!root.binding().exists());
     }
+}
+
+#[test]
+fn auth_presentation_obeys_default_saved_and_explicit_formats_without_accessing_wam() {
+    let root = Root::new();
+    let configuration = root.binding().parent().unwrap().join("config.json");
+    let invoke = |format: Option<&str>| {
+        let mut command = process(&root.0);
+        command.args(["auth", "status"]);
+        if let Some(format) = format {
+            command.args(["--output_format", format]);
+        }
+        command.output().unwrap()
+    };
+    let text = invoke(None);
+    assert_eq!(text.status.code(), Some(1));
+    assert!(text.stdout.is_empty());
+    assert!(
+        String::from_utf8(text.stderr)
+            .unwrap()
+            .contains("[NotConfigured]")
+    );
+    assert!(!configuration.exists());
+    fs::create_dir_all(configuration.parent().unwrap()).unwrap();
+    fs::write(&configuration, br#"{"output_format":"json"}"#).unwrap();
+    error(&invoke(None), "NotConfigured");
+    let text = invoke(Some("text"));
+    assert!(
+        String::from_utf8(text.stderr)
+            .unwrap()
+            .contains("[NotConfigured]")
+    );
+    fs::write(&configuration, br#"{"output_format":"text"}"#).unwrap();
+    error(&invoke(Some("json")), "NotConfigured");
+    fs::write(&configuration, br#"{"fab_output_format":"json"}"#).unwrap();
+    error(&invoke(None), "NotConfigured");
+    fs::write(&configuration, br#"{"output_format":false}"#).unwrap();
+    let invalid = invoke(None);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+    assert!(
+        String::from_utf8(invalid.stderr)
+            .unwrap()
+            .contains("[invalid_configuration]")
+    );
+    error(&invoke(Some("json")), "NotConfigured");
+    assert!(!root.binding().exists());
 }
 
 #[test]
@@ -176,7 +227,11 @@ fn help_is_credential_and_state_free_and_invalid_state_is_not_silently_discarded
         assert!(result.stderr.is_empty());
     }
     for args in [vec!["auth", "status"], vec!["ls", "/"]] {
-        let result = process(&root.0).args(args).output().unwrap();
+        let result = process(&root.0)
+            .args(args)
+            .args(["--output_format", "json"])
+            .output()
+            .unwrap();
         let value = error(&result, "invalid_configuration");
         assert!(!value.to_string().contains("private-canary"));
     }

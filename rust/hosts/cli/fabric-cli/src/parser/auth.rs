@@ -30,6 +30,8 @@ pub struct AuthCommand {
     pub client_id: String,
     /// Whether argv explicitly overrides the saved/environment application selection.
     pub client_id_explicit: bool,
+    /// Explicit presentation override, otherwise selected from the caller's settings.
+    pub output_format: Option<String>,
     /// Maximum CLI wait in seconds (1-600).
     pub timeout_seconds: u64,
     /// Whether login may initiate interactive broker/MFA UI.
@@ -95,9 +97,6 @@ pub(super) fn register(command: Command) -> Command {
 }
 
 pub(super) fn parse(matches: &ArgMatches) -> Result<AuthCommand, clap::Error> {
-    if matches.get_one::<String>("output_format").is_some() {
-        return Err(super::invalid_arguments());
-    }
     let auth = matches
         .subcommand_matches("auth")
         .expect("matched auth command");
@@ -118,6 +117,10 @@ pub(super) fn parse(matches: &ArgMatches) -> Result<AuthCommand, clap::Error> {
             .clone(),
         client_id_explicit: args.value_source("client-id")
             == Some(clap::parser::ValueSource::CommandLine),
+        output_format: args
+            .get_one::<String>("output_format")
+            .cloned()
+            .or_else(|| matches.get_one::<String>("output_format").cloned()),
         timeout_seconds: *args
             .get_one::<u64>("timeout-seconds")
             .expect("default timeout"),

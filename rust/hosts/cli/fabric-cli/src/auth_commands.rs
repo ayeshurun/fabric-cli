@@ -8,6 +8,11 @@
 //! this module does not acquire tokens, choose accounts or implement a provider.
 
 use super::parser::AuthAction;
+use fabric_cli_output::{
+    CommandError,
+    production_unicode::{key_formatter, value_formatter},
+    text::{self, OutputFormat, Presentation},
+};
 use serde_json::{Value, json};
 use std::{
     future::Future,
@@ -151,13 +156,42 @@ pub fn write_result(
     stdout: impl Write,
     stderr: impl Write,
 ) -> io::Result<u8> {
+    write_result_with_format(result, OutputFormat::Json, stdout, stderr)
+}
+
+/// Write auth output in the selected format without changing the JSON schema.
+///
+/// Success goes to stdout, failures to stderr. Text uses the shared key/value
+/// and error presentation; tokens never cross the auth result boundary.
+///
+/// # Errors
+///
+/// Propagates rendering and writer failures, without falling back or replaying auth.
+pub fn write_result_with_format(
+    result: Result<Value, Failure>,
+    format: OutputFormat,
+    mut stdout: impl Write,
+    mut stderr: impl Write,
+) -> io::Result<u8> {
     match result {
         Ok(data) => {
-            write_json(stdout, &data)?;
+            match format {
+                OutputFormat::Json => write_json(stdout, &data)?,
+                OutputFormat::Text => {
+                    let plan = text::render_key_values(
+                        &data,
+                        key_formatter,
+                        value_formatter,
+                        Presentation::default(),
+                    )
+                    .map_err(io::Error::other)?;
+                    plan.write_to(&mut stdout, &mut stderr)?;
+                }
+            }
             Ok(0)
         }
 
-        Err((code, message)) => write_error(code, &message, 1, stderr),
+        Err((code, message)) => write_error_with_format(code, &message, 1, format, stderr),
     }
 }
 
@@ -174,6 +208,22 @@ pub fn write_outcome(
     stdout: impl Write,
     stderr: impl Write,
 ) -> io::Result<crate::parser::batch::CommandOutcome> {
+    write_outcome_with_format(result, OutputFormat::Json, stdout, stderr)
+}
+
+/// Preserve terminal auth outcomes while using explicit text or JSON presentation.
+///
+/// Format selection never changes cancellation, timeout or cleanup semantics.
+///
+/// # Errors
+///
+/// Propagates rendering or output errors without retrying the broker operation.
+pub fn write_outcome_with_format(
+    result: Result<Value, Failure>,
+    format: OutputFormat,
+    stdout: impl Write,
+    stderr: impl Write,
+) -> io::Result<crate::parser::batch::CommandOutcome> {
     use crate::parser::batch::CommandOutcome;
     let stop = matches!(
         &result,
@@ -186,7 +236,7 @@ pub fn write_outcome(
             _
         ))
     );
-    let exit = write_result(result, stdout, stderr)?;
+    let exit = write_result_with_format(result, format, stdout, stderr)?;
     Ok(if stop {
         CommandOutcome::Stop(exit)
     } else {
@@ -205,10 +255,38 @@ pub fn write_error(
     exit: u8,
     stderr: impl Write,
 ) -> io::Result<u8> {
-    write_json(
-        stderr,
-        &json!({"error": {"code": code, "message": message}}),
-    )?;
+    write_error_with_format(code, message, exit, OutputFormat::Json, stderr)
+}
+
+/// Write a sanitized auth failure in the chosen format while retaining its exit.
+///
+/// # Errors
+///
+/// Propagates output failure without substituting a different stream or format.
+pub fn write_error_with_format(
+    code: &'static str,
+    message: &str,
+    exit: u8,
+    format: OutputFormat,
+    mut stderr: impl Write,
+) -> io::Result<u8> {
+    match format {
+        OutputFormat::Json => write_json(
+            stderr,
+            &json!({"error": {"code": code, "message": message}}),
+        )?,
+        OutputFormat::Text => {
+            let mut plan = text::render_error(
+                &CommandError::new(Some(message.into()), Some(code.into())),
+                Some("auth"),
+                Presentation::default(),
+            );
+            for record in &mut plan.records {
+                record.stream = fabric_cli_output::OutputStream::Stderr;
+            }
+            plan.write_to(&mut io::sink(), &mut stderr)?;
+        }
+    }
     Ok(exit)
 }
 

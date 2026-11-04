@@ -119,15 +119,20 @@ invalid values and credentials are not echoed. Off Windows, commands return
 | `auth login` | Resolve the saved/explicit selection or use WAM's interactive work-account picker; acquire Fabric/OneLake/ARM sequentially. Save only the validated non-secret binding after full success |
 | `auth login --no-interactive`, `auth status` | Silent only, including refresh. Interaction-required is a nonzero failure, never an automatic prompt |
 | `auth logout` | App/client-scoped broker sign-out on this device for the explicit account; no Windows-account deletion or global revocation |
-| Valid success | Exit 0, newline-terminated JSON on stdout, no token values |
-| Authentication/cancellation/timeout/native failure | Exit 1, sanitized JSON error on stderr, no success stdout |
-| Invalid arguments/configuration | Exit 2, sanitized JSON error on stderr; no broker access |
+| Valid success | Exit 0, selected text or newline-terminated JSON on stdout, no token values |
+| Authentication/cancellation/timeout/native failure | Exit 1, sanitized selected-format error on stderr, no success stdout |
+| Invalid arguments/configuration | Exit 2, sanitized diagnostic on stderr; no broker access |
 | `--help` / subcommand help | Exit 0, help on stdout without authentication |
 
 Both feature configurations preserve the invalid-arguments envelope, streams,
 exit status and sanitization above. Authentication registration is additive
 to the shared parser, not a replacement parser or an implicit read host.
-Read-only `--output_format` is rejected for auth rather than silently ignored.
+Authentication accepts the global `--output_format text|json` before or after
+the subcommand. Explicit selection wins over the saved `output_format`;
+without a saved value the executable uses text. The existing JSON auth shape is
+unchanged, and embedded `write_result`/`write_outcome` callers retain their JSON
+default. Text uses the shared key/value and error rendering. Format selection
+does not authorize broker work or alter cancellation and terminal batch outcomes.
 Errors retain numeric native
 or provider codes where available, not provider text or token values.
 

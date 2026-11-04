@@ -26,6 +26,24 @@ and native HTTPS transport. Explicit argument/environment selectors take
 precedence. Tokens stay in WAM. See the [selection and storage
 contract](../../../docs/native-read-host.md#selection-and-execution).
 
+Authentication supports `--output_format text` and `--output_format json`.
+An explicit format overrides the saved `output_format`; without a saved value,
+auth defaults to text. JSON retains its existing auth result/error shape for
+scripts. Both formats keep success on stdout and failures on stderr, without
+printing access tokens or changing timeout/cancellation behavior.
+
+```powershell
+fab-rs auth status --output_format text
+fab-rs auth status --output_format json
+```
+
+Listing queries operate on an array of children. Use
+`fab-rs ls 'Demo.Workspace' --long -q '[].id'` for the item IDs, or
+`fab-rs get 'Demo.Workspace' -q id` for the workspace's own ID. A bare `id` applied
+to a listing array returns the source-compatible scalar string `None`; it does
+not select each item's ID. Short workspace-item listings expose names only;
+`--long` makes their IDs available to the query.
+
 Local commands and remote families share the same default user configuration
 directory: `%LOCALAPPDATA%\Microsoft\FabricCLI` on Windows, the application
 support directory on macOS, or the XDG configuration directory on Linux.

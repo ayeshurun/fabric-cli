@@ -55,6 +55,7 @@ fn both_hosts_resolve_snapshot_and_enrich_before_native_query_without_context_ch
                 }]),
             ),
             ("sparkSettings.enabled", json!(["False"])),
+            ("id", json!(["w"])),
             ("n", json!(["1.0"])),
             ("managedPrivateEndpoints[].id", json!(["m1", "m2"])),
             (

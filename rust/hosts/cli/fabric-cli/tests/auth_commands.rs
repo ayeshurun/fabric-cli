@@ -13,6 +13,7 @@ use fabric_cli::{
     parser::{AuthCommand, Invocation, parse_args},
     session::run_auth,
 };
+use fabric_cli_output::text::OutputFormat;
 use serde_json::json;
 use std::{
     cell::{Cell, RefCell},
@@ -205,6 +206,118 @@ fn expected_login(allow_interaction: bool) -> Effect {
         client: CLIENT.into(),
         account: ACCOUNT.into(),
         allow_interaction,
+    }
+}
+
+#[tokio::test]
+async fn every_auth_action_renders_text_and_json_from_the_same_non_secret_result() {
+    for action in ["login", "status", "logout"] {
+        let command = parsed(action, &[]);
+        let broker = SyntheticBroker::new(&command);
+        let data = run_auth(&command, &broker, pending(), pending())
+            .await
+            .unwrap();
+        let (mut text, mut text_error) = (Vec::new(), Vec::new());
+        assert_eq!(
+            auth_commands::write_result_with_format(
+                Ok(data.clone()),
+                OutputFormat::Text,
+                &mut text,
+                &mut text_error,
+            )
+            .unwrap(),
+            0
+        );
+        assert!(text_error.is_empty());
+        let text = String::from_utf8(text).unwrap();
+        assert!(!text.trim_start().starts_with('{'), "{text}");
+        assert!(!text.contains(SECRET_CANARY));
+        if action == "logout" {
+            assert!(text.contains("Signed Out"), "{text}");
+            assert!(text.contains("True"), "{text}");
+            assert!(text.contains("application_on_this_device"), "{text}");
+        } else {
+            assert!(text.contains("Windows broker"), "{text}");
+            assert!(text.contains(ACCOUNT), "{text}");
+            assert!(text.contains(TENANT), "{text}");
+            assert!(text.contains("not_checked"), "{text}");
+            assert!(
+                text.contains("https://api.fabric.microsoft.com/.default"),
+                "{text}"
+            );
+        }
+        let (mut output, mut error) = (Vec::new(), Vec::new());
+        assert_eq!(
+            auth_commands::write_result_with_format(
+                Ok(data.clone()),
+                OutputFormat::Json,
+                &mut output,
+                &mut error,
+            )
+            .unwrap(),
+            0
+        );
+        assert!(error.is_empty());
+        assert_eq!(output, format!("{data}\n").into_bytes());
+    }
+}
+
+#[test]
+fn auth_formats_preserve_failure_streams_codes_and_terminal_outcomes() {
+    use fabric_cli::parser::batch::CommandOutcome;
+    for format in [OutputFormat::Text, OutputFormat::Json] {
+        for code in [
+            "authentication_failed",
+            "cancelled",
+            "timed_out",
+            "cleanup_pending",
+        ] {
+            let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+            let outcome = auth_commands::write_outcome_with_format(
+                Err((code, "Synthetic failure without credential contents".into())),
+                format,
+                &mut stdout,
+                &mut stderr,
+            )
+            .unwrap();
+            assert!(stdout.is_empty());
+            assert_eq!(
+                outcome,
+                if code == "authentication_failed" {
+                    CommandOutcome::Returned(1)
+                } else {
+                    CommandOutcome::Stop(1)
+                }
+            );
+            let text = String::from_utf8(stderr).unwrap();
+            assert!(text.contains(code), "{text}");
+            if format == OutputFormat::Json {
+                assert_eq!(
+                    serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+                    json!({"error":{"code":code,"message":"Synthetic failure without credential contents"}}),
+                );
+            } else {
+                assert!(!text.trim_start().starts_with('{'));
+            }
+        }
+        assert!(
+            auth_commands::write_result_with_format(
+                Ok(json!({"signed_out":true})),
+                format,
+                BrokenStream,
+                Vec::new(),
+            )
+            .is_err()
+        );
+        assert!(
+            auth_commands::write_result_with_format(
+                Err(("cancelled", "Synthetic".into())),
+                format,
+                Vec::new(),
+                BrokenStream,
+            )
+            .is_err()
+        );
     }
 }
 

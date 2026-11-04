@@ -22,6 +22,25 @@ REST implementation, identity backend, query language or CLI namespace.
 | `fab_cmd_get_utils.query_and_export` | Injected GET query/path discovery; source-silent empty projected containers/string; no export or silent identity replacement |
 | `fab_decorators.handle_exceptions` / `fab_ui` | Existing JSON envelope/streams/exits with fixed host time and explicit writer failures |
 
+## Listing queries versus object queries
+
+`ls` queries the array of listed children, not the workspace object named in its
+path. For example:
+
+```powershell
+fab-rs ls 'SemPy PR.Workspace' --long -q '[].id'
+fab-rs ls 'SemPy PR.Workspace' --long -q '[].{name:name,id:id}'
+fab-rs get 'SemPy PR.Workspace' -q id --output_format json
+```
+
+The first two select item IDs or name/ID rows. `--long` is necessary because
+short workspace-item listings expose only names, as in the pinned source.
+The last selects the workspace's
+own ID. A bare `id` evaluated against an LS array yields JMESPath null, which the
+pinned Python query wrapper converts to the scalar string `None`; JSON output
+therefore retains `"data": ["None"]`. This behavior is not an authentication
+failure or a missing workspace ID. No implicit `[]` is added to user queries.
+
 ## Independent evidence
 
 The [SRC3 output repair](output-text-compatibility.md#src3-silent-empty-get-projections)
