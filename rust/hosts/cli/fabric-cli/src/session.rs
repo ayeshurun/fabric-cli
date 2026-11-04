@@ -272,7 +272,7 @@ impl<'session> ReadSession<'session> {
                 subcommand: Some(&command.name),
                 ..TextOptions::default()
             },
-            &text::ascii_width,
+            fabric_cli_output::production_unicode::width_provider()?,
             Presentation::default(),
         )?;
         Ok(ReadDispatch {

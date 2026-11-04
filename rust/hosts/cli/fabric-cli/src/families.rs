@@ -421,7 +421,7 @@ impl FamilySession<'_, '_> {
                     result.clone(),
                     timestamp,
                     &FamilyPresentation::new(format, command.surface()),
-                    &text::ascii_width,
+                    fabric_cli_output::production_unicode::width_provider()?,
                 )?;
                 let mut plan = output.plan;
                 for warning in output.warnings {
@@ -768,7 +768,7 @@ impl FamilySession<'_, '_> {
                         timestamp,
                         format,
                         Presentation::default(),
-                        &text::ascii_width,
+                        fabric_cli_output::production_unicode::width_provider()?,
                     )?,
                     Err(error) => fabric_cli_transfer::render_error(
                         error,
@@ -980,27 +980,30 @@ fn render_outputs(
     };
     for mut output in outputs {
         output.command = Some(command.into());
-        let rendered = match text::render(
-            &OutputEnvelope::new(timestamp.clone(), output),
-            format,
-            &TextOptions {
-                show_headers: headers,
-                ..Default::default()
-            },
-            &text::ascii_width,
-            Presentation::default(),
-        ) {
-            Ok(rendered) => rendered,
-            Err(error) => {
-                if let Some(partial) = error.partial_output() {
-                    plan.records.extend(partial.records.clone());
+        let rendered =
+            match fabric_cli_output::production_unicode::width_provider().and_then(|widths| {
+                text::render(
+                    &OutputEnvelope::new(timestamp.clone(), output),
+                    format,
+                    &TextOptions {
+                        show_headers: headers,
+                        ..Default::default()
+                    },
+                    widths,
+                    Presentation::default(),
+                )
+            }) {
+                Ok(rendered) => rendered,
+                Err(error) => {
+                    if let Some(partial) = error.partial_output() {
+                        plan.records.extend(partial.records.clone());
+                    }
+                    return Err(TextError::AfterOutput {
+                        error: Box::new(error),
+                        partial: Box::new(plan),
+                    });
                 }
-                return Err(TextError::AfterOutput {
-                    error: Box::new(error),
-                    partial: Box::new(plan),
-                });
-            }
-        };
+            };
         plan.records.extend(rendered.records);
         plan.exit_code = rendered.exit_code;
     }
@@ -1432,6 +1435,46 @@ fn folder_transfer_order(
 #[cfg(test)]
 mod physical_output_tests {
     use super::*;
+
+    #[test]
+    fn unicode_initialization_failure_keeps_copy_evidence_and_width_independent_json_diagnostic() {
+        let receipt = fabric_cli_storage_files::CopyResult {
+            outputs: Vec::new(),
+            local_path: "completed-local-copy".into(),
+            storage_path: fabric_sdk_onelake::OneLakePath::new(
+                "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222",
+                "Files/source.bin",
+            )
+            .unwrap(),
+            bytes_written: Some(5),
+            inspection_errors: Vec::new(),
+        };
+        let output = physical_output(
+            Ok(ResourceFileResult::Download(receipt)),
+            Timestamp::parse("2026-10-29T00:00:00Z").unwrap(),
+            "cp",
+            |_| {
+                Err(TextError::UnicodeData(
+                    text::UnicodeDataKind::IncompleteDomain,
+                ))
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            &output.evidence,
+            FamilyEvidence::ResourceFilesRenderFailure {
+                result: Ok(ResourceFileResult::Download(receipt)),
+                error: TextError::UnicodeData(text::UnicodeDataKind::IncompleteDomain),
+            } if receipt.bytes_written == Some(5) && receipt.local_path == Path::new("completed-local-copy")
+        ));
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        assert_eq!(output.write_to(&mut stdout, &mut stderr).unwrap(), 1);
+        assert!(stderr.is_empty());
+        let value: Value = serde_json::from_slice(&stdout).unwrap();
+        assert_eq!(value["result"]["error_code"], "OutputError");
+        assert_eq!(value["status"], "Failure");
+    }
 
     #[test]
     fn rendering_failure_retains_transfer_receipts_and_prior_output() {

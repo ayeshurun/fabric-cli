@@ -31,22 +31,11 @@ pub(crate) fn timestamp() -> Result<Timestamp, LocalError> {
 }
 
 pub(crate) fn store() -> Result<ConfigStore, LocalError> {
-    let root = std::env::var_os("FAB_RUST_CONFIG_ROOT")
-        .filter(|root| !root.is_empty())
-        .ok_or_else(|| {
-            LocalError::command(
-                "NotConfigured",
-                "Local commands require FAB_RUST_CONFIG_ROOT",
-            )
-        })?;
-    let root = PathBuf::from(root);
-    if !root.is_absolute() {
-        return Err(LocalError::command(
-            "InvalidInput",
-            "The configuration root must be absolute",
-        ));
-    }
-    Ok(ConfigStore::new(root))
+    Ok(ConfigStore::new(crate::runtime_config::root()?))
+}
+
+pub(crate) fn available_store() -> Result<Option<ConfigStore>, LocalError> {
+    crate::runtime_config::available_root().map(|root| root.map(ConfigStore::new))
 }
 
 pub(crate) struct Effects;
@@ -225,10 +214,12 @@ pub(crate) fn context_selection_for(command_line: bool) -> Result<(String, bool)
         }
         Err(std::env::VarError::NotPresent) => {}
     }
-    if !command_line || std::env::var_os("FAB_RUST_CONFIG_ROOT").is_none() {
+    if !command_line {
         return Ok(("/".into(), false));
     }
-    let store = store()?;
+    let Some(store) = available_store()? else {
+        return Ok(("/".into(), false));
+    };
     let settings = store.read()?;
     if settings
         .get("context_persistence_enabled")

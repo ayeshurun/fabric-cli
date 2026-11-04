@@ -22,7 +22,7 @@ pub use jobs::{JobMutationCommand, JobMutationKind, JobReadCommand, JobReadKind,
 #[cfg(feature = "windows-broker")]
 mod auth;
 #[cfg(feature = "windows-broker")]
-pub use auth::{AuthAction, AuthCommand};
+pub use auth::{AuthAction, AuthCommand, DEFAULT_BROKER_CLIENT_ID};
 
 /// A supported read operation, not a new resource namespace.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -106,7 +106,7 @@ pub fn command() -> Command {
         .bin_name("fab-rs")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Experimental command composition for Microsoft Fabric")
-        .after_help("Local commands use FAB_RUST_CONFIG_ROOT and explicit session context. Remote execution requires a caller-configured host; this default binary has no production authentication or HTTP transport. Config-driven deploy has a bounded native Notebook host; other deployment branches fail explicitly.")
+        .after_help("Local commands use the platform user configuration directory; FAB_RUST_CONFIG_ROOT overrides it. Remote execution requires a caller-configured host; this default binary has no production authentication or HTTP transport. Config-driven deploy has a bounded native Notebook host; other deployment branches fail explicitly.")
         .arg_required_else_help(true)
         .args_override_self(true)
         .arg(
@@ -127,9 +127,9 @@ pub fn command() -> Command {
     #[cfg(feature = "self-update")]
     let command = update::register(command);
     #[cfg(all(feature = "native-read", not(feature = "headless")))]
-    let command = command.after_help("Native remote commands require FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID. Windows broker authentication is opt-in; credentials are silent and never show sign-in UI. Use explicit auth login first when required. FAB_RUST_CONTEXT defaults to / or the explicitly selected persisted session; FAB_RUST_HOME is optional. Local/config and family commands use FAB_RUST_CONFIG_ROOT. Mutations change remote state; job run may cancel on timeout. Native confirmations require explicit --force or an injected UI host. No token input or credential fallback is available. Config-driven deploy supports bounded root-level Notebooks with explicit unpublish.skip; other branches fail before writes.");
+    let command = command.after_help("Native remote commands reuse the Windows account selected by auth login; FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID provide explicit overrides. Windows broker authentication is opt-in; remote credentials are silent and never show sign-in UI. FAB_RUST_CONTEXT defaults to / or the explicitly selected persisted session; FAB_RUST_HOME is optional. Local/config and family commands share the platform user configuration directory; FAB_RUST_CONFIG_ROOT overrides it. Mutations change remote state; job run may cancel on timeout. Native confirmations require explicit --force or an injected UI host. No token input or credential fallback is available. Config-driven deploy supports bounded root-level Notebooks with explicit unpublish.skip; other branches fail before writes.");
     #[cfg(feature = "headless")]
-    let command = command.after_help("Native remote commands support explicit FAB_RUST_AUTH_MODE: client-secret, client-assertion, workload-identity, managed-identity-vm or managed-identity-app-service. Select FAB_RUST_TENANT and the documented provider inputs; no mode is chosen from secret presence. Headless credentials are acquired lazily without auth login, UI, developer tools, raw access-token input or plaintext cache. FAB_RUST_MANAGED_IDENTITY must explicitly select system or client. Windows broker authentication is opt-in with native-read; broker credentials remain silent and never show sign-in UI. Default builds have no production authentication or HTTP transport. FAB_RUST_CONTEXT selects session context; local commands use FAB_RUST_CONFIG_ROOT. See the native host documentation for exact environment bindings, endpoint restrictions and experimental support limits.");
+    let command = command.after_help("Native remote commands support explicit FAB_RUST_AUTH_MODE: client-secret, client-assertion, workload-identity, azure-pipelines, managed-identity-vm, managed-identity-app-service, or certificate-store-windows when compiled in. Select FAB_RUST_TENANT and the documented provider inputs; no mode is chosen from secret presence. Headless credentials are acquired lazily without auth login, UI, developer tools, raw access-token input or plaintext cache. FAB_RUST_MANAGED_IDENTITY must explicitly select system or client. Windows broker authentication is opt-in with native-read; broker credentials reuse auth login selection silently and never show sign-in UI. Default builds have no production authentication or HTTP transport. FAB_RUST_CONTEXT selects session context; local/config and remote families share the platform user configuration directory, overridden by FAB_RUST_CONFIG_ROOT. See the native host documentation for exact environment bindings, endpoint restrictions and experimental support limits.");
     let command = fabric_cli_resources::frontdoor::register(command)
         .subcommands(fabric_cli_local::root_commands())
         .subcommands(fabric_cli_mutations::frontdoor::resource_subcommands())

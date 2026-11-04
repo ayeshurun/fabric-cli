@@ -14,7 +14,8 @@ SDK endpoints and passing read fixtures alone do not establish command parity.
 
 The recovered central composition additionally mounts the released local,
 resource, access and transfer argument schemas. Local execution uses an explicit
-absolute `FAB_RUST_CONFIG_ROOT`; `FAB_RUST_SESSION_ID` selects its navigation
+platform user configuration directory, with an absolute `FAB_RUST_CONFIG_ROOT`
+override; `FAB_RUST_SESSION_ID` selects its navigation
 file (otherwise the current process ID is used). Configuration, root navigation,
 support descriptions, terminal clearing, extension warning and named version run
 without credentials. Named version does not create configuration. Metadata-backed
@@ -104,7 +105,9 @@ managed-host restrictions are documented in
 not make the Windows broker a supported headless credential, enable an implicit
 developer-tool chain, or establish live tenant-policy acceptance.
 
-Every command requires non-secret `--account <UPN>` and `--tenant <GUID>`.
+Commands accept non-secret `--account <UPN>` and `--tenant <GUID>` overrides.
+When omitted, a saved successful login supplies them; first interactive login
+uses WAM's account picker and validates its returned public-cloud tenant.
 `--client-id` defaults to Python's registered public-client ID and can be
 explicitly overridden with a team-approved registration. Missing/invalid
 configuration and unknown arguments fail before any broker access; supplied
@@ -113,7 +116,7 @@ invalid values and credentials are not echoed. Off Windows, commands return
 
 | Operation | Behavior and output |
 | --- | --- |
-| `auth login` | Silent selected-account attempt, interactive broker/MFA only on interaction-required or no matching cached account; acquire Fabric/OneLake/ARM sequentially. JSON success only after all metadata checks pass |
+| `auth login` | Resolve the saved/explicit selection or use WAM's interactive work-account picker; acquire Fabric/OneLake/ARM sequentially. Save only the validated non-secret binding after full success |
 | `auth login --no-interactive`, `auth status` | Silent only, including refresh. Interaction-required is a nonzero failure, never an automatic prompt |
 | `auth logout` | App/client-scoped broker sign-out on this device for the explicit account; no Windows-account deletion or global revocation |
 | Valid success | Exit 0, newline-terminated JSON on stdout, no token values |
@@ -129,10 +132,13 @@ Errors retain numeric native
 or provider codes where available, not provider text or token values.
 
 Intentional constraints E1-E6 in [identity requirements](identity-requirements.md)
-still apply. Unlike Python, no automatic tenant discovery, first-account selection,
+still apply to credential handling. The owner-authorized interactive selection
+does not guess a tenant from a UPN or silently choose the first cached account. No
 raw-token/environment inputs, Azure CLI login, or plaintext cache fallback exists.
-No Rust local session/configuration file is persisted: subsequent invocations
-repeat the account/tenant/client selectors and reuse the broker's secure cache.
+The CLI persists only a bounded account/tenant/client selection file, never
+tokens. Subsequent invocations reuse it and the broker's secure token cache.
+See [native host selection](native-read-host.md#selection-and-execution) for
+override precedence, file location and logout behavior.
 Python logout's unrelated CLI setting/context resets are not ported by this slice.
 The SDK accepts an injected credential; refresh is silent and native-account pinned.
 

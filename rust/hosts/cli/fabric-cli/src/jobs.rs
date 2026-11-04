@@ -208,7 +208,7 @@ impl JobSession<'_, '_> {
                 key_value,
                 ..TextOptions::default()
             },
-            &text::ascii_width,
+            fabric_cli_output::production_unicode::width_provider()?,
             Presentation::default(),
         )?;
         for event in after {
@@ -248,7 +248,14 @@ pub fn render_job_event(event: &JobEvent) -> Result<TextPlan, text::TextError> {
                 .keys()
                 .cloned()
                 .collect::<Vec<_>>();
-            text::render_table(value, &fields, true, 80, &text::ascii_width, presentation)?
+            text::render_table(
+                value,
+                &fields,
+                true,
+                80,
+                fabric_cli_output::production_unicode::width_provider()?,
+                presentation,
+            )?
         }
     })
 }

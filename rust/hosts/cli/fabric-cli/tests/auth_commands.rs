@@ -146,19 +146,19 @@ impl Drop for Dropped<'_> {
 
 impl Broker for SyntheticBroker {
     fn tenant(&self) -> &str {
-        &self.selection.tenant
+        self.selection.tenant.as_deref().unwrap()
     }
 
     fn account(&self) -> &str {
-        &self.selection.account
+        self.selection.account.as_deref().unwrap()
     }
 
     async fn login(&self, allow_interaction: bool) -> Result<Vec<TokenMetadata>, Failure> {
         let _dropped = Dropped(&self.dropped);
         self.effects.borrow_mut().push(Effect::Login {
-            tenant: self.selection.tenant.clone(),
+            tenant: self.selection.tenant.clone().unwrap(),
             client: self.selection.client_id.clone(),
-            account: self.selection.account.clone(),
+            account: self.selection.account.clone().unwrap(),
             allow_interaction,
         });
         self.started.notify_one();
@@ -172,9 +172,9 @@ impl Broker for SyntheticBroker {
     async fn logout(&self) -> Result<(), Failure> {
         let _dropped = Dropped(&self.dropped);
         self.effects.borrow_mut().push(Effect::Logout {
-            tenant: self.selection.tenant.clone(),
+            tenant: self.selection.tenant.clone().unwrap(),
             client: self.selection.client_id.clone(),
-            account: self.selection.account.clone(),
+            account: self.selection.account.clone().unwrap(),
         });
         self.started.notify_one();
         if self.wait {

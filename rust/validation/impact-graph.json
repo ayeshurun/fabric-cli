@@ -110,7 +110,7 @@
     {
       "id": "windows-broker",
       "package": "fabric-identity-windows",
-      "inputs": ["rust/infrastructure/identity/fabric-identity-windows/src/lib.rs", "rust/infrastructure/identity/fabric-identity-windows/src/native.rs", "rust/infrastructure/identity/fabric-identity-windows/src/request.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra_contract.rs"],
+      "inputs": ["rust/infrastructure/identity/fabric-identity-windows/src/lib.rs", "rust/infrastructure/identity/fabric-identity-windows/src/native.rs", "rust/infrastructure/identity/fabric-identity-windows/src/request.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra_contract.rs", "rust/infrastructure/identity/fabric-identity-windows/src/selection.rs"],
       "depends_on": [],
       "tests": [{"package": "fabric-identity-windows", "target": "lib"}],
       "checks": ["broker", "native-read", "combined"]
@@ -671,11 +671,12 @@
     {
       "id": "cli-local",
       "package": "fabric-cli",
-      "inputs": ["rust/hosts/cli/fabric-cli/src/local_commands.rs", "rust/hosts/cli/fabric-cli/src/local_host.rs"],
+      "inputs": ["rust/hosts/cli/fabric-cli/src/local_commands.rs", "rust/hosts/cli/fabric-cli/src/local_host.rs", "rust/hosts/cli/fabric-cli/src/runtime_config.rs"],
       "depends_on": ["local", "context", "output"],
       "tests": [
         {"package": "fabric-cli", "target": "lib"},
         {"package": "fabric-cli", "target": "test:local_mounted"},
+        {"package": "fabric-cli", "target": "test:default_config_root"},
         {"package": "fabric-cli", "target": "test:batch_shared_local"},
         {"package": "fabric-cli", "target": "test:cli_contract"},
         {"package": "fabric-cli", "target": "test:workspace_contract"}
@@ -741,17 +742,19 @@
     {
       "id": "cli-auth",
       "package": "fabric-cli",
-      "inputs": ["rust/hosts/cli/fabric-cli/src/auth.rs", "rust/hosts/cli/fabric-cli/src/auth_commands.rs", "rust/hosts/cli/fabric-cli/src/parser/auth.rs"],
+      "inputs": ["rust/hosts/cli/fabric-cli/src/auth.rs", "rust/hosts/cli/fabric-cli/src/auth_binding.rs", "rust/hosts/cli/fabric-cli/src/runtime_config.rs", "rust/hosts/cli/fabric-cli/src/auth_commands.rs", "rust/hosts/cli/fabric-cli/src/parser/auth.rs"],
       "depends_on": ["identity-broker"],
       "tests": [
         {"package": "fabric-cli", "target": "lib"},
         {"package": "fabric-cli", "target": "bin:fab-rs"},
         {"package": "fabric-cli", "target": "test:auth_arguments"},
         {"package": "fabric-cli", "target": "test:auth_commands"},
+        {"package": "fabric-cli", "target": "test:broker_selection"},
+        {"package": "fabric-cli", "target": "test:default_config_root"},
         {"package": "fabric-cli", "target": "test:cli_contract"},
         {"package": "fabric-cli", "target": "test:argv_contract"}
       ],
-      "checks": ["broker", "combined"]
+      "checks": ["broker", "native-read", "combined"]
     },
     {
       "id": "cli-headless",
@@ -770,7 +773,7 @@
     {
       "id": "cli-native-shared",
       "package": "fabric-cli",
-      "inputs": ["rust/hosts/cli/fabric-cli/src/native_read.rs", "rust/hosts/cli/fabric-cli/src/native_settings.rs", "rust/hosts/cli/fabric-cli/src/native_terminal_ui.rs", "rust/hosts/cli/fabric-cli/src/console.rs"],
+      "inputs": ["rust/hosts/cli/fabric-cli/src/native_read.rs", "rust/hosts/cli/fabric-cli/src/runtime_config.rs", "rust/hosts/cli/fabric-cli/src/native_settings.rs", "rust/hosts/cli/fabric-cli/src/native_terminal_ui.rs", "rust/hosts/cli/fabric-cli/src/console.rs"],
       "depends_on": ["identity-broker", "identity-headless", "transport"],
       "tests": [
         {"package": "fabric-cli", "target": "lib"},

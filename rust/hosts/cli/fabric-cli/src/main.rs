@@ -6,6 +6,8 @@
 
 #[cfg(feature = "windows-broker")]
 mod auth;
+#[cfg(all(windows, feature = "windows-broker"))]
+mod auth_binding;
 mod batch_state;
 #[cfg(feature = "headless")]
 mod headless;
@@ -14,6 +16,7 @@ mod local_host;
 mod native_read;
 #[cfg(feature = "repl")]
 mod repl_host;
+mod runtime_config;
 #[cfg(feature = "self-update")]
 mod update_host;
 
@@ -230,15 +233,12 @@ impl BatchHost for BatchExecution<'_> {
     }
 
     fn summary(&mut self, invocation: &BatchInvocation) -> io::Result<()> {
-        let configured = if invocation.output_format.is_none()
-            && std::env::var_os("FAB_RUST_CONFIG_ROOT").is_some()
-        {
-            Some(
-                local_host::store()
-                    .map_err(io::Error::other)?
-                    .read()
-                    .map_err(io::Error::other)?,
-            )
+        let configured = if invocation.output_format.is_none() {
+            local_host::available_store()
+                .map_err(io::Error::other)?
+                .map(|store| store.read())
+                .transpose()
+                .map_err(io::Error::other)?
         } else {
             None
         };

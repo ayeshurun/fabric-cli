@@ -4,9 +4,10 @@
 //! Explicit opt-in binary composition. Libraries never read these host inputs.
 
 use crate::batch_state::{BatchState, CommandOutcome};
-use fabric_cli::{
-    HostError,
-    parser::{Invocation, JobMutationCommand, JobReadCommand, JobRunCommand, ReadCommand},
+#[cfg(not(all(windows, feature = "windows-broker")))]
+use fabric_cli::HostError;
+use fabric_cli::parser::{
+    Invocation, JobMutationCommand, JobReadCommand, JobRunCommand, ReadCommand,
 };
 use fabric_sdk::{EndpointBinding, ServiceOrigin};
 use serde_json::json;
@@ -145,6 +146,7 @@ fn failure_outcome(code: &str, exit: u8) -> CommandOutcome {
     }
 }
 
+#[cfg(not(all(windows, feature = "windows-broker")))]
 fn required(name: &str) -> Result<String, Failure> {
     match std::env::var(name) {
         Ok(value) if !value.trim().is_empty() => Ok(value),
@@ -309,24 +311,46 @@ fn selected_credential() -> Result<NativeCredential, Failure> {
         }
     };
     if mode == "broker" {
-        let tenant = required("FAB_RUST_TENANT")?;
-        let account = required("FAB_RUST_ACCOUNT")?;
-        let client = required("FAB_RUST_CLIENT_ID")?;
         #[cfg(all(windows, feature = "windows-broker"))]
-        fabric_identity::LoginOptions::new(&tenant, &client, &account)
-            .map_err(|_| failure("invalid_configuration", "Invalid broker selection.", 2))?;
-        if !cfg!(all(windows, feature = "windows-broker")) {
-            return Err(failure(
-                "unsupported",
-                "The selected broker host is unavailable.",
-                1,
-            ));
+        {
+            let options = crate::auth_binding::selected().map_err(|(code, message)| {
+                failure(
+                    code,
+                    message,
+                    if code == "invalid_configuration" {
+                        2
+                    } else {
+                        1
+                    },
+                )
+            })?;
+            return Ok(NativeCredential::Broker {
+                tenant: options.tenant().into(),
+                account: options.account().into(),
+                client: options.client().into(),
+            });
         }
-        return Ok(NativeCredential::Broker {
-            tenant,
-            account,
-            client,
-        });
+        #[cfg(not(all(windows, feature = "windows-broker")))]
+        {
+            let tenant = required("FAB_RUST_TENANT")?;
+            let account = required("FAB_RUST_ACCOUNT")?;
+            let client = required("FAB_RUST_CLIENT_ID")?;
+            #[cfg(all(windows, feature = "windows-broker"))]
+            fabric_identity::LoginOptions::new(&tenant, &client, &account)
+                .map_err(|_| failure("invalid_configuration", "Invalid broker selection.", 2))?;
+            if !cfg!(all(windows, feature = "windows-broker")) {
+                return Err(failure(
+                    "unsupported",
+                    "The selected broker host is unavailable.",
+                    1,
+                ));
+            }
+            return Ok(NativeCredential::Broker {
+                tenant,
+                account,
+                client,
+            });
+        }
     }
     #[cfg(feature = "headless")]
     return crate::headless::Selection::capture(&mode).map(NativeCredential::Headless);
@@ -692,15 +716,9 @@ fn run_selected(
             2,
         )
     })?;
-    let saved = if std::env::var_os("FAB_RUST_CONFIG_ROOT").is_some() {
-        Some(
-            crate::local_host::store()
-                .and_then(|store| store.initialize())
-                .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?,
-        )
-    } else {
-        None
-    };
+    let saved = crate::local_host::available_store()
+        .and_then(|store| store.map(|store| store.initialize()).transpose())
+        .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
     let settings = settings::NativeSettings::select(saved.as_ref())
         .map_err(|error| failure("invalid_configuration", error.to_string(), 2))?;
     let job = match command {

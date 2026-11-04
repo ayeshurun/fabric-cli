@@ -1169,16 +1169,18 @@ fn render(mut result: GetResult, command: &ReadCommand, timestamp: Timestamp) ->
     // as JSON without replacing it with a secondary formatting error.
     let format = OutputFormat::resolve(command.output_format.as_deref(), Some("json"))
         .unwrap_or(OutputFormat::Json);
-    let plan = text::render(
-        &OutputEnvelope::new(timestamp.clone(), input),
-        format,
-        &TextOptions {
-            subcommand: Some(&command.name),
-            ..TextOptions::default()
-        },
-        &text::ascii_width,
-        Presentation::default(),
-    );
+    let plan = fabric_cli_output::production_unicode::width_provider().and_then(|widths| {
+        text::render(
+            &OutputEnvelope::new(timestamp.clone(), input),
+            format,
+            &TextOptions {
+                subcommand: Some(&command.name),
+                ..TextOptions::default()
+            },
+            widths,
+            Presentation::default(),
+        )
+    });
     match plan {
         Ok(plan) => GetDispatch { plan, result },
         Err(error) => {

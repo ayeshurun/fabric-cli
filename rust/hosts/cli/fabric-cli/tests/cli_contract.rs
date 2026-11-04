@@ -64,7 +64,7 @@ fn version_has_an_exact_stdout_contract() {
 fn invalid_commands_fail_with_sanitized_json_on_stderr() {
     for args in [
         vec!["unknown-command"],
-        vec!["auth", "login"],
+        vec!["auth", "login", "--invalid"],
         vec!["deploy"],
         vec!["--not-a-flag"],
         vec!["--client-secret", "must-not-be-echoed"],
@@ -78,9 +78,6 @@ fn invalid_commands_fail_with_sanitized_json_on_stderr() {
         let message = match args.as_slice() {
             ["deploy"] => {
                 "Missing required argument(s): --config <config>. Run fab-rs --help for available commands and usage."
-            }
-            ["auth", "login"] if cfg!(feature = "windows-broker") => {
-                "Missing required argument(s): --tenant <TENANT_GUID>, --account <WORK_ACCOUNT_UPN>. Run fab-rs --help for available commands and usage."
             }
             _ => "Invalid arguments. Run fab-rs --help for available commands and usage.",
         };
@@ -217,7 +214,11 @@ fn reads_are_recognized_but_never_discover_credentials_or_fake_success() {
             serde_json::from_slice::<serde_json::Value>(&output.stderr).unwrap(),
             serde_json::json!({"error":{
                 "code":"NotConfigured",
-                "message": fabric_cli::HostError::NotConfigured.to_string(),
+                "message": if cfg!(all(windows, feature = "native-host", feature = "windows-broker")) {
+                    "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly.".to_owned()
+                } else {
+                    fabric_cli::HostError::NotConfigured.to_string()
+                },
             }})
         );
         assert!(!String::from_utf8_lossy(&output.stderr).contains("Secret"));

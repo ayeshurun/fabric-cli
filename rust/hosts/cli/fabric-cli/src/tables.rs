@@ -189,7 +189,7 @@ impl TableSession<'_, '_> {
                             key_value: output.show_key_value_list,
                             ..Default::default()
                         },
-                        &text::ascii_width,
+                        fabric_cli_output::production_unicode::width_provider()?,
                         Presentation::default(),
                     )
                 })
@@ -201,7 +201,7 @@ impl TableSession<'_, '_> {
                 ),
                 format,
                 &TextOptions::default(),
-                &text::ascii_width,
+                fabric_cli_output::production_unicode::width_provider()?,
                 Presentation::default(),
             )
             .map(Some),

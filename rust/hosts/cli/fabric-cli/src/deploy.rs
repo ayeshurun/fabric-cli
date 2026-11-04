@@ -878,7 +878,7 @@ pub fn render(
         &OutputEnvelope::new(timestamp, input),
         format,
         &TextOptions::default(),
-        &text::ascii_width,
+        fabric_cli_output::production_unicode::width_provider()?,
         Presentation::default(),
     )
 }

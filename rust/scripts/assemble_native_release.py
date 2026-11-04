@@ -41,7 +41,7 @@ TARGETS = {
     "aarch64-apple-darwin": ("macos", "aarch64"),
 }
 FEATURE_ORDER = (
-    "headless", "native-host", "native-read", "repl", "windows-broker"
+    "certificate-store-windows", "headless", "native-host", "native-read", "repl", "windows-broker"
 )
 ROOT_FEATURES = set(FEATURE_ORDER) | {"self-update"}
 EXPECT_FIELDS = {
@@ -205,10 +205,17 @@ def feature_identity(explicit: Any) -> tuple[list[str], str]:
     resolved = set(explicit)
     if "native-read" in resolved:
         resolved.update(("native-host", "windows-broker"))
+    if "certificate-store-windows" in resolved:
+        resolved.add("headless")
     if "headless" in resolved:
         resolved.add("native-host")
+    identity_features = resolved.copy()
+    if "certificate-store-windows" in resolved:
+        identity_features.difference_update(("headless", "native-host"))
+        if "native-read" in resolved:
+            identity_features.discard("windows-broker")
     identity = (["self-update"] if "self-update" in resolved else []) + [
-        name for name in FEATURE_ORDER if name in resolved
+        name for name in FEATURE_ORDER if name in identity_features
     ]
     result = "+".join(identity) or "default"
     require(len(result) <= 64, "Variant exceeds updater identity bound")

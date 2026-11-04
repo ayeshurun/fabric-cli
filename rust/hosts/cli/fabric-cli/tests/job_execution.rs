@@ -5,6 +5,20 @@
 
 mod job_execution_support;
 
+#[test]
+fn production_job_event_tables_render_unicode_without_an_ascii_width_adapter() {
+    let plan = fabric_cli::jobs::render_job_event(&fabric_cli_jobs::JobEvent::Table(json!({
+        "message": "\u{2026}\u{4e2d}\u{6587}-e\u{301}-\u{1f680}",
+        "status": "Failed",
+    })))
+    .unwrap();
+    let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+    plan.write_to(&mut stdout, &mut stderr).unwrap();
+    assert!(stderr.is_empty());
+    let text = String::from_utf8(stdout).unwrap();
+    assert!(text.contains("\u{2026}\u{4e2d}\u{6587}-e\u{301}-\u{1f680}"));
+}
+
 use fabric_cli::{
     jobs::SelectedJobFiles,
     parser::{Invocation, parse_args},

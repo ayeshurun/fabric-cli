@@ -7,6 +7,91 @@ not select a production identity backend or establish MFA, Conditional Access,
 guest-account, alias, packaging or service acceptance. Authentication/core team
 review and separately authorized native and live evidence remain required.
 
+## Explicit interactive account selection
+
+The Windows-only native `select_account(client, tenant_hint, account_hint,
+interaction)` API supports an explicitly requested login with incomplete account
+or tenant selectors. Both hints are optional; the client registration must still
+be a GUID. Hints are validated before provider access. `Interaction::Silent`
+returns `InteractionRequired` without enumeration, token requests or UI, even
+when a cached account might exist. Fully specified callers should construct
+`EntraOptions` directly and use the unchanged credential login API below.
+
+Hosts can call the pure Windows-only
+`validate_selection(client: &str, tenant: Option<&str>, account: Option<&str>)`
+before reading session settings or contacting WAM. Missing hints are valid;
+present malformed/empty hints return sanitized `InvalidConfiguration`, never a
+saved-identity fallback. This performs no environment discovery, state-file I/O
+or provider work and grants no interaction permission. `select_account` reuses
+exactly this validation.
+
+Allowed selection always requests WAM-controlled interactive `select_account`
+UI, never the first cached account, the default Windows persona, or a tenant
+inferred from a UPN domain. It uses only the Microsoft work/school provider
+(`https://login.microsoft.com`), with the provider's `organizations` selector
+when no tenant is given, or the explicit tenant GUID otherwise. The request
+authority is `https://login.microsoftonline.com/organizations` or the explicit
+public-cloud tenant URL, with `validateAuthority=yes`, `wam_compat=2.0` and a
+`LoginHint` only when supplied. The request uses the existing desktop interop
+and default prompt for a bare picker, retaining the forced prompt only when an
+explicit UPN hint is supplied. No consumer-provider, sovereign-cloud,
+browser or other credential fallback is attempted.
+
+Selection requests only Fabric `.default`, `openid`, `profile` and
+`offline_access` as bootstrap scopes. Exactly one returned `WebAccount` must
+have a nonempty ID and valid UPN, nonempty token, future authoritative
+`TokenExpiresOn`, and a validated public-cloud response `Authority`. A GUID
+authority supplies the resource tenant. For a bare `organizations` request only,
+the exact same neutral response authority may instead use
+`WebAccount.Properties["TenantId"]` as a home-tenant bootstrap candidate. That
+property is used by Microsoft's [MSAL WAM account adapter](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/blob/0661b34a41255bfdd7980663572be0544578117e/src/client/Microsoft.Identity.Client/Platforms/Features/WamBroker/AadPlugin.cs#L216-L235);
+it is not proof of the bootstrap token's resource tenant. The existing
+tenant-bound login still has to validate all three audiences before any saved
+selection. Personal-account tenant metadata is rejected. Explicit UPN
+and tenant hints must match, ignoring ASCII case; guest selection remains bound
+to the explicitly requested target tenant. Missing/ambiguous metadata is an
+error, never permission to guess a tenant or decode an access token.
+An explicit GUID authority remains authoritative for guest resource-tenant
+selection; the account's home `TenantId` cannot replace it.
+
+Missing/invalid metadata reports only a fixed field name (such as `Authority`,
+`TenantId` or `TokenExpiresOn`), never its provider value. CLI errors separately
+identify account selection and subsequent selected-session authentication.
+
+The bootstrap token is discarded. The result is only validated, non-secret
+`EntraOptions`, not a successful session or a native-account pin. The caller must
+then use the existing coordinated `WindowsCredential::login(options, true)` to
+validate Fabric, OneLake and ARM and establish its native account binding.
+Same-UPN ambiguity at that stage still fails closed. Status, logout, SDK refresh
+and ordinary command paths must never call selection. The API does not write
+session settings or expose account lists; WAM may update its own secure cache.
+
+Selection shares the existing worker pool, cancellation and 600-second
+interactive native deadline. WAM is parented to the visible console/terminal root
+owner when available; the borrowed HWND is never destroyed. Otherwise an owned
+visible sign-in window is retained through native completion. Its private window
+procedure turns both posted and sent close requests into cancellation, without
+destroying the modal parent early. Callers must bound their
+local async wait; dropping the operation requests cancellation but does not
+claim native teardown. Native resource ownership and cleanup guarantees below
+apply on provider failures as well as success.
+
+`select_account_with_progress` reports only provider lookup, interactive waiting
+and response validation. Hosts can include those phases in timeout diagnostics;
+no account identifiers, provider response text or tokens cross that callback.
+The [documented WAM parent-window requirement](https://learn.microsoft.com/en-us/entra/msal/dotnet/acquiring-tokens/desktop-mobile/wam#parent-window-handles)
+also covers console/Windows Terminal root-owner handles.
+
+The provider selectors and interactive request properties follow the Microsoft
+WAM [provider factory](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/blob/4.30.1/src/client/Microsoft.Identity.Client/Platforms/Features/WamBroker/WebAccountProviderFactory.cs),
+[AAD request builder](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/blob/4.30.1/src/client/Microsoft.Identity.Client/Platforms/Features/WamBroker/AadPlugin.cs)
+and [prompt forwarding](https://github.com/AzureAD/microsoft-authentication-library-for-dotnet/blob/4.30.1/src/client/Microsoft.Identity.Client/Platforms/Features/WamBroker/WamBroker.cs).
+The public client registration must support the requested organizational tenants
+and the WAM redirect URI
+`ms-appx-web://Microsoft.AAD.BrokerPlugin/{client_id}`; see the Microsoft
+[desktop WAM guidance](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-desktop-acquire-token-wam).
+This API does not create registrations, alter consent or prove live acceptance.
+
 ## Credential API and local logout
 
 The existing `WindowsCredential::login(options, allow_interaction)`,
@@ -101,7 +186,7 @@ the credential coordinator and must supply their own session policy.
   runtime is created.
 - Cancellation requests WinRT `Cancel` once. After five seconds without terminal
   cleanup, local waiting can return `CleanupPending`; the worker still owns the
-  operation, hidden parent and STA. Timeout similarly returns `TimedOut` without
+  operation, parent ownership and STA. Timeout similarly returns `TimedOut` without
   claiming teardown. Completion notification failure remains
   `CompletionUnconfirmed`, not successful cleanup.
 - Late native termination automatically recovers its worker capacity after

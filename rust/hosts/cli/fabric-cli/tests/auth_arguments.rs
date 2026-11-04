@@ -23,13 +23,32 @@ fn auth_values_named_like_reads_do_not_enter_the_read_lexical_adapter() {
             .unwrap() else {
                 panic!("expected auth, not read");
             };
-            assert_eq!(command.account, account);
-            assert_eq!(command.tenant, "tenant");
+            assert_eq!(command.account.as_deref(), Some(account));
+            assert_eq!(command.tenant.as_deref(), Some("tenant"));
             assert_eq!(command.allow_interaction, action == "login");
             assert_eq!(command.timeout_seconds, 120);
             assert_eq!(command.client_id, "5814bfb4-2705-4994-b8d6-39aabeb5eaeb");
         }
     }
+}
+
+#[test]
+fn omitted_auth_selectors_are_deferred_to_the_host_without_implicit_parser_io() {
+    for action in ["login", "status", "logout"] {
+        let Invocation::Auth(command) = parse_args(["fab-rs", "auth", action]).unwrap() else {
+            panic!("expected auth");
+        };
+        assert!(command.tenant.is_none());
+        assert!(command.account.is_none());
+        assert!(!command.client_id_explicit);
+        assert_eq!(command.allow_interaction, action == "login");
+    }
+    let Invocation::Auth(command) =
+        parse_args(["fab-rs", "auth", "login", "--client-id", "explicit"]).unwrap()
+    else {
+        panic!("expected auth");
+    };
+    assert!(command.client_id_explicit);
 }
 
 #[test]

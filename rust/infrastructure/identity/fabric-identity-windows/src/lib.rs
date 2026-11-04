@@ -4,7 +4,8 @@
 //! Optional Windows identity interop, isolated from safe-only consumers.
 //!
 //! The raw native API boundary is complemented by an experimental Entra adapter.
-//! Callers explicitly select account/tenant/client and authorize interactive UX.
+//! Callers explicitly select account/tenant/client, or authorize the native
+//! account picker during login before acquiring a fully bound session.
 //! WAM owns token persistence; no local credential file or guessed expiry exists.
 //! No account discovery, UI or token acquisition happens merely by linking it.
 //!
@@ -30,6 +31,13 @@ pub use entra_contract::{EntraOptions, Interaction, TokenAudience};
 mod entra;
 #[cfg(windows)]
 pub use entra::{EntraSession, EntraToken, acquire, logout, logout_bound};
+
+#[cfg(any(windows, test))]
+mod selection;
+#[cfg(windows)]
+pub use selection::{
+    AccountSelectionStage, select_account, select_account_with_progress, validate_selection,
+};
 
 #[cfg(any(windows, test))]
 mod request;
@@ -71,6 +79,45 @@ pub enum NativeStage {
     Completion,
     /// Request native cancellation.
     Cancellation,
+}
+
+/// A response field name suitable for diagnostics, never its provider value.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponseField {
+    /// The response must contain exactly one account/token record.
+    RecordCount,
+    /// The returned Windows account object is missing.
+    Account,
+    /// The returned stable native account identifier is empty or unavailable.
+    AccountId,
+    /// The returned username is missing or is not a valid work-account UPN.
+    AccountName,
+    /// The response property collection cannot be inspected.
+    Properties,
+    /// The authority is missing or is not an allowed public-cloud authority.
+    Authority,
+    /// A tenant-neutral response lacks a valid broker account tenant identifier.
+    TenantId,
+    /// The broker-issued expiry is missing, invalid or no longer in the future.
+    Expiry,
+    /// The requested access token is missing or empty.
+    Token,
+}
+
+impl std::fmt::Display for ResponseField {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::RecordCount => "account/token record count",
+            Self::Account => "Windows account",
+            Self::AccountId => "Windows account ID",
+            Self::AccountName => "work-account username",
+            Self::Properties => "response properties",
+            Self::Authority => "public-cloud Authority",
+            Self::TenantId => "broker account TenantId",
+            Self::Expiry => "TokenExpiresOn",
+            Self::Token => "access token",
+        })
+    }
 }
 
 /// Sanitized native and Entra adapter errors, without provider text or secrets.
@@ -124,6 +171,11 @@ pub enum BrokerError {
     /// WAM is unavailable; no alternate backend is attempted.
     #[error("the Windows Entra account provider is unavailable")]
     ProviderUnavailable,
+    /// A visible parent window could not be established for interactive sign-in.
+    #[error(
+        "interactive sign-in needs a visible desktop window; run the command in an interactive Windows terminal"
+    )]
+    InteractiveWindowUnavailable,
     /// The selected account has not been added or authorized for silent use.
     #[error("the selected identity requires interactive sign-in")]
     InteractionRequired,
@@ -142,6 +194,12 @@ pub enum BrokerError {
     /// Required response fields are missing or invalid.
     #[error("the broker response lacks valid identity, token or expiry metadata")]
     InvalidResponse,
+    /// One required field could not be validated; its value is never included.
+    #[error("the broker response has missing or invalid {field} metadata")]
+    ResponseMetadata {
+        /// A fixed field label, not a provider string or credential.
+        field: ResponseField,
+    },
     /// A broker response status or numeric provider error was returned.
     #[error("the broker rejected the request (status {status}, code {code:#010x})")]
     Provider {

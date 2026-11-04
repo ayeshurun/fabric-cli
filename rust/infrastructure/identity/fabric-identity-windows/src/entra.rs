@@ -2,9 +2,13 @@
 // Licensed under the MIT License.
 
 use crate::{
-    BrokerError, EntraOptions, Interaction, NativeOperation, NativeStage, TokenAudience,
+    BrokerError, EntraOptions, Interaction, NativeOperation, NativeStage, ResponseField,
+    TokenAudience,
     entra_contract::{needs_interaction, request_status, response_identity, unix_expiry},
-    native::{ParentWindow, native_error, spawn, spawn_with_timeout, start_interactive, wait},
+    native::{
+        ParentWindow, native_error, spawn, spawn_with_timeout, start_interactive, wait,
+        wait_for_window,
+    },
     request::Shared,
 };
 use std::{
@@ -137,41 +141,62 @@ pub fn acquire(
                 .map_err(|error| native_error(NativeStage::Response, error))?
                 != 1
             {
-                return Err(BrokerError::InvalidResponse);
+                return Err(BrokerError::ResponseMetadata {
+                    field: ResponseField::RecordCount,
+                });
             }
             let response = responses
                 .GetAt(0)
                 .map_err(|error| native_error(NativeStage::Response, error))?;
             let selected = response
                 .WebAccount()
-                .map_err(|_| BrokerError::InvalidResponse)?;
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Account,
+                })?;
             let id = selected
                 .Id()
-                .map_err(|_| BrokerError::InvalidResponse)?
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::AccountId,
+                })?
                 .to_string();
             let username = selected
                 .UserName()
-                .map_err(|_| BrokerError::InvalidResponse)?
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::AccountName,
+                })?
                 .to_string();
             let properties = response
                 .Properties()
-                .map_err(|_| BrokerError::InvalidResponse)?;
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Properties,
+                })?;
             let authority = properties
                 .Lookup(&HSTRING::from("Authority"))
-                .map_err(|_| BrokerError::InvalidResponse)?
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Authority,
+                })?
                 .to_string();
             response_identity(&options, binding.as_deref(), &id, &username, &authority)?;
             let expires = properties
                 .Lookup(&HSTRING::from("TokenExpiresOn"))
-                .map_err(|_| BrokerError::InvalidResponse)?
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Expiry,
+                })?
                 .to_string();
-            let expires_on = unix_expiry(&expires, unix_now()?)?;
+            let expires_on =
+                unix_expiry(&expires, unix_now()?).map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Expiry,
+                })?;
             let token = response
                 .Token()
-                .map_err(|_| BrokerError::InvalidResponse)?
+                .map_err(|_| BrokerError::ResponseMetadata {
+                    field: ResponseField::Token,
+                })?
                 .to_string();
             if token.is_empty() {
-                return Err(BrokerError::InvalidResponse);
+                return Err(BrokerError::ResponseMetadata {
+                    field: ResponseField::Token,
+                });
             }
             binding = Some(id);
             account = Some(selected);
@@ -184,7 +209,9 @@ pub fn acquire(
         cancelled(shared)?;
         let now = unix_now()?;
         if tokens.iter().any(|token| token.expires_on <= now) {
-            return Err(BrokerError::InvalidResponse);
+            return Err(BrokerError::ResponseMetadata {
+                field: ResponseField::Expiry,
+            });
         }
         Ok(EntraSession {
             account_id: binding.ok_or(BrokerError::InvalidResponse)?,
@@ -193,7 +220,7 @@ pub fn acquire(
     })
 }
 
-fn unix_now() -> Result<i64, BrokerError> {
+pub(crate) fn unix_now() -> Result<i64, BrokerError> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .ok()
@@ -245,7 +272,7 @@ fn perform_logout<T>(
     Ok(Some(id))
 }
 
-fn cancelled<T>(shared: &Shared<T>) -> Result<(), BrokerError> {
+pub(crate) fn cancelled<T>(shared: &Shared<T>) -> Result<(), BrokerError> {
     if shared.expired() {
         Err(BrokerError::TimedOut)
     } else if shared.is_cancelled() {
@@ -259,10 +286,17 @@ fn provider<T>(
     options: &EntraOptions,
     shared: &Shared<T>,
 ) -> Result<WebAccountProvider, BrokerError> {
+    provider_for_authority(&options.authority(), shared)
+}
+
+pub(crate) fn provider_for_authority<T>(
+    authority: &str,
+    shared: &Shared<T>,
+) -> Result<WebAccountProvider, BrokerError> {
     cancelled(shared)?;
     let operation = Manager::FindAccountProviderWithAuthorityAsync(
         &HSTRING::from("https://login.microsoft.com"),
-        &HSTRING::from(options.authority()),
+        &HSTRING::from(authority),
     )
     .map_err(|error| native_error(NativeStage::Provider, error))?;
     wait(operation, shared).map_err(|error| match error {
@@ -376,11 +410,11 @@ fn interactive<T>(
 ) -> Result<WebTokenRequestResult, BrokerError> {
     cancelled(shared)?;
     let request = request(provider, options, audience, true)?;
-    let mut parent = ParentWindow::new()?;
+    let mut parent = ParentWindow::for_sign_in()?;
     parent.track_cleanup(shared.control());
     let result = cancelled(shared)
         .and_then(|()| start_interactive(request, account, &parent))
-        .and_then(|operation| wait(operation, shared));
+        .and_then(|operation| wait_for_window(operation, shared, &parent));
     if let Err(error) = parent.close() {
         shared.uncertain_cleanup();
         return Err(error);
@@ -388,7 +422,7 @@ fn interactive<T>(
     result
 }
 
-fn classify(result: &WebTokenRequestResult) -> Result<(), BrokerError> {
+pub(crate) fn classify(result: &WebTokenRequestResult) -> Result<(), BrokerError> {
     let status = result
         .ResponseStatus()
         .map_err(|error| native_error(NativeStage::Response, error))?;

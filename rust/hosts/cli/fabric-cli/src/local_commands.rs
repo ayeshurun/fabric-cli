@@ -41,7 +41,7 @@ pub fn dispatch(
             command.command.command_name(),
             timestamp,
             format,
-            &text::ascii_width,
+            fabric_cli_output::production_unicode::width_provider()?,
             Presentation::default(),
         ),
         Err(error) => Ok(text::render(
@@ -69,7 +69,7 @@ pub fn access(
             result,
             timestamp,
             &FamilyPresentation::new(format, command.surface()),
-            &text::ascii_width,
+            fabric_cli_output::production_unicode::width_provider()?,
         )
     })
 }

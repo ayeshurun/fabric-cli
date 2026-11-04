@@ -577,3 +577,65 @@ async fn root_api_and_find_reach_the_real_family_without_metadata_prefetch() {
             .ends_with("/catalog/search")
     );
 }
+
+#[tokio::test]
+async fn root_find_renders_632_ascii_results_with_renderer_inserted_ellipsis() {
+    let mut host = Harness::new();
+    let rows = (0..632).map(|index| json!({
+        "id":format!("item-{index}"),
+        "displayName":format!("marcozo-{index}-{}", "notebook-name-".repeat(8)),
+        "type":"Notebook",
+        "description":"Long catalog description ".repeat(20),
+        "hierarchy":{"workspace":{"id":"workspace","displayName":"Workspace name ".repeat(12)}}
+    })).collect::<Vec<_>>();
+    host.reply(200, json!({"value":rows}));
+    let output = host
+        .execute(&["find", "marcozo", "--output_format", "text"])
+        .await;
+    let stdout = success(&output);
+    assert!(stdout.contains('\u{2026}'), "{stdout}");
+    assert!(stdout.contains("marcozo-0"));
+    let mut stderr = Vec::new();
+    output.write_to(&mut Vec::new(), &mut stderr).unwrap();
+    let notices = String::from_utf8(stderr).unwrap();
+    assert!(notices.contains("Searching..."));
+    assert!(notices.contains("632 items found"));
+    assert_eq!(host.requests().len(), 1);
+    assert_eq!(host.requests()[0]["method"], "POST");
+    assert!(
+        host.requests()[0]["url"]
+            .as_str()
+            .unwrap()
+            .ends_with("/catalog/search")
+    );
+}
+
+#[tokio::test]
+async fn root_find_renders_full_unicode_rows_in_short_long_and_json_output() {
+    let name = "marcozo-\u{4e2d}\u{6587}-e\u{301}-\u{1f469}\u{200d}\u{1f4bb}";
+    for (long, format) in [(false, "text"), (true, "text"), (false, "json")] {
+        let mut host = Harness::new();
+        host.reply(
+            200,
+            json!({"value":[{
+                "id":"item","displayName":name,"type":"Notebook",
+                "description":"\u{2026}\u{4e2d}\u{6587}\u{0301}\u{1f680}".repeat(50),
+                "hierarchy":{"workspace":{"id":"workspace","displayName":"\u{6d4b}\u{8bd5}"}}
+            }]}),
+        );
+        let mut args = vec!["find", "marcozo", "--output_format", format];
+        if long {
+            args.push("--long");
+        }
+        let output = host.execute(&args).await;
+        let stdout = success(&output);
+        if format == "json" {
+            let envelope: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+            assert_eq!(envelope["result"]["data"][0]["name"], name);
+        } else {
+            assert!(stdout.contains("marcozo-"));
+            assert!(stdout.contains("\u{6d4b}\u{8bd5}"));
+        }
+        assert_eq!(host.requests().len(), 1);
+    }
+}

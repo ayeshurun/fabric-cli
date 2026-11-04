@@ -342,7 +342,8 @@ different packaging contracts; no C ABI, dynamic loader or helper DLL is added.
 
 The native boundary accepts an explicitly configured `WebTokenRequest` and
 optional native account. It starts interactive desktop WAM only when called,
-on a dedicated STA thread with its own system-class parent window and message
+on a dedicated STA thread with a visible terminal root-owner or an owned
+system-class sign-in parent window and message
 pump. The caller's async executor is not blocked or replaced. Dropping/cancelling
 the returned future requests native cancellation; the worker retains the window
 and apartment until native terminal completion, and suppresses late success.
@@ -375,7 +376,11 @@ not broker factories, account enumeration, tokens, stores or sign-in UI.
 The forward-port onto `a23b4de` registers auth additively in the public parser.
 `Invocation::Auth` and its non-secret typed arguments exist only with the broker
 feature; the executable dispatches them to auth without replacing read parsing.
-Read-host configuration/execution still belongs to callers, not login. Tests and
+The executable saves only the validated non-secret account/tenant/client binding
+after full login and reuses it for native commands. First interactive login can
+invoke WAM's work-account picker; SDK refresh and status remain silent and
+identity-bound. The binding is not a token cache or a default SDK credential.
+Read-host runtime and transport still belong to the executable. Tests and
 CI compare existing source read/query behavior with broker enabled and disabled.
 
 Default and broker-only `fab-rs` recognize Python LS/dir/GET and return typed

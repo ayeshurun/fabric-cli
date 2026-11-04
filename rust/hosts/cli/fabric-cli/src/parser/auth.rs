@@ -3,7 +3,8 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-const CLIENT_ID: &str = "5814bfb4-2705-4994-b8d6-39aabeb5eaeb";
+/// Registered public client used when no explicit or saved broker client is selected.
+pub const DEFAULT_BROKER_CLIENT_ID: &str = "5814bfb4-2705-4994-b8d6-39aabeb5eaeb";
 
 /// Explicit authentication action; no action runs during parsing.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -21,12 +22,14 @@ pub enum AuthAction {
 pub struct AuthCommand {
     /// Operation to execute only through the opt-in authentication host.
     pub action: AuthAction,
-    /// Explicit target tenant GUID; validated before broker access.
-    pub tenant: String,
-    /// Explicit account UPN; never selected from the first cached account.
-    pub account: String,
+    /// Optional target tenant GUID; otherwise use the saved selection or login picker.
+    pub tenant: Option<String>,
+    /// Optional work UPN; never selected from the first cached account.
+    pub account: Option<String>,
     /// Public application registration GUID.
     pub client_id: String,
+    /// Whether argv explicitly overrides the saved/environment application selection.
+    pub client_id_explicit: bool,
     /// Maximum CLI wait in seconds (1-600).
     pub timeout_seconds: u64,
     /// Whether login may initiate interactive broker/MFA UI.
@@ -56,19 +59,19 @@ pub(super) fn register(command: Command) -> Command {
             .arg(
                 Arg::new("tenant")
                     .long("tenant")
-                    .required(true)
+                    .help("Target tenant GUID; defaults to the saved selection or broker sign-in")
                     .value_name("TENANT_GUID"),
             )
             .arg(
                 Arg::new("account")
                     .long("account")
-                    .required(true)
+                    .help("Work account UPN; defaults to the saved selection or broker account picker")
                     .value_name("WORK_ACCOUNT_UPN"),
             )
             .arg(
                 Arg::new("client-id")
                     .long("client-id")
-                    .default_value(CLIENT_ID)
+                    .default_value(DEFAULT_BROKER_CLIENT_ID)
                     .value_name("CLIENT_GUID"),
             )
             .arg(
@@ -87,7 +90,7 @@ pub(super) fn register(command: Command) -> Command {
         }
         auth = auth.subcommand(subcommand);
     }
-    command.after_help("Read execution still requires a caller-configured library host. Windows broker authentication is opt-in; it does not install a live read host or HTTP transport. Tokens are never printed or stored in local files. No deployment command is available.")
+    command.after_help("Windows broker authentication is opt-in. Login remembers only the selected account, tenant and client ID; tokens stay in WAM. Remote commands require a native-read build.")
         .subcommand(auth)
 }
 
@@ -107,18 +110,14 @@ pub(super) fn parse(matches: &ArgMatches) -> Result<AuthCommand, clap::Error> {
     };
     Ok(AuthCommand {
         action,
-        tenant: args
-            .get_one::<String>("tenant")
-            .expect("required tenant")
-            .clone(),
-        account: args
-            .get_one::<String>("account")
-            .expect("required account")
-            .clone(),
+        tenant: args.get_one::<String>("tenant").cloned(),
+        account: args.get_one::<String>("account").cloned(),
         client_id: args
             .get_one::<String>("client-id")
             .expect("default client")
             .clone(),
+        client_id_explicit: args.value_source("client-id")
+            == Some(clap::parser::ValueSource::CommandLine),
         timeout_seconds: *args
             .get_one::<u64>("timeout-seconds")
             .expect("default timeout"),

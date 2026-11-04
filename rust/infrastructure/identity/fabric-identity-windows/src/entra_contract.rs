@@ -8,7 +8,8 @@ use crate::BrokerError;
 pub enum Interaction {
     /// Never display UI; return interaction-required instead.
     Silent,
-    /// Attempt silent acquisition, then interact only when required.
+    /// Permit UI for explicit login: acquisition tries silently first, selection
+    /// always asks the user.
     Allowed,
 }
 
@@ -42,7 +43,7 @@ pub struct EntraOptions {
     pub(crate) account: String,
 }
 
-fn guid(value: &str) -> bool {
+pub(crate) fn guid(value: &str) -> bool {
     value.len() == 36
         && value.bytes().enumerate().all(|(index, byte)| {
             if [8, 13, 18, 23].contains(&index) {
@@ -53,6 +54,14 @@ fn guid(value: &str) -> bool {
         })
 }
 
+pub(crate) fn account_upn(value: &str) -> bool {
+    value.len() <= 320
+        && value.split('@').count() == 2
+        && !value.starts_with('@')
+        && !value.ends_with('@')
+        && !value.chars().any(|c| c.is_whitespace() || c.is_control())
+}
+
 impl EntraOptions {
     /// Validates an explicit account UPN, tenant GUID and registered public client.
     ///
@@ -60,14 +69,7 @@ impl EntraOptions {
     ///
     /// Returns sanitized configuration errors before any account/store access.
     pub fn new(tenant: &str, client: &str, account: &str) -> Result<Self, BrokerError> {
-        if !guid(tenant)
-            || !guid(client)
-            || account.len() > 320
-            || account.split('@').count() != 2
-            || account.starts_with('@')
-            || account.ends_with('@')
-            || account.chars().any(|c| c.is_whitespace() || c.is_control())
-        {
+        if !guid(tenant) || !guid(client) || !account_upn(account) {
             return Err(BrokerError::InvalidConfiguration);
         }
         Ok(Self {

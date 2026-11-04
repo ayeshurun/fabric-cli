@@ -102,7 +102,16 @@ The `native-read` feature enables the Windows service host. Despite the feature
 name, this host also composes job commands, definition transfers and deployment.
 It uses one credential selection, asynchronous runtime and shared HTTP executor.
 
-Set the required nonsecret selectors before running a service command:
+Log in once, then run service commands using the saved non-secret selection:
+
+```powershell
+.\target\debug\fab-rs.exe auth login
+.\target\debug\fab-rs.exe ls /
+```
+
+These commands require a `native-read` build. On first login WAM presents its
+work-account picker; use `--tenant` to pin a specific guest or resource tenant.
+Explicit non-secret environment selectors remain available for scripting:
 
 ```powershell
 $env:FAB_RUST_TENANT = "<tenant-guid>"
@@ -113,7 +122,7 @@ cargo run --locked -p fabric-cli --features native-read -- ls /
 
 Service calls require an authorized account and an applicable client
 registration. The host uses silent Windows credentials; it does not select an
-ambient account or fall back to another authentication tool.
+arbitrary first account or fall back to another authentication tool.
 
 Optional settings cover the configuration root, command context and Fabric
 endpoint. Read the [native host guide](docs/native-read-host.md) before choosing
@@ -137,8 +146,11 @@ cargo run --locked -p fabric-cli --features windows-broker -- auth status --tena
 cargo run --locked -p fabric-cli --features windows-broker -- auth logout --tenant $tenant --account $account --client-id $client
 ```
 
-These are live authentication commands. Login attempts silent acquisition first
-and can open broker sign-in or MFA UI when interaction is required. Status is
+These are live authentication commands. Account and tenant arguments are optional:
+login reuses a saved selection or opens the WAM picker when selection is incomplete.
+`--client-id` explicitly overrides the saved/environment client registration.
+Complete selections attempt silent acquisition first and can open broker sign-in
+or MFA UI when interaction is required. Status is
 silent and never opens sign-in UI. Login requests Fabric, OneLake and ARM tokens;
 all identity and expiry checks must succeed before it reports success.
 
@@ -149,6 +161,10 @@ do not register applications, grant consent or change tenant policy.
 
 Tokens remain in memory or the broker-managed cache. Diagnostics do not include
 tokens, and no plaintext token input or developer-tool fallback is supported.
+Only the selected tenant, UPN and client ID are saved in `broker-session.json`
+under `FAB_RUST_CONFIG_ROOT` or `%LOCALAPPDATA%\Microsoft\FabricCLI`. This is not
+a token cache. Later commands, status and logout reuse that binding without
+prompting; a complete explicit selection takes precedence.
 Sign-out affects the selected account's tokens for that client registration on
 this device, including other applications using the same registration. It does
 not remove the Windows account or revoke sessions on other devices.
@@ -158,7 +174,7 @@ defaults to 120. Cancellation and timeout do not guarantee that broker cache
 updates or native cleanup have stopped.
 
 Current authentication constraints include public-cloud Windows desktop use,
-explicit account and tenant selection, and no browser or device-code fallback.
+validated broker-resolved account/tenant selection, and no browser or device-code fallback.
 Guest-account behavior, tenant policies and service authorization require
 environment-specific validation. Non-Windows native authentication fails
 explicitly. Offline checks do not establish live MFA or tenant-policy support.

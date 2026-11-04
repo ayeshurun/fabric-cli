@@ -10,8 +10,9 @@ Registration is not a successful command or live-service acceptance.
 
 ## Local commands
 
-Supply an absolute `FAB_RUST_CONFIG_ROOT` for non-secret `config.json` and
-`context-<session>.json`. `FAB_RUST_SESSION_ID` selects an explicit shell/session;
+The platform user configuration directory holds non-secret `config.json` and
+`context-<session>.json`. On Windows this is `%LOCALAPPDATA%\Microsoft\FabricCLI`;
+an absolute `FAB_RUST_CONFIG_ROOT` overrides it. `FAB_RUST_SESSION_ID` selects an explicit shell/session;
 without it persistence is process-scoped. Named `version` needs neither selector
 and does not create configuration. Configuration, `label list-local`, root
 navigation, support descriptions, terminal clearing and the extension warning do
@@ -30,12 +31,12 @@ for embedded consumers; executable snapshots expire at command exit.
 
 ## Native read and job settings
 
-On Windows, the native host also loads the explicitly selected
+The native host also loads the shared default directory or explicit
 `FAB_RUST_CONFIG_ROOT` through the same local `ConfigStore::initialize` facility
 before credential connection. This preserves existing default and `fab_` key
 migration rules; it does not discover or import a Python profile. A selected
 missing configuration file receives the existing local-family defaults, including
-text output. An omitted root retains the read/job preview defaults: JSON,
+text output. If no platform profile or explicit root is available, the read/job preview defaults remain JSON,
 hidden names off, name sorting, flat workspace listing and timeout cancellation
 enabled. An empty or relative root, unreadable/malformed store, or invalid
 consumed value fails; it is not silently replaced by preview defaults.

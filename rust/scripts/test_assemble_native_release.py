@@ -283,6 +283,18 @@ class AssemblyTests(unittest.TestCase):
         self.assertIn("self-update-feature-required-for-production-product", result["blockers"])
         self.assertEqual(self.promote()["status"], "blocked")
 
+    def test_all_feature_variant_retains_certificate_without_exceeding_protocol_bound(self) -> None:
+        features = ["certificate-store-windows", "headless", "native-host",
+                    "native-read", "repl", "self-update", "windows-broker"]
+        self.prepare(features=features)
+        self.assertEqual(
+            self.expected["variant"],
+            "self-update+certificate-store-windows+native-read+repl",
+        )
+        self.assertLessEqual(len(self.expected["variant"]), 64)
+        self.assemble()
+        self.verify()
+
     def test_missing_public_key_policy_and_attestation_reported_together(self) -> None:
         self.expected["public_key_hex"] = None
         self.seal()

@@ -19,6 +19,40 @@ cargo run --locked -p fabric-cli --features native-read -- deploy --help
 Help, version and local command setup do not authenticate. Default and
 broker-only builds do not install a remote execution host.
 
+In a `native-read` build, `fab-rs auth login` uses the saved selection or opens
+WAM's work-account picker. Successful login saves only the account, tenant and
+client ID; `fab-rs ls /` then reuses that selection with silent WAM credentials
+and native HTTPS transport. Explicit argument/environment selectors take
+precedence. Tokens stay in WAM. See the [selection and storage
+contract](../../../docs/native-read-host.md#selection-and-execution).
+
+Local commands and remote families share the same default user configuration
+directory: `%LOCALAPPDATA%\Microsoft\FabricCLI` on Windows, the application
+support directory on macOS, or the XDG configuration directory on Linux.
+`FAB_RUST_CONFIG_ROOT` remains an explicit override, not a required setup step.
+Help and version do not create configuration; settings initialize when needed.
+
+For an all-feature development executable and its production updater helper:
+
+```text
+cargo build --offline --locked -p fabric-cli --all-features --bin fab-rs
+cargo build --offline --locked -p fabric-cli-update --features bounded-helper --bin fab-rs-update-helper
+```
+
+This includes Windows broker, native transport, headless and Windows
+certificate-store credentials, REPL and self-update code. It does not configure
+release verification keys, establish installer custody or make an unsigned
+development build eligible for updates. The helper is a separate executable;
+test-fixture helper binaries are not part of this development pair.
+
+Mounted command renderers use the embedded source-compatible Unicode width
+provider for tables, including catalog search truncation, job status tables,
+local configuration and transfer output. Renderer-generated ellipses and
+non-ASCII service values use the same complete scalar coverage; ASCII-only
+measurement is not a production default. JSON-only failure diagnostics remain
+independent of width lookup. The immutable Unicode policy is documented by the
+[output component](../fabric-cli-output/README.md#unicode-text).
+
 | Feature | Host capability |
 | --- | --- |
 | Default | Arguments, local commands and unconfigured-host diagnostics |

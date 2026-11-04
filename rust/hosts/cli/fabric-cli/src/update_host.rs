@@ -415,12 +415,17 @@ fn parse_key(value: Option<&str>) -> Result<[u8; 32], Failure> {
 
 fn feature_variant() -> String {
     let mut features = vec!["self-update"];
+    let certificate = cfg!(feature = "certificate-store-windows");
     for (enabled, name) in [
-        (cfg!(feature = "headless"), "headless"),
-        (cfg!(feature = "native-host"), "native-host"),
+        (certificate, "certificate-store-windows"),
+        (cfg!(feature = "headless") && !certificate, "headless"),
+        (cfg!(feature = "native-host") && !certificate, "native-host"),
         (cfg!(feature = "native-read"), "native-read"),
         (cfg!(feature = "repl"), "repl"),
-        (cfg!(feature = "windows-broker"), "windows-broker"),
+        (
+            cfg!(feature = "windows-broker") && !(certificate && cfg!(feature = "native-read")),
+            "windows-broker",
+        ),
     ] {
         if enabled {
             features.push(name);
@@ -1088,6 +1093,28 @@ mod tests {
     use async_trait::async_trait;
     use azure_core::http::{AsyncRawResponse, StatusCode, headers::Headers};
     use std::sync::Mutex;
+
+    #[test]
+    fn feature_variant_keeps_certificate_support_distinct_within_the_protocol_bound() {
+        let variant = feature_variant();
+        assert!(variant.len() <= 64);
+        assert_eq!(
+            variant
+                .split('+')
+                .any(|feature| feature == "certificate-store-windows"),
+            cfg!(feature = "certificate-store-windows")
+        );
+        if cfg!(all(
+            feature = "certificate-store-windows",
+            feature = "native-read",
+            feature = "repl"
+        )) {
+            assert_eq!(
+                variant,
+                "self-update+certificate-store-windows+native-read+repl"
+            );
+        }
+    }
 
     fn test_root() -> PathBuf {
         let root = std::env::var_os("FAB_UPDATE_TEST_ROOT")

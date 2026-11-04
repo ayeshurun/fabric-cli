@@ -25,11 +25,48 @@ credential or transport dependency. Broker-only native execution is unsupported
 off Windows; the separate `headless` feature selects unattended providers without
 an interactive fallback.
 
-Native reads require **all three** non-secret environment selectors:
-`FAB_RUST_TENANT` (public-cloud tenant GUID), `FAB_RUST_ACCOUNT` (explicit UPN),
-and `FAB_RUST_CLIENT_ID` (approved desktop public-client GUID).
-No client ID or identity is inferred for reads. Missing selectors return
-`NotConfigured`; invalid selectors return a sanitized configuration failure.
+Native reads reuse the account, tenant and client selected by a successful
+`auth login`. On first login, omitted account/tenant hints open WAM's work-account
+picker; the resolved public-cloud tenant comes from broker response metadata,
+not the UPN domain or an access-token parse. An explicit tenant pins guest-tenant
+selection. Remote reads and `auth status` never open that picker.
+
+Some provider responses can retain a tenant-neutral authority. If a bare
+selection returns the exact requested public-cloud `organizations` authority,
+the same returned Windows account's validated `TenantId` supplies a home-tenant
+bootstrap candidate. This is not treated as proof of the picker token's resource
+tenant: the normal tenant-bound three-audience login must still succeed before
+saving the selection. An explicit resource tenant is never replaced by a home
+tenant. Missing/invalid authority or tenant metadata remains an error. Response
+errors identify the failing field and whether selection or the bound session
+failed, without printing provider values, accounts or tokens.
+
+Interactive WAM requests are parented to the visible console/terminal root
+window when one is available. That borrowed window is never destroyed by the
+broker worker. Otherwise the worker displays its own sign-in parent and retains
+it through native cancellation and cleanup. Bare account selection does not
+force credential re-entry for an already-known Windows account. The overall
+login deadline remains bounded; timeout diagnostics distinguish provider lookup,
+waiting for the sign-in dialog, response validation and subsequent session
+acquisition. If account selection still times out, explicit `--tenant` and
+`--account` bypass that step without changing the saved-selection contract.
+
+The CLI stores only this non-secret binding in `broker-session.json`, under
+`FAB_RUST_CONFIG_ROOT` when explicitly set, otherwise
+`%LOCALAPPDATA%\Microsoft\FabricCLI`. Tokens remain in WAM. The bounded, validated
+file is replaced atomically after the full three-audience login succeeds.
+Successful logout clears only the unchanged matching saved binding, not another
+account or a newer login. An unwritable or invalid file is an actionable error,
+not a successful-looking login without reusable state.
+
+Explicit environment selectors override the saved selection:
+`FAB_RUST_TENANT` (public-cloud tenant GUID), `FAB_RUST_ACCOUNT` (work UPN),
+and `FAB_RUST_CLIENT_ID` (approved desktop public-client GUID). The client ID
+defaults to the same registered public client used by login. Matching partial
+selectors may reuse the remaining saved fields; conflicting partial selectors
+never mix identities and require a new explicit login or complete selection.
+Missing selection returns `NotConfigured` with login guidance; invalid selectors
+return a sanitized configuration failure.
 Help/version and malformed arguments are handled before reading host selectors
 or contacting credentials. Token/secret arguments and static-token environment
 fallbacks are not supported.
@@ -39,9 +76,17 @@ fallbacks are not supported.
 `Demo.Workspace`. There is no implicit personal-workspace or persisted current
 context discovery. Omitted home fails explicitly when `~` is used.
 No Python configuration/cache is read or written.
-An explicit `FAB_RUST_CONFIG_ROOT` selects the existing Rust local-family
-settings snapshot, including read display and output defaults; an omitted root
-retains JSON preview defaults. See the [native settings mapping](native-family-host.md#native-read-and-job-settings).
+Local commands, remote families, batches and native read settings share the
+platform user configuration directory. On Windows this is
+`%LOCALAPPDATA%\Microsoft\FabricCLI`, also used for the non-secret broker binding.
+`FAB_RUST_CONFIG_ROOT` overrides it. Linux uses
+`$XDG_CONFIG_HOME/microsoft/fabric-cli`, or `$HOME/.config/microsoft/fabric-cli`;
+macOS uses `$HOME/Library/Application Support/Microsoft/FabricCLI` unless XDG
+configuration is explicitly selected. Relative or empty explicit roots fail
+instead of silently falling back. Native and local/family commands initialize
+the existing non-secret settings defaults and legacy-key migration when needed.
+Help and version do not initialize settings. Where no user profile or override is available, the no-store read
+preview retains JSON defaults. See the [native settings mapping](native-family-host.md#native-read-and-job-settings).
 
 After configuration checks, the host silently acquires **Fabric only** for the
 explicit Windows account. This is read connection/refresh, not login: it cannot
