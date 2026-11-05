@@ -3,7 +3,7 @@
 
 //! Pure selection for the binary's explicitly selected local settings and deadline.
 
-use fabric_cli::{ItemSort, ReadConfig, parser::ReadCommand};
+use fabric_cli::{ItemSort, ReadConfig, parser::ReadCommand, session::get_host::GetResourceConfig};
 use fabric_cli_jobs::{JobCommand, JobConfig, JobKind};
 use fabric_cli_local::SETTINGS;
 use fabric_cli_output::text::OutputFormat;
@@ -20,10 +20,11 @@ pub(crate) enum SelectionError {
     DeadlineRange,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct NativeSettings {
     pub(crate) reads: ReadConfig,
     pub(crate) jobs: JobConfig,
+    pub(crate) get_resources: GetResourceConfig,
     output: &'static str,
 }
 
@@ -34,6 +35,7 @@ impl NativeSettings {
             return Ok(Self {
                 reads: ReadConfig::default(),
                 jobs: JobConfig::default(),
+                get_resources: GetResourceConfig::default(),
                 output: "json",
             });
         };
@@ -50,12 +52,31 @@ impl NativeSettings {
             jobs: JobConfig {
                 cancel_on_timeout: setting(saved, "job_cancel_ontimeout")? == "true",
             },
+            get_resources: GetResourceConfig {
+                subscription_id: Self::optional_string(saved, "default_az_subscription_id")?,
+                resource_group: Self::optional_string(saved, "default_az_resource_group")?,
+            },
             output: match setting(saved, "output_format")? {
                 "text" => "text",
                 "json" => "json",
                 _ => return Err(SelectionError::InvalidSetting("output_format")),
             },
         })
+    }
+
+    fn optional_string(
+        saved: &Map<String, Value>,
+        key: &'static str,
+    ) -> Result<Option<String>, SelectionError> {
+        saved
+            .get(key)
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or(SelectionError::InvalidSetting(key))
+            })
+            .transpose()
     }
 
     pub(crate) fn output(&self, explicit: Option<&str>) -> Result<String, SelectionError> {

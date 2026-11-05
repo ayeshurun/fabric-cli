@@ -38,6 +38,9 @@ fn help_succeeds_on_stdout_only() {
         if cfg!(feature = "windows-broker") {
             assert!(stdout.contains("Windows broker authentication is opt-in"));
             assert!(stdout.contains("auth"));
+        } else if cfg!(feature = "interactive") {
+            assert!(stdout.contains("Device-code authentication is opt-in"));
+            assert!(stdout.contains("auth"));
         } else {
             assert!(stdout.contains("no production authentication or HTTP transport"));
         }

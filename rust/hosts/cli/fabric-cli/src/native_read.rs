@@ -22,28 +22,28 @@ mod get;
 #[path = "headless_host_tests.rs"]
 mod headless_host_tests;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[path = "native_settings.rs"]
 mod settings;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[path = "native_transfer_paths.rs"]
 mod transfer_paths;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[path = "native_deploy_inputs.rs"]
 mod deploy_inputs;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[path = "native_terminal_ui.rs"]
 mod terminal_ui;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 use terminal_ui::NativeMutationUi;
 
 #[derive(Clone, Copy)]
 #[cfg_attr(
-    not(any(windows, feature = "headless")),
+    not(any(windows, feature = "headless", feature = "interactive")),
     allow(
         dead_code,
         reason = "The selected host is explicitly unsupported off Windows."
@@ -72,7 +72,7 @@ pub(crate) fn failure(code: &'static str, message: impl Into<String>, exit: u8) 
     (code, message.into(), exit)
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn selected_read_options(command: &ReadCommand) -> Result<(), Failure> {
     if command.kind == fabric_cli::parser::ReadKind::Get {
         // Settings normalize presentation; the GET engine applies source preflight.
@@ -87,12 +87,12 @@ fn selected_read_options(command: &ReadCommand) -> Result<(), Failure> {
     })
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn consumes_definition_files(command: &Invocation) -> bool {
     matches!(command, Invocation::Deploy(_) | Invocation::Transfer(_))
 }
 
-#[cfg(any(windows, feature = "headless", test))]
+#[cfg(any(windows, feature = "headless", feature = "interactive", test))]
 fn interrupted_failure(code: &'static str, message: &str, exit: u8) -> Failure {
     failure(
         code,
@@ -103,7 +103,7 @@ fn interrupted_failure(code: &'static str, message: &str, exit: u8) -> Failure {
     )
 }
 
-#[cfg(any(windows, feature = "headless", test))]
+#[cfg(any(windows, feature = "headless", feature = "interactive", test))]
 fn finish_runtime<T>(runtime: tokio::runtime::Runtime, result: T) -> T {
     // Runtime Drop waits indefinitely for blocking syscalls; a bounded wait does
     // not cancel those calls or erase their possible filesystem effects.
@@ -111,7 +111,7 @@ fn finish_runtime<T>(runtime: tokio::runtime::Runtime, result: T) -> T {
     result
 }
 
-#[cfg(any(windows, feature = "headless", test))]
+#[cfg(any(windows, feature = "headless", feature = "interactive", test))]
 async fn wait_for_deadline(deadline: Option<std::time::Duration>) {
     match deadline {
         Some(deadline) => tokio::time::sleep(deadline).await,
@@ -163,7 +163,7 @@ fn required(name: &str) -> Result<String, Failure> {
     }
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 enum NativeCredential {
     Broker {
         tenant: String,
@@ -172,13 +172,17 @@ enum NativeCredential {
     },
     #[cfg(feature = "headless")]
     Headless(crate::headless::Selection),
+    #[cfg(feature = "interactive")]
+    DeviceCode(crate::interactive_binding::Selection),
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 impl NativeCredential {
     fn tenant(&self) -> &str {
         match self {
             Self::Broker { tenant, .. } => tenant,
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(selection) => &selection.tenant,
             #[cfg(feature = "headless")]
             Self::Headless(selection) => &selection.tenant,
         }
@@ -187,6 +191,8 @@ impl NativeCredential {
     fn account(&self) -> &str {
         match self {
             Self::Broker { account, .. } => account,
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(selection) => &selection.account,
             #[cfg(feature = "headless")]
             Self::Headless(selection) => &selection.account,
         }
@@ -199,6 +205,8 @@ impl NativeCredential {
     fn metadata_endpoint(&self) -> Option<azure_core::http::Url> {
         match self {
             Self::Broker { .. } => None,
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(_) => None,
             #[cfg(feature = "headless")]
             Self::Headless(selection) => selection.metadata_endpoint(),
         }
@@ -215,6 +223,14 @@ impl NativeCredential {
                 account,
                 client,
             } => state.bind(tenant, account, client, home),
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(selection) => state.bind_provider(
+                &selection.tenant,
+                &selection.account,
+                &selection.client,
+                &selection.binding,
+                home,
+            ),
             #[cfg(feature = "headless")]
             Self::Headless(selection) => state.bind_provider(
                 &selection.tenant,
@@ -233,6 +249,13 @@ impl NativeCredential {
                 account,
                 client,
             } => state.bind_read_provider(tenant, account, client, "broker"),
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(selection) => state.bind_read_provider(
+                &selection.tenant,
+                &selection.account,
+                &selection.client,
+                &selection.binding,
+            ),
             #[cfg(feature = "headless")]
             Self::Headless(selection) => state.bind_read_provider(
                 &selection.tenant,
@@ -283,15 +306,45 @@ impl NativeCredential {
             }
             #[cfg(feature = "headless")]
             Self::Headless(selection) => selection.credential(http),
+            #[cfg(feature = "interactive")]
+            Self::DeviceCode(selection) => {
+                fabric_identity::interactive::InteractiveCredential::connect(
+                    selection.options,
+                    http,
+                    selection.store,
+                )
+                .await
+                .map(|credential| {
+                    credential as std::sync::Arc<dyn azure_core::credentials::TokenCredential>
+                })
+                .map_err(|error| {
+                    let (code, message) = crate::interactive::failure(error);
+                    failure(code, message, 1)
+                })
+            }
         }
     }
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn selected_credential() -> Result<NativeCredential, Failure> {
     let mode = match std::env::var("FAB_RUST_AUTH_MODE") {
         Ok(mode) if !mode.is_empty() => mode,
         Err(std::env::VarError::NotPresent) => {
+            #[cfg(feature = "interactive")]
+            if !cfg!(all(windows, feature = "windows-broker"))
+                && crate::interactive_binding::store()
+                    .and_then(|store| store.selection())
+                    .map_err(|error| {
+                        let (code, message) = crate::interactive::failure(error);
+                        failure(code, message, 1)
+                    })?
+                    .is_some_and(|saved| saved.session_id.is_some())
+            {
+                return crate::interactive_binding::selected()
+                    .map(NativeCredential::DeviceCode)
+                    .map_err(|(code, message)| failure(code, message, 1));
+            }
             if cfg!(feature = "native-read") {
                 "broker".into()
             } else {
@@ -310,6 +363,12 @@ fn selected_credential() -> Result<NativeCredential, Failure> {
             ));
         }
     };
+    #[cfg(feature = "interactive")]
+    if mode == "device-code" {
+        return crate::interactive_binding::selected()
+            .map(NativeCredential::DeviceCode)
+            .map_err(|(code, message)| failure(code, message, 1));
+    }
     if mode == "broker" {
         #[cfg(all(windows, feature = "windows-broker"))]
         {
@@ -421,12 +480,12 @@ fn run_command(command: NativeCommand<'_>, state: &mut BatchState) -> io::Result
                 1,
             ));
         }
-        #[cfg(any(windows, feature = "headless"))]
+        #[cfg(any(windows, feature = "headless", feature = "interactive"))]
         {
             let credential = selected_credential()?;
             run_selected(command, credential, endpoint, state)
         }
-        #[cfg(not(any(windows, feature = "headless")))]
+        #[cfg(not(any(windows, feature = "headless", feature = "interactive")))]
         {
             let tenant = required("FAB_RUST_TENANT")?;
             let account = required("FAB_RUST_ACCOUNT")?;
@@ -440,7 +499,7 @@ fn run_command(command: NativeCommand<'_>, state: &mut BatchState) -> io::Result
     }
 }
 
-#[cfg(not(any(windows, feature = "headless")))]
+#[cfg(not(any(windows, feature = "headless", feature = "interactive")))]
 fn run_selected(
     _: NativeCommand<'_>,
     _: &str,
@@ -672,7 +731,7 @@ mod runtime_tests {
     }
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn run_selected(
     command: NativeCommand<'_>,
     credential: NativeCredential,
@@ -746,6 +805,7 @@ fn run_selected(
     let result = runtime.block_on(async {
         if is_get {
             let clock = get::NativeClock(tokio::runtime::Handle::current());
+            let resource_config = settings.get_resources.clone();
             get::controlled(
                 async |evidence, cancelled| {
                     execute_delivery(
@@ -753,6 +813,7 @@ fn run_selected(
                         Some(get::Inputs {
                             evidence, cancelled, clock: &clock, ui: &NativeTransferUi,
                             files: get::Files::native(),
+                            resource_config,
                         }),
                     ).await
                 },
@@ -791,7 +852,7 @@ fn run_selected(
     finish_runtime(runtime, result)
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn selected_home(value: String) -> Result<fabric_cli_context::HomeContext, Failure> {
     let valid = value.rsplit_once('.').is_some_and(|(name, suffix)| {
         !name.is_empty()
@@ -808,7 +869,7 @@ fn selected_home(value: String) -> Result<fabric_cli_context::HomeContext, Failu
     Ok(fabric_cli_context::HomeContext::Workspace(value))
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[allow(
     clippy::too_many_arguments,
     reason = "Borrowed command capabilities, not a second runtime."
@@ -873,7 +934,7 @@ async fn execute_delivery(
     .await
 }
 
-#[cfg(all(test, any(windows, feature = "headless")))]
+#[cfg(all(test, feature = "headless"))]
 async fn execute_injected(
     command: NativeCommand<'_>,
     (credential, client, identity_client): (
@@ -901,7 +962,7 @@ async fn execute_injected(
     .map(get::Delivery::into_plan_parts)
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[allow(
     clippy::too_many_arguments,
     reason = "The existing native composition plus explicit GET capabilities."
@@ -952,7 +1013,7 @@ async fn execute_injected_delivery(
     .await
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 #[allow(
     clippy::too_many_arguments,
     reason = "The existing authenticated host with explicit GET capabilities."
@@ -1092,7 +1153,7 @@ async fn execute_authenticated_injected(
     }
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 fn job_dispatch(
     output: fabric_cli::jobs::JobDispatch,
 ) -> (fabric_cli_output::text::TextPlan, CommandOutcome) {
@@ -1100,7 +1161,7 @@ fn job_dispatch(
     (output.plan, outcome)
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 async fn execute_job(
     session: &fabric_cli::session::ReadSession<'_>,
     executor: &fabric_sdk_http::HttpExecutor,
@@ -1118,7 +1179,7 @@ async fn execute_job(
     .await
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 async fn execute_family(
     session: &fabric_cli::session::ReadSession<'_>,
     executor: &fabric_sdk_http::HttpExecutor,
@@ -1341,14 +1402,14 @@ async fn execute_family(
     }
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 struct NativeLocalEffects {
     base: crate::local_host::Effects,
     identity: fabric_cli_local::BrowserIdentity,
     capacities: Option<Vec<fabric_cli_local::Capacity>>,
 }
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 impl fabric_cli_local::LocalEffects for NativeLocalEffects {
     fn clear_cli_cache(&mut self) -> Result<(), fabric_cli_local::LocalError> {
         self.base.clear_cli_cache()
@@ -1376,7 +1437,10 @@ impl fabric_cli_local::LocalEffects for NativeLocalEffects {
     }
 }
 
-#[cfg_attr(not(any(windows, feature = "headless")), allow(dead_code))]
+#[cfg_attr(
+    not(any(windows, feature = "headless", feature = "interactive")),
+    allow(dead_code)
+)]
 struct NativeTransferUi;
 
 impl fabric_cli_transfer::TransferUi for NativeTransferUi {
@@ -1421,10 +1485,10 @@ impl fabric_cli_transfer::TransferUi for NativeTransferUi {
         Box::pin(async move { fabric_cli::console::select_items(names).await })
     }
 }
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 struct NativeJobUi;
 
-#[cfg(any(windows, feature = "headless"))]
+#[cfg(any(windows, feature = "headless", feature = "interactive"))]
 impl fabric_cli_jobs::JobUi for NativeJobUi {
     fn emit(
         &self,

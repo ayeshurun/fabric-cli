@@ -9,10 +9,10 @@
 //! the initial request, operation polling and result retrieval to one endpoint.
 
 use azure_core::{credentials::AccessToken, http::Url};
-pub use fabric_core::Audience;
+pub use fabric_core::{Audience, ServiceOrigin};
 use fabric_core::{
     AuthenticatedExecution, AuthenticatedFuture, CredentialSelection, EndpointBinding,
-    RequestAuthentication, RequestContext, RequestError, ServiceOrigin, TokenCredential,
+    RequestAuthentication, RequestContext, RequestError, TokenCredential,
 };
 use fabric_sdk_workspaces::{
     FabricServiceError,
@@ -30,6 +30,9 @@ use std::{
     task::Poll,
     time::Duration,
 };
+
+mod arm;
+pub use arm::ArmGetOperation;
 
 /// Validated relative Fabric operation, bound to an endpoint when executed.
 pub struct FabricOperation {
@@ -128,6 +131,7 @@ impl FabricOperation {
 /// A validated request with caller-injected bearer token and body bound.
 pub struct OperationRequest<'a> {
     method: ResourceMethod,
+    origin: ServiceOrigin,
     url: Url,
     body: Vec<u8>,
     token: &'a AccessToken,
@@ -139,7 +143,11 @@ impl OperationRequest<'_> {
     pub const fn method(&self) -> ResourceMethod {
         self.method
     }
-    /// Fixed-origin validated Fabric URL.
+    /// Explicit validated service origin; default sessions remain Fabric-only.
+    pub const fn origin(&self) -> ServiceOrigin {
+        self.origin
+    }
+    /// Fixed-origin validated service URL.
     pub fn url(&self) -> &Url {
         &self.url
     }
@@ -236,7 +244,7 @@ impl Default for OperationLimits {
 pub enum OperationErrorKind {
     /// Unsafe or malformed operation input.
     InvalidInput,
-    /// Selection was not explicitly for Fabric.
+    /// Selection was not explicitly for the operation's fixed service audience.
     InvalidAudience,
     /// Injected credential failed.
     Credential,
@@ -486,6 +494,12 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
         &mut self,
         operation: FabricOperation,
     ) -> Result<OperationResponse, OperationErrorKind> {
+        if self.endpoint.origin() != ServiceOrigin::Fabric {
+            if self.selection.audience() != Audience::Fabric {
+                return Err(OperationErrorKind::InvalidAudience);
+            }
+            return Err(OperationErrorKind::InvalidInput);
+        }
         let python = operation.completion == CompletionPolicy::PythonSynchronous;
         let url = service_url(&self.endpoint, &operation.path)?;
         let response = if operation.method == ResourceMethod::Get && !python {
@@ -520,7 +534,7 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
 
     async fn resolve_accepted(
         &mut self,
-        mut response: OperationResponse,
+        response: OperationResponse,
         completion: CompletionPolicy,
         source_read_operation_ids: bool,
     ) -> Result<OperationResponse, OperationErrorKind> {
@@ -534,7 +548,7 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             }
             return Ok(response);
         }
-        let mut original = python.then(|| response.clone());
+        let original = python.then(|| response.clone());
         let id = if python {
             let location = header(&response, "Location")?.unwrap_or("");
             let operation_id = header(&response, "x-ms-operation-id")?;
@@ -564,6 +578,19 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
         if !python && let Some(uri) = header(&response, "Location")? {
             validate_link(&self.endpoint, uri, &path)?;
         }
+        self.poll_operation(response, &path, completion, original, None)
+            .await
+    }
+
+    async fn poll_operation(
+        &mut self,
+        mut response: OperationResponse,
+        path: &str,
+        completion: CompletionPolicy,
+        mut original: Option<OperationResponse>,
+        arm_check_status: Option<bool>,
+    ) -> Result<OperationResponse, OperationErrorKind> {
+        let python = completion == CompletionPolicy::PythonSynchronous;
         loop {
             if self.requests >= self.limits.max_requests.get() {
                 return Err(OperationErrorKind::Limit);
@@ -590,13 +617,27 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             response = self
                 .request(
                     ResourceMethod::Get,
-                    service_url(&self.endpoint, &path)?,
+                    service_url(&self.endpoint, path)?,
                     Vec::new(),
                     false,
                 )
                 .await?;
-            ensure_source_status(&response, &[200], python)?;
+            let statuses: &[u16] = if arm_check_status == Some(false) {
+                &[200, 201, 202]
+            } else {
+                &[200]
+            };
+            ensure_source_status(&response, statuses, python)?;
+            if arm_check_status == Some(false) {
+                if response.status != 200 {
+                    continue;
+                }
+                let mut original = original.take().ok_or(OperationErrorKind::InvalidResponse)?;
+                original.status = 200;
+                return Ok(original);
+            }
             if python
+                && arm_check_status.is_none()
                 && let Some(uri) = header(&response, "Location")?.filter(|uri| !uri.is_empty())
             {
                 validate_source_origin(&self.endpoint, uri)?;
@@ -609,10 +650,16 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             match state.get("status").and_then(serde_json::Value::as_str) {
                 Some("NotStarted" | "Running") if !python => {
                     if let Some(uri) = header(&response, "Location")? {
-                        validate_link(&self.endpoint, uri, &path)?;
+                        validate_link(&self.endpoint, uri, path)?;
                     }
                 }
                 Some("Succeeded") | Some("Completed") if python => {
+                    if arm_check_status.is_some() {
+                        let mut original =
+                            original.take().ok_or(OperationErrorKind::InvalidResponse)?;
+                        original.status = 200;
+                        return Ok(original);
+                    }
                     if header(&response, "Location")?
                         .filter(|uri| !uri.is_empty())
                         .is_none()
@@ -698,7 +745,11 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             std::future::ready(()),
         )
         .await?;
-        if self.selection.audience() != Audience::Fabric {
+        let origin = self.endpoint.origin();
+        if !matches!(origin, ServiceOrigin::Fabric | ServiceOrigin::Arm) {
+            return Err(OperationErrorKind::InvalidInput);
+        }
+        if self.selection.audience() != origin.audience() {
             return Err(OperationErrorKind::InvalidAudience);
         }
         if self.requests >= self.limits.max_requests.get() {
@@ -714,6 +765,7 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             requests: &mut self.requests,
             mutation_may_have_occurred: &mut self.mutation_may_have_occurred,
             source_read_operation_ids,
+            origin,
             accepted_operation_id: None,
         };
         let cancelled = &mut self.cancelled;
@@ -729,12 +781,7 @@ impl<'a, E: OperationExecutor> OperationSession<'a, E> {
             result
         }));
         let response = authentication
-            .execute(
-                ServiceOrigin::Fabric,
-                &url,
-                &mut execution,
-                cancelled.as_mut(),
-            )
+            .execute(origin, &url, &mut execution, cancelled.as_mut())
             .await;
         if matches!(&response, Err(RequestError::Cancelled))
             && self.operation_id.is_none()
@@ -789,6 +836,7 @@ struct SessionExecution<'a, E> {
     requests: &'a mut usize,
     mutation_may_have_occurred: &'a mut bool,
     source_read_operation_ids: bool,
+    origin: ServiceOrigin,
     accepted_operation_id: Option<String>,
 }
 
@@ -810,13 +858,16 @@ impl<E: OperationExecutor> AuthenticatedExecution for SessionExecution<'_, E> {
                 .executor
                 .execute(OperationRequest {
                     method: self.method,
+                    origin: self.origin,
                     url: url.clone(),
                     body: std::mem::take(&mut self.body),
                     token,
                     max_response_bytes: self.max_response_bytes,
                 })
                 .await?;
-            if response.status == 202 {
+            if self.origin == ServiceOrigin::Arm && matches!(response.status, 201 | 202) {
+                self.accepted_operation_id = arm::operation_id(&response).ok().flatten();
+            } else if response.status == 202 {
                 self.accepted_operation_id = if self.source_read_operation_ids {
                     header(&response, "x-ms-operation-id")
                         .ok()

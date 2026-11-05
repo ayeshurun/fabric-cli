@@ -8,6 +8,10 @@
 #[path = "get_output.rs"]
 pub mod output;
 
+#[cfg(feature = "native-host")]
+#[path = "get_resources.rs"]
+pub mod resources;
+
 use super::{ReadSession, get_options, snapshot::Snapshot};
 use crate::{
     PythonQuery, ReadHost, errors,
@@ -52,6 +56,15 @@ use std::{
 /// Exact source prompt; only the caller's UI may perform interaction.
 pub const DEFINITION_CONFIRMATION: &str =
     "Item definition is retrieved without its sensitivity label. Are you sure?";
+
+/// Caller-owned capacity settings; no configuration or account discovery occurs.
+#[derive(Clone, Debug, Default)]
+pub struct GetResourceConfig {
+    /// Python `default_az_subscription_id`, if explicitly configured.
+    pub subscription_id: Option<String>,
+    /// Python `default_az_resource_group`, if explicitly configured.
+    pub resource_group: Option<String>,
+}
 
 /// Every additional capability needed by source item GET and projected output.
 ///
@@ -191,6 +204,14 @@ pub enum GetErrorKind {
     Item(ItemError),
     /// Existing primary/optional workspace SDK failure.
     Workspace(WorkspaceMetadataError),
+    /// Original hidden-resource or ARM API failure.
+    Api(Box<fabric_sdk_api::ApiError>),
+    /// Original collection failure, including complete pages before failure.
+    Collection(Box<fabric_sdk_api::CollectionError>),
+    /// Original OneLake metadata failure.
+    OneLake(fabric_sdk_onelake::OneLakeError),
+    /// Original shortcut resource failure, including acceptance and service data.
+    Resource(Box<fabric_sdk_workspaces::mutations::ResourceError>),
     /// Shared definition/file failure with accepted-operation or partial-file data.
     Definition(Box<DefinitionError>),
     /// Original decoded-value error and logical definition location.
@@ -227,6 +248,27 @@ impl From<GetDefinitionValueError> for GetErrorKind {
 impl From<OperationError> for GetErrorKind {
     fn from(error: OperationError) -> Self {
         Self::Operation(Box::new(error))
+    }
+}
+
+impl From<fabric_sdk_api::ApiError> for GetErrorKind {
+    fn from(error: fabric_sdk_api::ApiError) -> Self {
+        match error {
+            fabric_sdk_api::ApiError::Operation(error) => Self::Operation(error),
+            error => Self::Api(Box::new(error)),
+        }
+    }
+}
+
+impl From<fabric_sdk_api::CollectionError> for GetErrorKind {
+    fn from(error: fabric_sdk_api::CollectionError) -> Self {
+        Self::Collection(Box::new(error))
+    }
+}
+
+impl From<fabric_sdk_onelake::OneLakeError> for GetErrorKind {
+    fn from(error: fabric_sdk_onelake::OneLakeError) -> Self {
+        Self::OneLake(error)
     }
 }
 
@@ -443,9 +485,33 @@ impl ReadSession<'_> {
         evidence: &mut GetEvidence,
         cancelled: impl Future<Output = ()> + Send,
     ) -> GetDispatch {
+        self.dispatch_get_with_resource_storage(
+            command,
+            http,
+            host,
+            evidence,
+            &resources::GetResourceConfig::default(),
+            cancelled,
+        )
+        .await
+    }
+
+    /// Compose all source GET resources, explicit capacity settings and storage.
+    ///
+    /// Uses the same local/Lakehouse classifier as the original storage entry.
+    #[cfg(feature = "native-host")]
+    pub async fn dispatch_get_with_resource_storage(
+        &self,
+        command: &ReadCommand,
+        http: &fabric_sdk_http::HttpExecutor,
+        host: &mut ClockedGetHost<'_>,
+        evidence: &mut GetEvidence,
+        config: &resources::GetResourceConfig,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> GetDispatch {
         if host.files.is_none() {
             return self
-                .dispatch_get_clocked(command, host, evidence, cancelled)
+                .dispatch_get_with_resources(command, http, host, evidence, config, cancelled)
                 .await;
         }
         let local = host.files.as_mut().expect("checked file capability");
@@ -459,7 +525,7 @@ impl ReadSession<'_> {
             definition_limits: host.definition_limits,
             operation_limits: host.operation_limits,
         };
-        self.dispatch_get_clocked(command, &mut selected, evidence, cancelled)
+        self.dispatch_get_with_resources(command, http, &mut selected, evidence, config, cancelled)
             .await
     }
 }
@@ -692,39 +758,65 @@ impl ReadHost<'_> {
                 );
             }
         };
-        checkpoint(cancelled.as_mut()).await?;
-        let projected = self.projection.project(
+        project_and_output(
+            self.sdk,
+            self.projection,
+            command,
+            &target.name(),
             data,
-            command.query.as_deref().filter(|query| !query.is_empty()),
-            false,
-        )?;
-        checkpoint(cancelled.as_mut()).await?;
-        let output = if let Some(destination) = command.output.as_deref().filter(|s| !s.is_empty())
-        {
-            output::write_projected(
-                self.sdk,
-                host,
-                destination,
-                &target.name(),
-                &projected,
-                evidence,
-                cancelled.as_mut(),
-            )
-            .await?;
-            Some(OutputInput {
-                command: Some(command.name.clone()),
-                message: Some("Export completed".into()),
-                ..OutputInput::default()
-            })
-        } else {
-            truthy(&projected).then(|| OutputInput {
-                command: Some(command.name.clone()),
-                data: Some(projected.clone()),
-                ..OutputInput::default()
-            })
-        };
-        Ok((Some(projected), output))
+            host,
+            evidence,
+            cancelled,
+        )
+        .await
     }
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Shared GET projection and effect boundary."
+)]
+async fn project_and_output(
+    sdk: &Client,
+    projection: &dyn crate::Projection,
+    command: &ReadCommand,
+    output_name: &str,
+    data: Value,
+    host: &mut RuntimeGetHost<'_>,
+    evidence: &mut GetEvidence,
+    mut cancelled: Pin<&mut (impl FusedFuture<Output = ()> + Send)>,
+) -> Result<(Option<Value>, Option<OutputInput>), GetErrorKind> {
+    checkpoint(cancelled.as_mut()).await?;
+    let projected = projection.project(
+        data,
+        command.query.as_deref().filter(|query| !query.is_empty()),
+        false,
+    )?;
+    checkpoint(cancelled.as_mut()).await?;
+    let output = if let Some(destination) = command.output.as_deref().filter(|s| !s.is_empty()) {
+        output::write_projected(
+            sdk,
+            host,
+            destination,
+            output_name,
+            &projected,
+            evidence,
+            cancelled.as_mut(),
+        )
+        .await?;
+        Some(OutputInput {
+            command: Some(command.name.clone()),
+            message: Some("Export completed".into()),
+            ..OutputInput::default()
+        })
+    } else {
+        truthy(&projected).then(|| OutputInput {
+            command: Some(command.name.clone()),
+            data: Some(projected.clone()),
+            ..OutputInput::default()
+        })
+    };
+    Ok((Some(projected), output))
 }
 
 impl RuntimeGetHost<'_> {
@@ -1126,6 +1218,21 @@ fn error_output(kind: &GetErrorKind) -> OutputInput {
                 errors::error("InvalidInput", "Invalid workspace request identifier")
             }
         }),
+        GetErrorKind::Api(error) => api_error_output(error),
+        GetErrorKind::Collection(error) => api_error_output(&error.error),
+        GetErrorKind::OneLake(error) => command_output(&match error {
+            fabric_sdk_onelake::OneLakeError::Cancelled => {
+                errors::error("LongRunningOperationCancelled", "Operation cancelled")
+            }
+            fabric_sdk_onelake::OneLakeError::Credential => {
+                errors::error("Unauthorized", "Access is unauthorized")
+            }
+            error => errors::error("OneLakeError", error.to_string()),
+        }),
+        GetErrorKind::Resource(error) => {
+            let error = fabric_cli_mutations::MutationError::from((**error).clone());
+            error.output()
+        }
         GetErrorKind::Codec(_) => command_output(&errors::unsupported(
             "Decoded GET value is outside the configured projection domain or limits",
         )),
@@ -1137,6 +1244,24 @@ fn error_output(kind: &GetErrorKind) -> OutputInput {
             command_output(&errors::error("OutputError", "Rendering GET output failed"))
         }
     }
+}
+
+fn api_error_output(error: &fabric_sdk_api::ApiError) -> OutputInput {
+    if let fabric_sdk_api::ApiError::Operation(operation) = error {
+        return fabric_cli_mutations::operation_error_output(operation);
+    }
+    if matches!(
+        error,
+        fabric_sdk_api::ApiError::Cancelled
+            | fabric_sdk_api::ApiError::Execution(fabric_sdk_api::ExecutionError::Cancelled)
+    ) {
+        return command_output(&errors::error(
+            "LongRunningOperationCancelled",
+            "Operation cancelled",
+        ));
+    }
+    let error = fabric_cli_resources::CommandError::from(error.clone());
+    command_output(&errors::error(&error.code, error.message))
 }
 
 fn command_output(error: &CommandError) -> OutputInput {

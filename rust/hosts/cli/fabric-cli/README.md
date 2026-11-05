@@ -32,6 +32,15 @@ auth defaults to text. JSON retains its existing auth result/error shape for
 scripts. Both formats keep success on stdout and failures on stderr, without
 printing access tokens or changing timeout/cancellation behavior.
 
+With the optional `interactive` device-code feature on macOS, explicitly supply
+`FAB_RUST_PROTECTED_STORE_HELPER` (absolute root-custodied installation path) and
+`FAB_RUST_PROTECTED_STORE_HELPER_SHA256` (independently trusted 64-digit SHA-256).
+The CLI captures these inputs once for the session store; it never discovers a
+helper or calculates trust from an arbitrary executable. All legacy Keychain
+secret operations run in that isolated helper, not the SDK process. See the
+[protected-store contract](../../../infrastructure/identity/fabric-identity/protected-store-macos.md)
+for SDK injection, installation requirements and remaining native validation.
+
 ```powershell
 fab-rs auth status --output_format text
 fab-rs auth status --output_format json

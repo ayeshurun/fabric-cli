@@ -2,24 +2,23 @@
 // Licensed under the MIT License.
 
 use crate::batch_state::CommandOutcome;
-#[cfg(windows)]
 use fabric_cli::auth_commands as commands;
 use fabric_cli::parser::AuthCommand;
 use fabric_cli_output::text::OutputFormat;
-#[cfg(all(test, windows))]
+#[cfg(all(test, windows, feature = "windows-broker"))]
 use serde_json::json;
 use std::io::{self, Write};
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 use std::sync::{
     Arc,
     atomic::{AtomicU8, Ordering},
 };
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 #[derive(Default)]
 struct AuthProgress(AtomicU8);
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 impl AuthProgress {
     fn selection(&self, stage: fabric_identity::windows_broker::AccountSelectionStage) {
         use fabric_identity::windows_broker::AccountSelectionStage;
@@ -108,12 +107,91 @@ fn selected_format(
     })
 }
 
+fn selected_method(
+    explicit: Option<fabric_cli::parser::AuthMethod>,
+    environment: Result<Option<String>, ()>,
+    platform_windows: bool,
+    broker_available: bool,
+    device_available: bool,
+) -> Result<fabric_cli::parser::AuthMethod, commands::Failure> {
+    use fabric_cli::parser::AuthMethod;
+    let method = match explicit {
+        Some(method) => method,
+        None => match environment {
+            Ok(Some(mode)) if mode == "broker" => AuthMethod::Broker,
+            Ok(Some(mode)) if mode == "device-code" => AuthMethod::DeviceCode,
+            Ok(None) if platform_windows => AuthMethod::Broker,
+            Ok(None) => AuthMethod::DeviceCode,
+            _ => return Err((
+                "invalid_configuration",
+                "auth commands require an explicitly selected interactive method. Headless modes never start device-code authentication.".into(),
+            )),
+        },
+    };
+    match method {
+        AuthMethod::Broker if !broker_available => Err((
+            "unsupported",
+            "Windows broker authentication requires Windows and the windows-broker feature. No provider fallback was attempted.".into(),
+        )),
+        AuthMethod::DeviceCode if !device_available => Err((
+            "unsupported",
+            "Device-code authentication requires an interactive feature build; no provider fallback was attempted.".into(),
+        )),
+        _ => Ok(method),
+    }
+}
+
 pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
+    let environment = if command.method.is_some() {
+        Ok(None)
+    } else {
+        match std::env::var("FAB_RUST_AUTH_MODE") {
+            Ok(mode) => Ok(Some(mode)),
+            Err(std::env::VarError::NotPresent) => Ok(None),
+            Err(_) => Err(()),
+        }
+    };
+    let method = match selected_method(
+        command.method,
+        environment,
+        cfg!(windows),
+        cfg!(all(windows, feature = "windows-broker")),
+        cfg!(feature = "interactive"),
+    ) {
+        Ok(method) => method,
+        Err((code, message)) => {
+            // Unsupported explicit providers fail before profile/configuration,
+            // credential storage, HTTP or UI. Only argv selects error format.
+            let format = OutputFormat::resolve(command.output_format.as_deref(), None)
+                .unwrap_or(OutputFormat::Text);
+            return error(
+                code,
+                &message,
+                if code == "invalid_configuration" {
+                    2
+                } else {
+                    1
+                },
+                format,
+            );
+        }
+    };
     let format = match selected_format(command) {
         Ok(format) => format,
         Err((code, message)) => return error(code, &message, 2, OutputFormat::Text),
     };
-    #[cfg(windows)]
+    if method == fabric_cli::parser::AuthMethod::DeviceCode {
+        #[cfg(feature = "interactive")]
+        return crate::interactive::run(command, format);
+        #[cfg(not(feature = "interactive"))]
+        return error(
+            "unsupported",
+            "Device-code authentication requires an interactive feature build; no provider fallback was attempted.",
+            1,
+            format,
+        );
+    }
+    #[cfg(all(windows, feature = "windows-broker"))]
     {
         use crate::auth_binding::{Hints, Store};
         use fabric_cli::parser::AuthAction;
@@ -183,7 +261,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
         let result = persist_result(command.action, store.as_ref(), previous.as_ref(), result);
         write_auth_outcome_with_format(result, format, io::stdout().lock(), io::stderr().lock())
     }
-    #[cfg(not(windows))]
+    #[cfg(not(all(windows, feature = "windows-broker")))]
     {
         let _ = command;
         error(
@@ -195,7 +273,7 @@ pub(crate) fn run(command: &AuthCommand) -> io::Result<CommandOutcome> {
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 async fn run_until<T>(
     work: impl std::future::Future<Output = Result<T, commands::Failure>>,
     progress: &AuthProgress,
@@ -215,7 +293,7 @@ async fn run_until<T>(
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 fn persist_result(
     action: fabric_cli::parser::AuthAction,
     store: Option<&crate::auth_binding::Store>,
@@ -250,7 +328,7 @@ fn persist_result(
     Ok(value)
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 async fn execute_selected(
     command: &AuthCommand,
     hints: crate::auth_binding::Hints,
@@ -307,7 +385,7 @@ async fn execute_selected(
     Ok((value, options))
 }
 
-#[cfg(all(test, windows))]
+#[cfg(all(test, windows, feature = "windows-broker"))]
 fn write_auth_outcome(
     result: Result<serde_json::Value, commands::Failure>,
     stdout: impl Write,
@@ -316,8 +394,7 @@ fn write_auth_outcome(
     write_auth_outcome_with_format(result, OutputFormat::Json, stdout, stderr)
 }
 
-#[cfg(windows)]
-fn write_auth_outcome_with_format(
+pub(crate) fn write_auth_outcome_with_format(
     result: Result<serde_json::Value, commands::Failure>,
     format: OutputFormat,
     stdout: impl Write,
@@ -333,7 +410,7 @@ fn write_auth_outcome_with_format(
     })
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 pub(crate) fn broker_error(
     error: fabric_identity::windows_broker::BrokerError,
 ) -> (&'static str, String) {
@@ -361,12 +438,12 @@ pub(crate) fn broker_error(
     (code, error.to_string())
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 struct WindowsBroker {
     options: fabric_identity::LoginOptions,
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 fn token_metadata(credential: &fabric_identity::WindowsCredential) -> Vec<commands::TokenMetadata> {
     credential
         .metadata()
@@ -378,7 +455,7 @@ fn token_metadata(credential: &fabric_identity::WindowsCredential) -> Vec<comman
         .collect()
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "windows-broker"))]
 impl commands::Broker for WindowsBroker {
     fn tenant(&self) -> &str {
         self.options.tenant()
@@ -413,7 +490,125 @@ impl commands::Broker for WindowsBroker {
     }
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
+mod method_tests {
+    #![deny(unnameable_test_items)]
+    use super::*;
+    use fabric_cli::parser::AuthMethod;
+
+    #[test]
+    fn argv_method_overrides_every_environment_mode() {
+        for platform_windows in [false, true] {
+            for method in [AuthMethod::Broker, AuthMethod::DeviceCode] {
+                for mode in ["broker", "device-code", "client-secret", ""] {
+                    assert_eq!(
+                        selected_method(
+                            Some(method),
+                            Ok(Some(mode.into())),
+                            platform_windows,
+                            true,
+                            true,
+                        )
+                        .unwrap(),
+                        method,
+                    );
+                }
+                assert_eq!(
+                    selected_method(Some(method), Err(()), platform_windows, true, true).unwrap(),
+                    method
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn explicit_broker_never_falls_back_to_device_code_on_an_unsupported_host() {
+        for platform_windows in [false, true] {
+            for selected in [None, Some(AuthMethod::Broker)] {
+                assert_eq!(
+                    selected_method(
+                        selected,
+                        Ok(Some("broker".into())),
+                        platform_windows,
+                        false,
+                        true
+                    )
+                    .unwrap_err()
+                    .0,
+                    "unsupported",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn only_absent_method_and_absent_mode_use_the_platform_default() {
+        for platform_windows in [false, true] {
+            for broker_available in [false, true] {
+                for device_available in [false, true] {
+                    let result = selected_method(
+                        None,
+                        Ok(None),
+                        platform_windows,
+                        broker_available,
+                        device_available,
+                    );
+                    let available = if platform_windows {
+                        broker_available
+                    } else {
+                        device_available
+                    };
+                    if available {
+                        assert_eq!(
+                            result.unwrap(),
+                            if platform_windows {
+                                AuthMethod::Broker
+                            } else {
+                                AuthMethod::DeviceCode
+                            },
+                        );
+                    } else {
+                        assert_eq!(result.unwrap_err().0, "unsupported");
+                    }
+                }
+            }
+            for (mode, method) in [
+                ("broker", AuthMethod::Broker),
+                ("device-code", AuthMethod::DeviceCode),
+            ] {
+                assert_eq!(
+                    selected_method(None, Ok(Some(mode.into())), platform_windows, true, true)
+                        .unwrap(),
+                    method,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn unavailable_device_and_explicit_headless_modes_do_not_choose_a_fallback() {
+        assert_eq!(
+            selected_method(None, Ok(Some("device-code".into())), true, true, false)
+                .unwrap_err()
+                .0,
+            "unsupported",
+        );
+        for environment in [
+            Ok(Some("client-secret".into())),
+            Ok(Some(String::new())),
+            Err(()),
+        ] {
+            assert_eq!(
+                selected_method(None, environment, true, true, true)
+                    .unwrap_err()
+                    .0,
+                "invalid_configuration"
+            );
+        }
+    }
+}
+
+#[cfg(all(test, windows, feature = "windows-broker"))]
 mod tests {
     use super::*;
     use fabric_identity::windows_broker::{BrokerError, NativeStage};

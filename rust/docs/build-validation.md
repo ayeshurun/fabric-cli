@@ -21,6 +21,16 @@ The command registry and executor are identical locally and in CI. The
 historical results below describe their recorded checkpoints, not a pass of a
 newly generated impact plan.
 
+Formatting is checked with one `cargo fmt --package <name> -- --check`
+invocation per selected package. This preserves the formatting gate while
+avoiding Windows' aggregate rustfmt command-line length limit.
+The acceptance inventory is checked against captured, locked/offline Cargo
+metadata, not a hand-maintained target list. Empty/all-skipped test execution
+and empty dependency graphs cannot satisfy a selected check.
+See [current command acceptance](command-parity.md) and
+[stable coverage reporting](test-coverage.md) for scope and denominators;
+neither configured CI nor the historical table below certifies a new candidate.
+
 ## Frozen references alongside current upstream source
 
 The integration branch includes upstream `main` through

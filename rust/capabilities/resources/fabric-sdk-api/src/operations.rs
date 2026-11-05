@@ -45,7 +45,11 @@ impl OperationExecutor for Adapter<'_> {
                 },
                 url: request.url().clone(),
                 body: request.body().to_vec(),
-                origin: Origin::Fabric,
+                origin: match request.origin() {
+                    fabric_sdk_operations::ServiceOrigin::Fabric => Origin::Fabric,
+                    fabric_sdk_operations::ServiceOrigin::Arm => Origin::Arm,
+                    _ => return Err(OperationExecutionError::Failed),
+                },
                 headers: Vec::new(),
             };
             if !self.executor.supports(&specification) {
@@ -80,6 +84,53 @@ impl OperationExecutor for Adapter<'_> {
 }
 
 impl ApiClient {
+    pub(crate) async fn send_arm_get(
+        &self,
+        request: &Request,
+        limit: NonZeroUsize,
+        mut limits: OperationLimits,
+        cancelled: impl Future<Output = ()> + Send,
+    ) -> Result<Response, ApiError> {
+        if request.origin() != Origin::Arm
+            || request.method() != Method::Get
+            || !request.body().is_empty()
+            || !request.headers().is_empty()
+        {
+            return Err(ApiError::InvalidInput);
+        }
+        limits.max_response_bytes = limits.max_response_bytes.min(limit);
+        let path = format!(
+            "{}{}",
+            request.url().path(),
+            request
+                .url()
+                .query()
+                .map(|query| format!("?{query}"))
+                .unwrap_or_default()
+        );
+        let operation = fabric_sdk_operations::ArmGetOperation::new(&path)
+            .map_err(|_| ApiError::InvalidInput)?;
+        let mut session = OperationSession::for_arm(
+            self.credential.as_ref(),
+            &self.selection,
+            Adapter {
+                executor: self.executor.as_ref(),
+                trace: self.query_trace.as_ref(),
+            },
+            limits,
+            cancelled,
+        );
+        let response = session
+            .execute_arm_get(operation)
+            .await
+            .map_err(|error| ApiError::Operation(Box::new(error)))?;
+        Ok(Response {
+            status: response.status,
+            body: response.body,
+            headers: response.headers,
+        })
+    }
+
     /// Executes one Fabric mutation then applies the released Python synchronous
     /// operation policy to its actual accepted response. The initial write is
     /// never replayed; operation IDs and uncertain side effects survive errors.

@@ -43,5 +43,35 @@ Invalid retry intervals and other polling fallbacks remain inspectable through
 `warnings()`. Request, response, delay and allocation limits are explicit.
 No failed, cancelled or lost mutation response authorizes replay.
 
+## Explicit ARM GET reconciliation
+
+The additive `ArmGetOperation::new` validates bodyless subscription/resource
+routes. `OperationSession::for_arm` selects only the built-in
+`management.azure.com` origin and requires `Audience::Arm`.
+`execute_arm_get` and `reconcile_arm_get` apply Python
+`cf67fd52ea8b47e24c725e73d792de6f4a08e2e4`
+`client/fab_api_client.py::{_handle_azure_async_op,_poll_operation}` behavior
+using the same bounded request/timer/poll loop as Fabric, not a second poller.
+
+ARM 201/202 requires an `Azure-AsyncOperation` header or, only when absent,
+`Location`. The former checks terminal JSON status; the latter waits for HTTP
+200 without interpreting the body. Both return the original accepted bytes with
+status 200. ARM never fetches a Fabric `/result`, including when the terminal
+response has a Location header. Unsafe origins, normalized/traversing paths,
+oversized links, duplicate headers, cancellation and finite limits fail explicitly.
+Accepted IDs and raw terminal errors remain inspectable; read-only GET does not
+set mutation uncertainty.
+
+`OperationRequest::origin` lets existing shared HTTP adapters enforce this
+explicit boundary. Default constructors, `FabricOperation`, Fabric completion
+policies, existing endpoint overrides and GUID-only defaults are unchanged.
+ARM sessions cannot execute Fabric operations or silently choose another origin.
+Storage remains a separately owned boundary.
+
+`tests/arm.rs` is a direct offline SDK consumer covering initial 201/202, both
+header routes, terminal/original-result priority, limits, cancellation, audience
+and origin rejection. These tests require execution with the existing standalone
+and endpoint-context targets; their addition is not a passing receipt.
+
 Focused clients retain ownership of endpoint payloads and resource-specific
-validation. Storage and ARM use separate origin/audience boundaries.
+validation.

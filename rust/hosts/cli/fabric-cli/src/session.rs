@@ -37,7 +37,7 @@ use std::{
 /// The caller binds the broker to its validated explicit account/tenant/client
 /// selection and supplies cancellation/time. This creates no runtime, performs
 /// no provider discovery and does not implement a replacement identity backend.
-#[cfg(feature = "windows-broker")]
+#[cfg(any(feature = "windows-broker", feature = "interactive"))]
 pub async fn run_auth(
     command: &crate::parser::AuthCommand,
     broker: &impl crate::auth_commands::Broker,

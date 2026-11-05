@@ -14,7 +14,7 @@ pub use fabric_sdk_workspaces::workspaces::{
     WorkspaceExecutionError as ExecutionError, WorkspaceListLimits as Limits,
     WorkspaceResponse as Response,
 };
-use futures_util::future::select;
+use futures_util::{FutureExt, future::select};
 use serde_json::Value;
 use std::{
     future::Future,
@@ -300,6 +300,7 @@ pub struct ApiClient {
     selection: CredentialSelection,
     executor: Arc<dyn Executor>,
     query_trace: Option<QueryDispatchTrace>,
+    arm_get_limits: Option<fabric_sdk_operations::OperationLimits>,
 }
 
 impl ApiClient {
@@ -314,6 +315,7 @@ impl ApiClient {
             selection,
             executor,
             query_trace: None,
+            arm_get_limits: None,
         }
     }
 
@@ -325,6 +327,19 @@ impl ApiClient {
         self
     }
 
+    /// Opt explicit ARM GETs into source 201/202 reconciliation using the shared
+    /// operation session. Default clients and raw API calls remain unchanged.
+    ///
+    /// This read-only opt-in rejects bodies/custom headers rather than silently
+    /// discarding them. It installs no runtime, transport or credential fallback.
+    pub fn with_arm_get_reconciliation(
+        mut self,
+        limits: fabric_sdk_operations::OperationLimits,
+    ) -> Self {
+        self.arm_get_limits = Some(limits);
+        self
+    }
+
     /// Executes once logically (GET may retry in the shared executor).
     /// Raw statuses are returned, not converted into successful operations.
     pub async fn send(
@@ -333,6 +348,12 @@ impl ApiClient {
         limit: NonZeroUsize,
         cancelled: impl Future<Output = ()> + Send,
     ) -> Result<Response, ApiError> {
+        if let Some(limits) = self.arm_get_limits
+            && request.origin() == Origin::Arm
+            && request.method() == Method::Get
+        {
+            return self.send_arm_get(request, limit, limits, cancelled).await;
+        }
         self.send_observed(request, limit, cancelled, &mut false)
             .await
     }
@@ -414,11 +435,26 @@ impl ApiClient {
             partial: Box::default(),
         })?
         .with_collection_field(field);
+        let cooperative_arm = self.arm_get_limits.is_some()
+            && request.origin() == Origin::Arm
+            && request.method() == Method::Get;
+        let cancelled = cancelled.boxed().shared();
+        let pager_cancelled = cancelled.clone();
+        // An ARM fetch must return its accepted-operation evidence on cancellation.
+        // Ordinary clients retain the pager's original drop-on-cancel priority.
+        let outer_cancelled = async move {
+            if cooperative_arm {
+                std::future::pending::<()>().await;
+            } else {
+                pager_cancelled.await;
+            }
+        };
         let trace = Arc::new(Mutex::new(SourceTrace::default()));
         let mut fetched = 0usize;
         let result=pager.collect(|page| {
             let mut next=request.clone();
             let trace=trace.clone();
+            let cancelled=cancelled.clone();
             let prior=fetched;
             fetched+=1;
             async move {
@@ -431,7 +467,11 @@ impl ApiClient {
                     }
                     Paging::Catalog{..}=>{}
                 }
-                let response=self.send(&next,page.max_response_bytes(),std::future::pending()).await?;
+                let response=if cooperative_arm {
+                    self.send(&next,page.max_response_bytes(),cancelled).await?
+                } else {
+                    self.send(&next,page.max_response_bytes(),std::future::pending()).await?
+                };
                 let value=decode(&response)?;
                 let rows=value.get(field).and_then(Value::as_array).ok_or(ApiError::InvalidResponse)?;
                 if rows.iter().any(|row|!row.is_object()) {return Err(ApiError::InvalidResponse);}
@@ -441,7 +481,7 @@ impl ApiClient {
                 trace.lock().expect("source trace lock").observe(value,&response)?;
                 Ok(response)
             }
-        },cancelled).await;
+        },outer_cancelled).await;
         match result {
             Ok(progress) => Ok(collection(progress, &trace)),
             Err(error) => {

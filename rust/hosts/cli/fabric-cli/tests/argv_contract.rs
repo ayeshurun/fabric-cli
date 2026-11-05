@@ -204,12 +204,12 @@ fn root_help_lists_only_registered_feature_gated_commands() {
     }
     assert_eq!(
         schema.find_subcommand("auth").is_some(),
-        cfg!(feature = "windows-broker")
+        cfg!(any(feature = "windows-broker", feature = "interactive"))
     );
     assert_eq!(
         help.lines()
             .any(|line| line.trim_start().starts_with("auth ")),
-        cfg!(feature = "windows-broker")
+        cfg!(any(feature = "windows-broker", feature = "interactive"))
     );
 }
 

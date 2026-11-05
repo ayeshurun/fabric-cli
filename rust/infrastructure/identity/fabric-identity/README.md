@@ -6,6 +6,10 @@
 SDK consumers continue to inject `Arc<dyn TokenCredential>` directly. The
 default feature set is empty and performs no credential discovery.
 
+The optional device-code session's macOS protected-store isolation, explicit
+helper trust, legacy Keychain identity, finite protocol and offline validation
+selectors are described in [isolated macOS protected storage](protected-store-macos.md).
+
 ## Headless authentication
 
 The explicit `headless` feature composes official `azure_identity` 1.0.0

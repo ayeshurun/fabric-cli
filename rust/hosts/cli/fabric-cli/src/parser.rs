@@ -19,10 +19,10 @@ pub use update::{UpdateAction, UpdateCommand};
 mod jobs;
 pub use jobs::{JobMutationCommand, JobMutationKind, JobReadCommand, JobReadKind, JobRunCommand};
 
-#[cfg(feature = "windows-broker")]
+#[cfg(any(feature = "windows-broker", feature = "interactive"))]
 mod auth;
-#[cfg(feature = "windows-broker")]
-pub use auth::{AuthAction, AuthCommand, DEFAULT_BROKER_CLIENT_ID};
+#[cfg(any(feature = "windows-broker", feature = "interactive"))]
+pub use auth::{AuthAction, AuthCommand, AuthMethod, DEFAULT_BROKER_CLIENT_ID};
 
 /// A supported read operation, not a new resource namespace.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -87,7 +87,7 @@ pub enum Invocation {
     /// Released TABLE handlers over the existing metadata/storage/job session.
     Table(fabric_cli_tables::TableCommand),
     /// Explicit opt-in broker command; parsing never signs in.
-    #[cfg(feature = "windows-broker")]
+    #[cfg(any(feature = "windows-broker", feature = "interactive"))]
     Auth(AuthCommand),
     /// Explicit signed-release update, independent of Fabric authentication.
     #[cfg(feature = "self-update")]
@@ -122,14 +122,16 @@ pub fn command() -> Command {
                 .global(true)
                 .value_parser(["json", "text"]),
         );
-    #[cfg(feature = "windows-broker")]
+    #[cfg(any(feature = "windows-broker", feature = "interactive"))]
     let command = auth::register(command);
     #[cfg(feature = "self-update")]
     let command = update::register(command);
     #[cfg(all(feature = "native-read", not(feature = "headless")))]
     let command = command.after_help("Native remote commands reuse the Windows account selected by auth login; FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID provide explicit overrides. Windows broker authentication is opt-in; remote credentials are silent and never show sign-in UI. FAB_RUST_CONTEXT defaults to / or the explicitly selected persisted session; FAB_RUST_HOME is optional. Local/config and family commands share the platform user configuration directory; FAB_RUST_CONFIG_ROOT overrides it. Mutations change remote state; job run may cancel on timeout. Native confirmations require explicit --force or an injected UI host. No token input or credential fallback is available. Config-driven deploy supports bounded root-level Notebooks with explicit unpublish.skip; other branches fail before writes.");
     #[cfg(feature = "headless")]
-    let command = command.after_help("Native remote commands support explicit FAB_RUST_AUTH_MODE: client-secret, client-assertion, workload-identity, azure-pipelines, managed-identity-vm, managed-identity-app-service, or certificate-store-windows when compiled in. Select FAB_RUST_TENANT and the documented provider inputs; no mode is chosen from secret presence. Headless credentials are acquired lazily without auth login, UI, developer tools, raw access-token input or plaintext cache. FAB_RUST_MANAGED_IDENTITY must explicitly select system or client. Windows broker authentication is opt-in with native-read; broker credentials reuse auth login selection silently and never show sign-in UI. Default builds have no production authentication or HTTP transport. FAB_RUST_CONTEXT selects session context; local/config and remote families share the platform user configuration directory, overridden by FAB_RUST_CONFIG_ROOT. See the native host documentation for exact environment bindings, endpoint restrictions and experimental support limits.");
+    let command = command.after_help("Native remote commands support explicit FAB_RUST_AUTH_MODE: client-secret, client-assertion, workload-identity, azure-pipelines, managed-identity-vm, managed-identity-app-service, certificate-store-windows, certificate-store-pkcs11, certificate-store-macos, or device-code when compiled in. Select FAB_RUST_TENANT and the documented provider inputs; no mode is chosen from secret presence. Headless credentials are acquired lazily without auth login, UI, developer tools, raw access-token input or plaintext cache. FAB_RUST_MANAGED_IDENTITY must explicitly select system or client. Windows broker authentication is opt-in with native-read; broker credentials reuse auth login selection silently and never show sign-in UI. Default builds have no production authentication or HTTP transport. FAB_RUST_CONTEXT selects session context; local/config and remote families share the platform user configuration directory, overridden by FAB_RUST_CONFIG_ROOT. See the native host documentation for exact environment bindings, endpoint restrictions and experimental support limits.");
+    #[cfg(all(feature = "interactive", not(feature = "headless")))]
+    let command = command.after_help("Device-code authentication is opt-in: auth login --method device-code requires explicit public-cloud tenant and client GUIDs for first login. Native remote commands renew the saved session with FAB_RUST_AUTH_MODE=device-code; status and refresh never prompt. Refresh credentials stay in an OS protected store; macOS requires an explicitly pinned installed protected-store helper. Windows broker authentication is opt-in; Windows retains broker as its default method and fails explicitly if it is unavailable. Explicit method/provider configuration wins over platform defaults. No developer-tool fallback, raw access-token input or plaintext credential cache is available. Local and remote commands share the platform configuration directory, overridden by FAB_RUST_CONFIG_ROOT.");
     let command = fabric_cli_resources::frontdoor::register(command)
         .subcommands(fabric_cli_local::root_commands())
         .subcommands(fabric_cli_mutations::frontdoor::resource_subcommands())
@@ -227,7 +229,7 @@ where
     {
         return Ok(Invocation::Display(error.to_string()));
     }
-    #[cfg(feature = "windows-broker")]
+    #[cfg(any(feature = "windows-broker", feature = "interactive"))]
     if let Ok(matches) = parser.clone().try_get_matches_from(&args)
         && matches.subcommand_name() == Some("auth")
     {

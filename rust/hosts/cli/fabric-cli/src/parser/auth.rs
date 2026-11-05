@@ -17,11 +17,22 @@ pub enum AuthAction {
     Logout,
 }
 
+/// Explicit interactive provider; absence preserves the platform's default.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AuthMethod {
+    /// Experimental Windows WAM, never a cross-platform fallback.
+    Broker,
+    /// Explicit RFC 8628 device code using native protected refresh persistence.
+    DeviceCode,
+}
+
 /// Parsed non-secret authentication inputs, independent of read-command arguments.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthCommand {
     /// Operation to execute only through the opt-in authentication host.
     pub action: AuthAction,
+    /// Explicit provider selection; no failed provider selects another method.
+    pub method: Option<AuthMethod>,
     /// Optional target tenant GUID; otherwise use the saved selection or login picker.
     pub tenant: Option<String>,
     /// Optional work UPN; never selected from the first cached account.
@@ -40,12 +51,12 @@ pub struct AuthCommand {
 
 pub(super) fn register(command: Command) -> Command {
     let mut auth = Command::new("auth")
-        .about("Explicit Windows Entra broker authentication")
+        .about("Explicit Entra authentication using opt-in providers")
         .subcommand_required(true);
     for (name, about) in [
         (
             "login",
-            "Acquire Fabric, OneLake and ARM tokens, with broker MFA when required",
+            "Acquire Fabric, OneLake and ARM tokens using the selected method",
         ),
         (
             "status",
@@ -53,21 +64,27 @@ pub(super) fn register(command: Command) -> Command {
         ),
         (
             "logout",
-            "Sign out only this application's selected broker account on this device",
+            "Sign out only this application's selected session on this device",
         ),
     ] {
         let mut subcommand = Command::new(name)
             .about(about)
             .arg(
+                Arg::new("method")
+                    .long("method")
+                    .value_parser(["broker", "device-code"])
+                    .help("Explicit authentication method; device-code requires the interactive feature"),
+            )
+            .arg(
                 Arg::new("tenant")
                     .long("tenant")
-                    .help("Target tenant GUID; defaults to the saved selection or broker sign-in")
+                    .help("Target tenant GUID; required for device-code login, otherwise saved selection or broker sign-in")
                     .value_name("TENANT_GUID"),
             )
             .arg(
                 Arg::new("account")
                     .long("account")
-                    .help("Work account UPN; defaults to the saved selection or broker account picker")
+                    .help("Work UPN hint; optional for device-code, otherwise saved selection or broker picker")
                     .value_name("WORK_ACCOUNT_UPN"),
             )
             .arg(
@@ -92,8 +109,10 @@ pub(super) fn register(command: Command) -> Command {
         }
         auth = auth.subcommand(subcommand);
     }
-    command.after_help("Windows broker authentication is opt-in. Login remembers only the selected account, tenant and client ID; tokens stay in WAM. Remote commands require a native-read build.")
-        .subcommand(auth)
+    let command = command.after_help("Windows broker authentication is opt-in. Login remembers only the selected account, tenant and client ID; tokens stay in WAM. Remote commands require a native-read build.");
+    #[cfg(feature = "interactive")]
+    let command = command.after_help("Device-code authentication is opt-in with --method device-code (the default only off Windows). Login requires explicit --tenant and --client-id GUIDs, or FAB_RUST_TENANT and FAB_RUST_CLIENT_ID. --account is an optional matching hint. Only refresh credentials are persisted, in Windows Credential Manager, macOS Keychain, or Linux Secret Service; a locked/unavailable store fails without plaintext fallback. Status and SDK renewal never start sign-in. Windows WAM remains the default when compiled in. Remote commands can explicitly select FAB_RUST_AUTH_MODE=device-code; headless modes never prompt.");
+    command.subcommand(auth)
 }
 
 pub(super) fn parse(matches: &ArgMatches) -> Result<AuthCommand, clap::Error> {
@@ -109,6 +128,12 @@ pub(super) fn parse(matches: &ArgMatches) -> Result<AuthCommand, clap::Error> {
     };
     Ok(AuthCommand {
         action,
+        method: args
+            .get_one::<String>("method")
+            .map(|method| match method.as_str() {
+                "device-code" => AuthMethod::DeviceCode,
+                _ => AuthMethod::Broker,
+            }),
         tenant: args.get_one::<String>("tenant").cloned(),
         account: args.get_one::<String>("account").cloned(),
         client_id: args

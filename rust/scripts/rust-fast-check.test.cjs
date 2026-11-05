@@ -746,7 +746,7 @@ test('full native workflow routes every oracle through isolated source and absol
   assert.equal(verify[0].kind, 'verify-oracle');
   assert.ok(verify[0].args.includes('verify'));
   const pinned = path.join(nativeContext.artifacts, 'pinned-python', 'source', 'rust');
-  const candidatePython = new Set(['oracle-tools', 'frozen-verify', 'repl']);
+  const candidatePython = new Set(['oracle-tools', 'frozen-verify', 'repl', 'command-inventory']);
   const calls = CHECK_IDS.filter(id => id !== 'dependency-graph').flatMap(id =>
     commandsFor(id, nativeContext).map(command => ({...command, check: id})));
   const references = calls.filter(command => command.program === 'python' &&

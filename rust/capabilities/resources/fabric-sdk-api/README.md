@@ -20,6 +20,20 @@ original page size.
 `OperationSession::reconcile_accepted`. It never resends the original mutation.
 Failures retain operation IDs, raw service evidence and mutation uncertainty.
 
+`with_arm_get_reconciliation(limits)` is a separate explicit read-only opt-in.
+ARM GET singleton/collection requests then use
+`OperationSession::execute_arm_get` for initial 201/202 before the existing pager
+decodes their original response bytes. Both ARM header policies share the SDK's
+finite poller; there is no second HTTP/timer loop. Bodies and custom headers are
+rejected for this bodyless subscription/resource GET surface instead of being
+silently discarded. Default clients and raw API behavior remain unchanged.
+
+For this ARM opt-in only, collection cancellation is passed cooperatively into
+the active fetch/session. The pager waits for the typed cancellation result
+instead of dropping an accepted operation and losing its handle. Collection
+failures retain the original operation error and prior complete pages. Ordinary
+Fabric/raw collection cancellation keeps the existing outer-pager priority.
+
 ## Origins and request validation
 
 `Origin`, `RawRequestOptions` and `Request::raw` select finite public origin and

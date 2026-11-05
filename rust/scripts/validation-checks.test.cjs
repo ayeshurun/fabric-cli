@@ -11,8 +11,8 @@ const {CHECK_IDS, commandsFor, validateRegistry, assertTransportGraphs} =
   require('./validation-checks.cjs');
 
 const EXPECTED_IDS = [
-  'selector-tests', 'oracle-tools', 'batch-oracle', 'transport', 'transport-graphs',
-  'read-parity', 'json-parity', 'broker', 'repl', 'headless', 'certificate', 'updater',
+  'selector-tests', 'command-inventory', 'oracle-tools', 'batch-oracle', 'transport', 'transport-graphs',
+  'read-parity', 'json-parity', 'broker', 'repl', 'interactive', 'headless', 'certificate', 'updater',
   'combined', 'jobs-oracle', 'definitions-oracle', 'import-oracle', 'parameters-oracle',
   'export-oracle', 'native-read', 'context-output', 'broker-read-parity', 'sdk-example',
   'resource-oracle', 'cli-smoke', 'sdk-graph', 'dependency-graph', 'frozen-verify',
@@ -58,11 +58,11 @@ function withTargetEnvironment(value, action) {
 
 test('all canonical IDs are registered exactly once, including core-profile markers', () => {
   assert.deepEqual([...CHECK_IDS].sort(), [...EXPECTED_IDS].sort());
-  assert.equal(CHECK_IDS.length, 27);
+  assert.equal(CHECK_IDS.length, 29);
   assert.equal(new Set(CHECK_IDS).size, CHECK_IDS.length);
   assert.ok(Object.isFrozen(CHECK_IDS));
   assert.equal(validateRegistry(graph([...EXPECTED_IDS].reverse())), true);
-  for (const id of ['headless', 'certificate', 'updater', 'combined']) {
+  for (const id of ['interactive', 'headless', 'certificate', 'updater', 'combined']) {
     assert.deepEqual(commands(id), [], id);
     assert.throws(() => validateRegistry(graph(EXPECTED_IDS.filter(value => value !== id))),
       /missing:/, id);
@@ -95,12 +95,13 @@ for (const id of EXPECTED_IDS) {
       assert.ok(['command', 'prepare-oracle', 'verify-oracle', 'transport-graphs']
         .includes(command.kind));
       assert.ok(path.isAbsolute(command.cwd));
-      assert.ok([rust, pinnedRust].includes(command.cwd));
+      assert.ok([rust, pinnedRust, artifacts].includes(command.cwd));
       assert.equal(command.shell, undefined);
       if (command.stdout) inside(artifacts, command.stdout);
       if (command.program === 'python') {
         assert.equal(command.args[0], '-B');
-        assert.deepEqual(command.env, {PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1'});
+        assert.deepEqual(command.env, {PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1',
+          ...(command.cwd === artifacts ? {TMPDIR: artifacts, TEMP: artifacts, TMP: artifacts} : {})});
       }
       if (command.program === 'cargo') {
         assert.equal(command.cwd, rust);
@@ -167,7 +168,9 @@ test('only tooling tests, REPL source tests and integrity helpers use candidate 
   let comparisons = 0;
   for (const id of CHECK_IDS) for (const command of commands(id)) {
     if (command.program !== 'python') continue;
-    if (['oracle-tools', 'repl', 'frozen-verify'].includes(id)) {
+    if (id === 'oracle-tools') {
+      assert.equal(command.cwd, command.kind === 'prepare-oracle' ? rust : artifacts);
+    } else if (['command-inventory', 'repl', 'frozen-verify'].includes(id)) {
       assert.equal(command.cwd, rust);
     } else {
       comparisons++;
@@ -203,25 +206,57 @@ test('default frozen paths are deterministic and unsafe context paths are reject
   assert.throws(() => commandsFor('cli-smoke'), /context is required/);
 });
 
-test('selector tests include all shared planners, runner, registry and legacy tests', () => {
+test('selector tests include coverage tooling with absolute source paths and artifact-only scratch', () => {
   const [command] = commands('selector-tests');
   assert.equal(command.program, 'node');
   assert.deepEqual(command.args, ['--test',
-    path.join('scripts', 'impact-plan.test.cjs'),
-    path.join('scripts', 'validate-impact.test.cjs'),
-    path.join('scripts', 'validation-checks.test.cjs'),
-    path.join('scripts', 'rust-fast-check.test.cjs')]);
+    path.join(rust, 'scripts', 'impact-plan.test.cjs'),
+    path.join(rust, 'scripts', 'validate-impact.test.cjs'),
+    path.join(rust, 'scripts', 'validation-checks.test.cjs'),
+    path.join(rust, 'scripts', 'rust-fast-check.test.cjs'),
+    path.join(rust, 'scripts', 'rust-coverage.test.cjs')]);
+  assert.equal(command.cwd, artifacts);
+  assert.deepEqual(command.env, {IMPACT_TEST_ROOT: artifacts,
+    TMPDIR: artifacts, TEMP: artifacts, TMP: artifacts});
 });
 
-test('oracle preparation runs all five dependency tests before its captured marker', () => {
+test('command inventory captures actual Cargo metadata before its candidate checker consumes that file', () => {
+  const [metadata, checker, ...extra] = commands('command-inventory');
+  assert.deepEqual(extra, []);
+  assert.equal(metadata.program, 'cargo');
+  assert.deepEqual(metadata.args, ['metadata', '--offline', '--locked',
+    '--no-deps', '--format-version', '1']);
+  assert.equal(metadata.stdout, path.join(artifacts, 'command-inventory-metadata.json'));
+  inside(artifacts, metadata.stdout);
+  assert.equal(checker.program, 'python');
+  assert.deepEqual(checker.args, ['-B', path.join('scripts', 'check_command_acceptance.py'),
+    '--root', root, '--metadata', metadata.stdout]);
+  assert.ok([metadata, checker].every(command => command.cwd === rust && command.kind === 'command'));
+  assert.equal(checker.test, undefined, 'Inventory validation does not execute product tests');
+  assert.deepEqual(checker.env, {PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1'});
+  assert.ok(!checker.args.includes(pinnedRust));
+  assert.deepEqual(commands('command-inventory', {
+    pinnedRust: path.join(artifacts, 'unused frozen source'), platform: 'windows',
+  }), [metadata, checker]);
+});
+
+test('oracle preparation runs all six tooling suites before its captured marker', () => {
   const result = commands('oracle-tools');
-  assert.equal(result.length, 6);
+  assert.equal(result.length, 7);
   assert.deepEqual(result.slice(0, -1).map(command => valueAfter(command, '-p')).sort(), [
-    'test_assemble_native_release.py', 'test_check_report.py',
+    'test_assemble_native_release.py', 'test_check_command_acceptance.py', 'test_check_report.py',
     'test_native_acceptance.py', 'test_pinned_python_source.py', 'test_release_verify.py',
   ]);
   const identity = result.find(command => command.args.includes('test_check_report.py'));
-  assert.equal(valueAfter(identity, '-s'), path.join('tests', 'acceptance', 'identity'));
+  assert.equal(valueAfter(identity, '-s'), path.join(rust, 'tests', 'acceptance', 'identity'));
+  for (const command of result.slice(0, -1)) {
+    assert.equal(command.cwd, artifacts);
+    assert.equal(command.test, 'unittest');
+    assert.equal(valueAfter(command, '-s'), path.join(rust,
+      ...(command === identity ? ['tests', 'acceptance', 'identity'] : ['scripts'])));
+    assert.deepEqual(command.env, {PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1',
+      TMPDIR: artifacts, TEMP: artifacts, TMP: artifacts});
+  }
   const marker = result.at(-1);
   assert.equal(marker.kind, 'prepare-oracle');
   assert.equal(marker.pinnedOutput, pinnedOutput);
@@ -551,4 +586,10 @@ test('transport assertions reject absent captures without executing any graph pr
   }
   assert.throws(() => assertTransportGraphs(safeDefaults, undefined), /Missing opt-in/);
   assert.throws(() => assertTransportGraphs(safeDefaults, ''), /is missing hyper/);
+  for (const pkg of Object.keys(safeDefaults)) for (const capture of [
+    '', '\n \r\n', 'unrelated-package v1.0.0', `${pkg}-lookalike v1.0.0`,
+  ]) {
+    assert.throws(() => assertTransportGraphs({...safeDefaults, [pkg]: capture}, optinGraph),
+      /Missing default .* package in captured graph/);
+  }
 });

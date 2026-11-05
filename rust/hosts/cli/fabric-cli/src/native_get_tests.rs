@@ -3,7 +3,7 @@
 
 //! Offline tests of the mounted native GET, its control signal and final writer.
 
-#![cfg(any(windows, feature = "headless"))]
+#![cfg(any(windows, feature = "headless", feature = "interactive"))]
 #![deny(unnameable_test_items)]
 #![forbid(unsafe_code)]
 
@@ -34,6 +34,146 @@ const LAKE: &str = "44444444-4444-4444-4444-444444444444";
 const OPERATION: &str = "55555555-5555-5555-5555-555555555555";
 type Events = Arc<Mutex<Vec<String>>>;
 
+#[test]
+fn typed_resource_get_cancellation_preserves_native_batch_cancellation() {
+    let mut shortcut = fabric_sdk_workspaces::mutations::ResourceError::input();
+    shortcut.code = "LongRunningOperationCancelled".into();
+    for kind in [
+        GetErrorKind::Api(Box::new(fabric_sdk_api::ApiError::Cancelled)),
+        GetErrorKind::Collection(Box::new(fabric_sdk_api::CollectionError {
+            error: fabric_sdk_api::ApiError::Cancelled,
+            partial: Box::default(),
+        })),
+        GetErrorKind::OneLake(fabric_sdk_onelake::OneLakeError::Cancelled),
+        GetErrorKind::Resource(Box::new(shortcut)),
+    ] {
+        assert_eq!(error_outcome(&kind, 2), CommandOutcome::Cancelled(2));
+    }
+}
+
+#[tokio::test]
+async fn mounted_capacity_get_uses_command_snapshot_defaults_or_source_subscription_fallback() {
+    const ARM: &str =
+        "/subscriptions/sub/resourceGroups/group/providers/Microsoft.Fabric/capacities/Main";
+    for configured in [true, false] {
+        let capacities = || {
+            get(
+                "/v1/capacities",
+                json!({"value":[{"id":"fabric-capacity","displayName":"Main","sku":"F64"}]}),
+            )
+        };
+        let resource = || {
+            get(
+                format!("{ARM}?api-version=2023-11-01"),
+                json!({"id":ARM,"name":"Main"}),
+            )
+        };
+        let mut replies = vec![capacities(), capacities()];
+        if configured {
+            replies.push(resource());
+        } else {
+            replies.extend([
+                get("/subscriptions?api-version=2022-12-01",
+                    json!({"value":[{"id":"/subscriptions/sub"}]})),
+                get("/subscriptions/sub/providers/Microsoft.Fabric/capacities?api-version=2023-11-01",
+                    json!({"value":[{"id":ARM,"name":"Main"}]})),
+            ]);
+        }
+        replies.push(resource());
+        let fixture = Fixture::new(replies);
+        let sdk = Client::new(
+            fixture.credential.clone(),
+            CredentialSelection::new("offline", TENANT, Audience::Fabric).unwrap(),
+        );
+        let executor = HttpExecutor::new(
+            fixture.wire.clone(),
+            Arc::new(TokioTimer),
+            Default::default(),
+        )
+        .unwrap();
+        let ui = Ui::new(fixture.events.clone());
+        let clock = Clock {
+            events: fixture.events.clone(),
+            fail: true,
+        };
+        let mut values = json!({"output_format":"json"}).as_object().unwrap().clone();
+        if configured {
+            values.insert("default_az_subscription_id".into(), json!("sub"));
+            values.insert("default_az_resource_group".into(), json!("group"));
+        }
+        let settings = super::super::settings::NativeSettings::select(Some(&values)).unwrap();
+        let resource_config = settings.get_resources.clone();
+        values.insert(
+            "default_az_subscription_id".into(),
+            json!("changed-after-selection"),
+        );
+        values.insert(
+            "default_az_resource_group".into(),
+            json!("changed-after-selection"),
+        );
+        let Invocation::Read(command) = parse_args([
+            "fab-rs",
+            "get",
+            "/.capacities/Main.Capacity",
+            "--query",
+            ".",
+        ])
+        .unwrap() else {
+            panic!("GET")
+        };
+        let mut state = super::super::BatchState::capture();
+        let mut evidence = GetEvidence::default();
+        let delivery = super::super::execute_authenticated_injected(
+            super::super::NativeCommand::Read(&command),
+            sdk,
+            executor,
+            "/",
+            fabric_cli_context::HomeContext::Unspecified,
+            settings,
+            &mut state,
+            false,
+            Some(Inputs {
+                evidence: &mut evidence,
+                cancelled: Box::pin(pending()),
+                clock: &clock,
+                ui: &ui,
+                files: Files::injected(None),
+                resource_config,
+            }),
+        )
+        .await
+        .unwrap();
+        assert_eq!(outcome(&delivery), CommandOutcome::Returned(0));
+        assert_eq!(
+            dispatch(&delivery)
+                .result
+                .as_ref()
+                .unwrap()
+                .projected
+                .as_ref()
+                .unwrap()["fabricId"],
+            "fabric-capacity"
+        );
+        let requests = fixture.wire.requests.lock().unwrap();
+        let arm: Vec<_> = requests
+            .iter()
+            .filter(|request| request.url().host_str() == Some("management.azure.com"))
+            .collect();
+        assert_eq!(arm.len(), if configured { 2 } else { 3 });
+        if configured {
+            assert!(arm.iter().all(|request| request.url().path() == ARM));
+        } else {
+            assert_eq!(arm[0].url().path(), "/subscriptions");
+        }
+        assert!(
+            requests
+                .iter()
+                .all(|request| !request.url().as_str().contains("changed-after-selection"))
+        );
+        fixture.consumed();
+    }
+}
+
 #[derive(Debug, Default)]
 struct Credential(Mutex<Vec<Vec<String>>>);
 
@@ -63,6 +203,7 @@ struct Reply {
     body: Value,
     headers: Headers,
     hold: bool,
+    entered: Option<Arc<tokio::sync::Notify>>,
 }
 
 fn reply(method: Method, suffix: impl Into<String>, body: Value) -> Reply {
@@ -73,6 +214,7 @@ fn reply(method: Method, suffix: impl Into<String>, body: Value) -> Reply {
         body,
         headers: Headers::new(),
         hold: false,
+        entered: None,
     }
 }
 
@@ -108,6 +250,9 @@ impl HttpClient for Wire {
             .lock()
             .unwrap()
             .push(format!("http {}", reply.suffix));
+        if let Some(entered) = reply.entered {
+            entered.notify_one();
+        }
         if reply.hold {
             pending::<()>().await;
         }
@@ -394,6 +539,7 @@ impl Fixture {
                 clock,
                 ui,
                 files: files.reborrow(),
+                resource_config: GetResourceConfig::default(),
             }),
         )
         .await
@@ -583,6 +729,7 @@ async fn mounted_headless_definition_get_uses_the_official_lazy_credential_path(
             clock: &clock,
             ui: &ui,
             files: Files::injected(None),
+            resource_config: GetResourceConfig::default(),
         }),
     )
     .await
@@ -882,6 +1029,274 @@ async fn clock_failure_never_uses_utc_or_epoch_or_starts_output_writes() {
             .iter()
             .any(|event| event == "preflight" || event.starts_with("mkdir "))
     );
+    fixture.consumed();
+}
+
+#[tokio::test]
+async fn nested_onelake_get_output_uses_real_confined_local_directories_and_projected_metadata() {
+    struct Directory(PathBuf);
+    impl Drop for Directory {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let name = format!("native-get-nested-output-{}", std::process::id());
+    let root = std::env::current_dir().unwrap().join(&name);
+    std::fs::create_dir(&root).unwrap();
+    let _directory = Directory(root.clone());
+    let mut replies = discovery();
+    let mut properties = reply(
+        Method::Head,
+        format!("/{WORKSPACE}/{LAKE}/Files/folder"),
+        Value::Null,
+    );
+    properties.headers.insert("x-ms-resource-type", "directory");
+    replies.extend([
+        properties,
+        get(format!("/{WORKSPACE}/?recursive=false&resource=filesystem&directory={LAKE}%2FFiles%2Ffolder&getShortcutMetadata=true"),
+            json!({"paths":[{"name":"file.csv"}],"metadata":{"selected":true,"count":0}})),
+    ]);
+    let fixture = Fixture::new(replies);
+    let ui = Ui::new(fixture.events.clone());
+    let clock = Clock {
+        events: fixture.events.clone(),
+        fail: false,
+    };
+    let Invocation::Read(command) = parse_args([
+        "fab-rs",
+        "get",
+        "Demo.Workspace/Lake.Lakehouse/Files/folder",
+        "--query",
+        "metadata",
+        "--output",
+        &name,
+    ])
+    .unwrap() else {
+        panic!("GET")
+    };
+    let delivery = fixture
+        .execute_with_files(&command, &ui, Files::native(), &clock, Box::pin(pending()))
+        .await
+        .unwrap();
+    assert_eq!(
+        outcome(&delivery),
+        CommandOutcome::Returned(0),
+        "{:?}",
+        dispatch(&delivery)
+    );
+    let path = root
+        .join("Files")
+        .join("folder")
+        .join("get_20261030_211129.json");
+    assert_eq!(
+        serde_json::from_slice::<Value>(&std::fs::read(path).unwrap()).unwrap(),
+        json!({"selected":true,"count":0})
+    );
+    let result = dispatch(&delivery).result.as_ref().unwrap();
+    assert_eq!(result.projected, Some(json!({"selected":true,"count":0})));
+    assert_eq!(
+        result.evidence.files.completed_directory.as_deref(),
+        Some("Files/folder")
+    );
+    assert_eq!(
+        result.evidence.files.completed_paths,
+        ["Files/folder/get_20261030_211129.json"]
+    );
+    assert!(!root.join("Files_folder").exists());
+    fixture.consumed();
+}
+
+#[tokio::test]
+async fn arm_collection_cancel_drains_active_operation_and_retains_get_handle_and_cancel_record() {
+    const POLL: &str =
+        "/providers/Microsoft.Fabric/operations/collection-op?api-version=2023-11-01";
+    for subscription_page in [true, false] {
+        let capacities = || {
+            get(
+                "/v1/capacities",
+                json!({"value":[{"id":"fabric-capacity","displayName":"Main","sku":"F64"}]}),
+            )
+        };
+        let mut replies = vec![capacities(), capacities()];
+        let accepted_path = if subscription_page {
+            "/subscriptions?api-version=2022-12-01"
+        } else {
+            replies.push(get(
+                "/subscriptions?api-version=2022-12-01",
+                json!({"value":[{"id":"/subscriptions/sub"}]}),
+            ));
+            "/subscriptions/sub/providers/Microsoft.Fabric/capacities?api-version=2023-11-01"
+        };
+        let mut accepted = get(accepted_path, json!({"value":[]}));
+        accepted.status = if subscription_page {
+            StatusCode::Created
+        } else {
+            StatusCode::Accepted
+        };
+        accepted.headers.insert(
+            if subscription_page {
+                "azure-asyncoperation"
+            } else {
+                "location"
+            },
+            format!("https://management.azure.com{POLL}"),
+        );
+        accepted.headers.insert("retry-after", "0");
+        let entered = Arc::new(tokio::sync::Notify::new());
+        let mut poll = get(POLL, Value::Null);
+        poll.hold = true;
+        poll.entered = Some(entered.clone());
+        replies.extend([accepted, poll]);
+        let fixture = Fixture::new(replies);
+        let sdk = Client::new(
+            fixture.credential.clone(),
+            CredentialSelection::new("offline", TENANT, Audience::Fabric).unwrap(),
+        );
+        let executor = HttpExecutor::new(
+            fixture.wire.clone(),
+            Arc::new(TokioTimer),
+            Default::default(),
+        )
+        .unwrap();
+        let Invocation::Read(command) = parse_args([
+            "fab-rs",
+            "get",
+            "/.capacities/Main.Capacity",
+            "--query",
+            ".",
+            "--output_format",
+            "json",
+        ])
+        .unwrap() else {
+            panic!("GET")
+        };
+        let ui = Ui::new(fixture.events.clone());
+        let clock = Clock {
+            events: fixture.events.clone(),
+            fail: true,
+        };
+        let mut state = super::super::BatchState::capture();
+        let delivery = tokio::time::timeout(
+            Duration::from_secs(5),
+            controlled(
+                async |evidence, cancelled| {
+                    super::super::execute_authenticated_injected(
+                        super::super::NativeCommand::Read(&command),
+                        sdk,
+                        executor,
+                        "/",
+                        fabric_cli_context::HomeContext::Unspecified,
+                        super::super::settings::NativeSettings::select(None).unwrap(),
+                        &mut state,
+                        false,
+                        Some(Inputs {
+                            evidence,
+                            cancelled,
+                            clock: &clock,
+                            ui: &ui,
+                            files: Files::injected(None),
+                            resource_config: GetResourceConfig::default(),
+                        }),
+                    )
+                    .await
+                },
+                async {
+                    entered.notified().await;
+                    super::super::interrupted_failure("cancelled", "Read cancelled.", 2)
+                },
+            ),
+        )
+        .await
+        .expect("cooperative ARM cancellation must drain")
+        .unwrap();
+        assert_eq!(outcome(&delivery), CommandOutcome::Cancelled(2));
+        let dispatch = dispatch(&delivery);
+        let failure = dispatch.result.as_ref().unwrap_err();
+        let GetErrorKind::Collection(collection) = &failure.kind else {
+            panic!("original collection failure")
+        };
+        let fabric_sdk_api::ApiError::Operation(operation) = &collection.error else {
+            panic!("original operation")
+        };
+        assert!(matches!(operation.kind, OperationErrorKind::Cancelled));
+        assert_eq!(operation.operation_id.as_deref(), Some("collection-op"));
+        assert!(!operation.mutation_may_have_occurred);
+        assert_eq!(collection.partial.pages, 0);
+        assert!(failure.evidence.files.root.is_none());
+        assert_eq!(failure.evidence.operations.len(), 1);
+        let receipt = &failure.evidence.operations[0];
+        assert_eq!(
+            receipt.phase,
+            if subscription_page {
+                "capacity subscriptions"
+            } else {
+                "capacity collection"
+            }
+        );
+        assert_eq!(receipt.operation_id.as_deref(), Some("collection-op"));
+        assert!(!receipt.mutation_may_have_occurred);
+        let record = dispatch.plan.records.last().unwrap();
+        assert_eq!(record.stream, OutputStream::Stderr);
+        assert_eq!(
+            serde_json::from_slice::<Value>(&record.payload).unwrap()["error"]["code"],
+            "cancelled"
+        );
+        let requests = fixture.wire.requests.lock().unwrap();
+        assert_eq!(requests.len(), if subscription_page { 4 } else { 5 });
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.url().as_str().ends_with(accepted_path))
+                .count(),
+            1
+        );
+        fixture.consumed();
+    }
+}
+
+#[tokio::test]
+async fn fabric_collection_cancel_preserves_default_outer_pager_error_without_arm_evidence() {
+    let entered = Arc::new(tokio::sync::Notify::new());
+    let mut list = get("/v1/connections", json!({"value":[]}));
+    list.hold = true;
+    list.entered = Some(entered.clone());
+    let fixture = Fixture::new(vec![list]);
+    let ui = Ui::new(fixture.events.clone());
+    let clock = Clock {
+        events: fixture.events.clone(),
+        fail: true,
+    };
+    let Invocation::Read(command) = parse_args([
+        "fab-rs",
+        "get",
+        "/.connections/Main.Connection",
+        "--query",
+        ".",
+    ])
+    .unwrap() else {
+        panic!("GET")
+    };
+    let delivery = tokio::time::timeout(
+        Duration::from_secs(5),
+        fixture.execute(
+            &command,
+            &ui,
+            None,
+            &clock,
+            Box::pin(async move { entered.notified().await }),
+        ),
+    )
+    .await
+    .expect("ordinary Fabric paging must retain immediate cancellation")
+    .unwrap();
+    assert!(matches!(outcome(&delivery), CommandOutcome::Cancelled(_)));
+    let failure = dispatch(&delivery).result.as_ref().unwrap_err();
+    let GetErrorKind::Collection(collection) = &failure.kind else {
+        panic!("original collection failure")
+    };
+    assert_eq!(collection.error, fabric_sdk_api::ApiError::Cancelled);
+    assert!(failure.evidence.operations.is_empty());
+    assert_eq!(fixture.wire.requests.lock().unwrap().len(), 1);
     fixture.consumed();
 }
 
@@ -1269,6 +1684,7 @@ async fn missing_cwd_process_child() {
             clock: &clock,
             ui: &ui,
             files: Files::native(),
+            resource_config: GetResourceConfig::default(),
         }),
     )
     .await
@@ -1485,6 +1901,7 @@ async fn cooperative_ctrl_c_drains_accepted_definition_without_replay() {
                     clock: &clock,
                     ui: &ui,
                     files: Files::injected(None),
+                    resource_config: GetResourceConfig::default(),
                 }),
             )
             .await

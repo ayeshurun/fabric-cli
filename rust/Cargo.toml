@@ -88,6 +88,13 @@ chrono = { version = "=0.4.45", default-features = false, features = ["clock", "
 ring = { version = "=0.17.14", default-features = false, features = ["alloc"] }
 semver = { version = "=1.0.28", default-features = false, features = ["std"] }
 base64 = "0.22.1"
+keyring = { version = "=3.6.3", default-features = false, features = ["apple-native", "windows-native"] }
+secret-service = { version = "=4.0.0", default-features = false, features = ["rt-tokio-crypto-rust"] }
+security-framework = { version = "=3.7.0", default-features = false }
+core-foundation = { version = "=0.10.1", default-features = false }
+zbus = { version = "=4.4.0", default-features = false, features = ["tokio"] }
+cryptoki = { version = "=0.12.1", default-features = false }
+x509-parser = { version = "=0.18.1", default-features = false }
 yaml-rust2 = { version = "=0.10.4", default-features = false }
 fancy-regex = { version = "=0.16.2", default-features = false, features = ["std", "unicode"] }
 jsonpath-rust = { version = "=0.7.5", default-features = false }

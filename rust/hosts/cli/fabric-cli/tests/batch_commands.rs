@@ -391,8 +391,21 @@ fn executable_navigation_restores_once_and_preserves_its_in_process_state() {
 
 #[test]
 #[cfg(feature = "native-read")]
-fn native_batch_navigation_gap_is_explicit_and_never_uses_an_identity() {
+fn native_batch_missing_selection_is_handled_and_last_returned_exit_wins() {
     let root = Root::new();
+    let control = Root::new();
+    let version = invoke(&control.0, &["version"]);
+    success(&version);
+    assert!(version.stderr.is_empty());
+    let configured = invoke(&control.0, &["config", "set", "show_hidden", "true"]);
+    success(&configured);
+    let message = if cfg!(windows) {
+        "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly."
+            .to_owned()
+    } else {
+        fabric_cli::HostError::NotConfigured.to_string()
+    };
+    let error = json!({"error": {"code": "NotConfigured", "message": message}});
     let output = invoke(
         &root.0,
         &[
@@ -404,31 +417,205 @@ fn native_batch_navigation_gap_is_explicit_and_never_uses_an_identity() {
             "config set show_hidden true",
         ],
     );
-    assert_eq!(output.status.code(), Some(1));
-    let stderr = std::str::from_utf8(&output.stderr).unwrap();
-    assert!(stderr.starts_with("------------------------------\n"));
-    let error: Value = serde_json::from_str(stderr.lines().nth(1).unwrap()).unwrap();
-    assert_eq!(error["error"]["code"], "NotSupported");
-    assert!(!root.0.join("config.json").exists());
-    assert!(!String::from_utf8_lossy(&output.stdout).contains("commands executed."));
+    success(&output);
+    assert_eq!(
+        output.stdout,
+        [
+            version.stdout.as_slice(),
+            configured.stdout.as_slice(),
+            b"\n\n\n* 3 commands executed.\n\n",
+        ]
+        .concat()
+    );
+    assert_eq!(
+        output.stderr,
+        [
+            format!("------------------------------\n{error}\n------------------------------\n")
+                .as_bytes(),
+            configured.stderr.as_slice(),
+        ]
+        .concat()
+    );
+    assert_eq!(
+        fs::read(root.0.join("config.json")).unwrap(),
+        fs::read(control.0.join("config.json")).unwrap()
+    );
+    assert!(!root.0.join("broker-session.json").exists());
+    assert!(!root.0.join("context-37.json").exists());
+
+    let failure_last = invoke(&root.0, &["-c", "version", "-c", "cd Demo.Workspace"]);
+    assert_eq!(failure_last.status.code(), Some(1));
+    assert_eq!(
+        failure_last.stdout,
+        [
+            version.stdout.as_slice(),
+            b"\n\n\n* 2 commands executed.\n\n"
+        ]
+        .concat()
+    );
+    assert_eq!(
+        failure_last.stderr,
+        format!("------------------------------\n{error}\n").as_bytes()
+    );
+    assert_eq!(
+        fs::read(root.0.join("config.json")).unwrap(),
+        fs::read(control.0.join("config.json")).unwrap()
+    );
 }
 
 #[test]
 #[cfg(feature = "windows-broker")]
-fn batch_auth_cannot_silently_continue_after_an_indistinguishable_cancellation() {
-    let root = Root::new();
-    let output = invoke(
-        &root.0,
-        &[
-            "-c",
-            "auth status --tenant tenant --account synthetic-account",
-            "-c",
-            "config set show_hidden true",
-        ],
-    );
-    assert_eq!(output.status.code(), Some(1));
-    let error: Value = serde_json::from_slice(&output.stderr).unwrap();
-    assert_eq!(error["error"]["code"], "NotSupported");
-    assert!(!root.0.join("config.json").exists());
-    assert!(output.stdout.is_empty());
+fn batch_auth_malformed_selection_is_not_cancellation_and_never_opens_a_provider() {
+    let control = Root::new();
+    let configured = invoke(&control.0, &["config", "set", "show_hidden", "true"]);
+    success(&configured);
+    let (code, message, exit) = if cfg!(windows) {
+        (
+            "invalid_configuration",
+            "an explicit account, tenant GUID and client GUID are required",
+            2,
+        )
+    } else {
+        (
+            "unsupported",
+            "Windows broker authentication requires Windows.",
+            1,
+        )
+    };
+    let error = json!({"error": {"code": code, "message": message}});
+    let rejected = "auth status --tenant tenant --account synthetic-account --output_format json";
+    for rejected_first in [true, false] {
+        let root = Root::new();
+        let commands = if rejected_first {
+            [rejected, "config set show_hidden true"]
+        } else {
+            ["config set show_hidden true", rejected]
+        };
+        let output = invoke(&root.0, &["-c", commands[0], "-c", commands[1]]);
+        assert_eq!(
+            output.status.code(),
+            Some(if rejected_first { 0 } else { exit })
+        );
+        assert_eq!(
+            output.stdout,
+            [
+                configured.stdout.as_slice(),
+                b"\n\n\n* 2 commands executed.\n\n"
+            ]
+            .concat()
+        );
+        let diagnostic = format!("{error}\n");
+        let separator = b"------------------------------\n";
+        assert_eq!(
+            output.stderr,
+            if rejected_first {
+                [
+                    diagnostic.as_bytes(),
+                    separator,
+                    configured.stderr.as_slice(),
+                ]
+                .concat()
+            } else {
+                [
+                    configured.stderr.as_slice(),
+                    separator,
+                    diagnostic.as_bytes(),
+                ]
+                .concat()
+            }
+        );
+        assert_eq!(
+            fs::read(root.0.join("config.json")).unwrap(),
+            fs::read(control.0.join("config.json")).unwrap()
+        );
+        assert!(!root.0.join("broker-session.json").exists());
+        assert!(!root.0.join(".broker-session.lock").exists());
+        assert!(!root.0.join("context-37.json").exists());
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("synthetic-account"));
+    }
+}
+
+#[cfg(feature = "windows-broker")]
+struct AuthFailureHost<'a> {
+    root: &'a Path,
+    code: &'static str,
+    format: fabric_cli_output::text::OutputFormat,
+    executions: usize,
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+}
+
+#[cfg(feature = "windows-broker")]
+impl BatchHost for AuthFailureHost<'_> {
+    type Error = io::Error;
+
+    fn execute(&mut self, arguments: &[&str]) -> io::Result<CommandOutcome> {
+        self.executions += 1;
+        if arguments == ["auth", "status"] {
+            // Inject the provider result, not a malformed selector or a live sign-in.
+            fabric_cli::auth_commands::write_outcome_with_format(
+                Err((self.code, "Synthetic broker failure".into())),
+                self.format,
+                &mut self.stdout,
+                &mut self.stderr,
+            )
+        } else {
+            fs::write(self.root.join("config.json"), b"must not execute")?;
+            Ok(CommandOutcome::Returned(0))
+        }
+    }
+
+    fn separator(&mut self) -> io::Result<()> {
+        self.stderr.extend_from_slice(b"unexpected separator\n");
+        Ok(())
+    }
+
+    fn summary(&mut self, _: &BatchInvocation) -> io::Result<()> {
+        self.stdout.extend_from_slice(b"unexpected summary\n");
+        Ok(())
+    }
+}
+
+#[test]
+#[cfg(feature = "windows-broker")]
+fn actual_auth_terminal_outcomes_stop_without_replay_later_mutation_or_success_summary() {
+    use fabric_cli_output::text::OutputFormat;
+    for format in [OutputFormat::Text, OutputFormat::Json] {
+        for code in [
+            "cancelled",
+            "timed_out",
+            "signal_failed",
+            "cleanup_pending",
+            "completion_unconfirmed",
+        ] {
+            let root = Root::new();
+            let mut host = AuthFailureHost {
+                root: &root.0,
+                code,
+                format,
+                executions: 0,
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            };
+            let invocation = BatchInvocation {
+                commands: vec!["auth status".into(), "config set show_hidden true".into()],
+                output_format: None,
+            };
+            assert_eq!(batch::run(&invocation, &mut host).unwrap(), 1);
+            assert_eq!(host.executions, 1);
+            assert!(host.stdout.is_empty());
+            let mut expected_stderr = Vec::new();
+            fabric_cli::auth_commands::write_error_with_format(
+                code,
+                "Synthetic broker failure",
+                1,
+                format,
+                &mut expected_stderr,
+            )
+            .unwrap();
+            assert_eq!(host.stderr, expected_stderr);
+            assert!(!root.0.join("config.json").exists());
+            assert!(!root.0.join("broker-session.json").exists());
+        }
+    }
 }

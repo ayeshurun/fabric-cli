@@ -6,8 +6,8 @@
 use super::{BorrowedOperations, GetErrorKind, GetEvidence, OutputClock, RuntimeGetHost};
 use fabric_cli_transfer::{TransferEvent, TransferFuture};
 use fabric_deploy::definitions::{
-    DefinitionError, DefinitionErrorKind, DefinitionFile, serialize_get_projected_result,
-    validate_part_path,
+    DefinitionError, DefinitionErrorKind, DefinitionFile, ExportStorage,
+    serialize_get_projected_result, validate_part_path,
 };
 use fabric_sdk::Client;
 use fabric_sdk_operations::{OperationExecutor, OperationSession};
@@ -175,21 +175,37 @@ pub(super) async fn write_projected(
             crate::errors::error("InvalidInput", "GET file preflight changed its plan").into(),
         );
     }
-    session.check_cancelled().await?;
-    match phase(
-        &mut session,
-        files.create_directory_async(&root, source_name),
-        || evidence.files.incomplete_directory = Some(source_name.into()),
-    )
-    .await
-    {
-        Ok(()) => {
-            evidence.files.incomplete_directory = None;
-            evidence.files.completed_directory = Some(source_name.into());
+    let directories: Vec<_> = if storage == ExportStorage::Local {
+        source_name.split('/').collect()
+    } else {
+        vec![source_name]
+    };
+    let mut directory_root = root.clone();
+    let mut directory_path = String::new();
+    for component in directories {
+        session.check_cancelled().await?;
+        if !directory_path.is_empty() {
+            directory_path.push('/');
         }
-        Err((error, started)) => {
-            evidence.files.incomplete_directory = started.then(|| source_name.into());
-            return Err(error.into());
+        directory_path.push_str(component);
+        match phase(
+            &mut session,
+            files.create_directory_async(&directory_root, component),
+            || evidence.files.incomplete_directory = Some(directory_path.clone()),
+        )
+        .await
+        {
+            Ok(()) => {
+                evidence.files.incomplete_directory = None;
+                evidence.files.completed_directory = Some(directory_path.clone());
+            }
+            Err((error, started)) => {
+                evidence.files.incomplete_directory = started.then(|| directory_path.clone());
+                return Err(error.into());
+            }
+        }
+        if storage == ExportStorage::Local {
+            directory_root.push(component);
         }
     }
     session.check_cancelled().await?;

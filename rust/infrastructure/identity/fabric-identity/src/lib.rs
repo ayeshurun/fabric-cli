@@ -10,6 +10,16 @@
 #[cfg(feature = "headless")]
 pub mod headless;
 
+/// Explicit RFC 8628 sign-in and silent renewal with caller-owned HTTP and storage.
+#[cfg(feature = "interactive")]
+pub mod interactive;
+
+#[cfg(any(
+    feature = "certificate-store-macos",
+    all(feature = "interactive", any(target_os = "macos", test))
+))]
+mod macos_helper;
+
 #[cfg(all(windows, feature = "windows-broker"))]
 mod windows;
 #[cfg(all(windows, feature = "windows-broker"))]

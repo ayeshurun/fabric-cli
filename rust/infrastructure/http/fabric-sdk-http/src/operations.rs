@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{ExecutionError, ExecutionFuture, HttpExecutor};
+use crate::{ExecutionError, ExecutionFuture, HttpExecutor, PublicOrigin};
 use azure_core::http::Method;
 use fabric_sdk_operations::{
     OperationExecutionError, OperationExecutor, OperationRequest, OperationResponse,
@@ -15,25 +15,44 @@ impl OperationExecutor for HttpExecutor {
         request: OperationRequest<'a>,
     ) -> ExecutionFuture<'a, Result<OperationResponse, OperationExecutionError>> {
         Box::pin(async move {
-            self.execute_fabric(
-                match request.method() {
-                    ResourceMethod::Get => Method::Get,
-                    ResourceMethod::Post => Method::Post,
-                    ResourceMethod::Patch => Method::Patch,
-                    ResourceMethod::Delete => Method::Delete,
-                },
-                request.url(),
-                request.token(),
-                request.body(),
-                request.max_response_bytes(),
-            )
-            .await
-            .map(|response| OperationResponse {
-                status: response.status,
-                body: response.body,
-                headers: response.headers,
-            })
-            .map_err(operation_error)
+            let method = match request.method() {
+                ResourceMethod::Get => Method::Get,
+                ResourceMethod::Post => Method::Post,
+                ResourceMethod::Patch => Method::Patch,
+                ResourceMethod::Delete => Method::Delete,
+            };
+            let response = match request.origin() {
+                PublicOrigin::Fabric => {
+                    self.execute_fabric(
+                        method,
+                        request.url(),
+                        request.token(),
+                        request.body(),
+                        request.max_response_bytes(),
+                    )
+                    .await
+                }
+                PublicOrigin::Arm => {
+                    self.execute_bound(
+                        PublicOrigin::Arm,
+                        method,
+                        request.url(),
+                        request.token(),
+                        request.body(),
+                        &[],
+                        request.max_response_bytes(),
+                    )
+                    .await
+                }
+                _ => Err(ExecutionError::InvalidInput),
+            };
+            response
+                .map(|response| OperationResponse {
+                    status: response.status,
+                    body: response.body,
+                    headers: response.headers,
+                })
+                .map_err(operation_error)
         })
     }
 

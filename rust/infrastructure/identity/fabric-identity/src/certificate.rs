@@ -43,6 +43,22 @@ pub enum CertificateError {
     /// Local certificate waiting was cancelled, not native rollback.
     #[error("certificate signing was cancelled")]
     Cancelled,
+    /// Waiting ended or native teardown failed; worker capacity remains retained
+    /// until actual cleanup, or is quarantined if cleanup cannot be confirmed.
+    #[error("certificate cleanup is pending or could not be confirmed")]
+    CleanupPending,
+    /// The explicitly pinned direct-provider module could not be established.
+    #[error("the pinned certificate provider module could not be established")]
+    Module,
+    /// An explicitly injected PIN could not be supplied.
+    #[error("the explicit certificate PIN source is unavailable")]
+    PinUnavailable,
+    /// The selected token rejected the explicit authentication policy.
+    #[error("the selected certificate authentication failed")]
+    Authentication,
+    /// A selected provider call failed without preserving its diagnostic text.
+    #[error("the selected certificate provider operation failed")]
+    Provider,
     /// Clock values cannot establish a fresh bounded assertion.
     #[error("the clock cannot establish a valid certificate assertion lifetime")]
     Clock,
@@ -66,8 +82,8 @@ fn failure(error: CertificateError) -> HeadlessError {
 /// Implementations must verify the selected certificate and current key policy
 /// on every signing operation without exporting a private key or permitting UI.
 /// `Debug` must not expose key identifiers, signing input or signatures. The
-/// provided Windows adapter uses the independently bounded native certificate
-/// facade; arbitrary caller implementations remain the caller's responsibility.
+/// provided platform adapters use independently bounded native certificate
+/// facades; arbitrary caller implementations remain the caller's responsibility.
 #[async_trait]
 pub trait CertificateSigner: Send + Sync + fmt::Debug {
     /// Returns the explicitly selected certificate's SHA-256 DER fingerprint.
@@ -250,12 +266,12 @@ impl ClientAssertion for CertificateAssertion {
 }
 
 /// Inert explicit Windows store selection over the isolated native signer facade.
-#[cfg(windows)]
+#[cfg(all(windows, feature = "certificate-store-windows"))]
 pub struct WindowsStoreSigner {
     selector: fabric_identity_windows::CertificateSelector,
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "certificate-store-windows"))]
 impl WindowsStoreSigner {
     /// Captures selection metadata without opening a store or accessing a key.
     pub fn new(selector: fabric_identity_windows::CertificateSelector) -> Self {
@@ -268,14 +284,14 @@ impl WindowsStoreSigner {
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "certificate-store-windows"))]
 impl fmt::Debug for WindowsStoreSigner {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("WindowsStoreSigner").finish_non_exhaustive()
     }
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "certificate-store-windows"))]
 fn native_error(error: fabric_identity_windows::CertificateError) -> HeadlessError {
     use fabric_identity_windows::CertificateError as Native;
 
@@ -300,7 +316,7 @@ fn native_error(error: fabric_identity_windows::CertificateError) -> HeadlessErr
     })
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "certificate-store-windows"))]
 #[async_trait]
 impl CertificateSigner for WindowsStoreSigner {
     fn certificate_sha256(&self) -> [u8; 32] {

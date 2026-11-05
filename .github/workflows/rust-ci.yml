@@ -37,6 +37,7 @@ jobs:
           rust/scripts/validate-impact.test.cjs
           rust/scripts/validation-checks.test.cjs
           rust/scripts/rust-fast-check.test.cjs
+          rust/scripts/rust-coverage.test.cjs
       - name: Select capability targets, Cargo consumers and feature contracts
         id: select
         env:

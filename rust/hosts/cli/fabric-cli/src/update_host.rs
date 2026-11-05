@@ -414,6 +414,46 @@ fn parse_key(value: Option<&str>) -> Result<[u8; 32], Failure> {
 }
 
 fn feature_variant() -> String {
+    if cfg!(any(
+        feature = "interactive",
+        feature = "certificate-store-pkcs11",
+        feature = "certificate-store-macos",
+    )) {
+        let mut features = vec!["self-update"];
+        for (enabled, name) in [
+            (cfg!(feature = "interactive"), "interactive"),
+            (
+                cfg!(feature = "certificate-store-pkcs11"),
+                "certificate-store-pkcs11",
+            ),
+            (
+                cfg!(feature = "certificate-store-macos"),
+                "certificate-store-macos",
+            ),
+            (
+                cfg!(feature = "certificate-store-windows"),
+                "certificate-store-windows",
+            ),
+            (cfg!(feature = "headless"), "headless"),
+            (cfg!(feature = "native-host"), "native-host"),
+            (cfg!(feature = "native-read"), "native-read"),
+            (cfg!(feature = "repl"), "repl"),
+            (cfg!(feature = "windows-broker"), "windows-broker"),
+        ] {
+            if enabled {
+                features.push(name);
+            }
+        }
+        features.sort_unstable();
+        let payload = format!("fabric-cli-feature-v2\0{}", features.join("\0"));
+        let digest = ring::digest::digest(&ring::digest::SHA256, payload.as_bytes());
+        let hex: String = digest
+            .as_ref()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        return format!("f2-{}", &hex[..60]);
+    }
     let mut features = vec!["self-update"];
     let certificate = cfg!(feature = "certificate-store-windows");
     for (enabled, name) in [
@@ -1098,6 +1138,15 @@ mod tests {
     fn feature_variant_keeps_certificate_support_distinct_within_the_protocol_bound() {
         let variant = feature_variant();
         assert!(variant.len() <= 64);
+        if cfg!(any(
+            feature = "interactive",
+            feature = "certificate-store-pkcs11",
+            feature = "certificate-store-macos"
+        )) {
+            assert!(variant.starts_with("f2-"));
+            assert_eq!(variant.len(), 63);
+            return;
+        }
         assert_eq!(
             variant
                 .split('+')

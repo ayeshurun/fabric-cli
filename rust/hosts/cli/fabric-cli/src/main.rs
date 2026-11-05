@@ -4,13 +4,17 @@
 //! Experimental CLI entry point, not a replacement for the Python `fab`.
 #![cfg_attr(test, deny(unnameable_test_items))]
 
-#[cfg(feature = "windows-broker")]
+#[cfg(any(feature = "windows-broker", feature = "interactive"))]
 mod auth;
 #[cfg(all(windows, feature = "windows-broker"))]
 mod auth_binding;
 mod batch_state;
 #[cfg(feature = "headless")]
 mod headless;
+#[cfg(feature = "interactive")]
+mod interactive;
+#[cfg(feature = "interactive")]
+mod interactive_binding;
 mod local_host;
 #[cfg(feature = "native-host")]
 mod native_read;
@@ -165,7 +169,7 @@ fn dispatch(
             },
             1,
         ),
-        #[cfg(feature = "windows-broker")]
+        #[cfg(any(feature = "windows-broker", feature = "interactive"))]
         Ok(Invocation::Auth(command)) => return auth::run(&command),
         Err(error) => (
             CommandError {

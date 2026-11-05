@@ -29,17 +29,37 @@ pub use assertion_file::AssertionFile;
 mod pipelines;
 pub use pipelines::PipelinesConfig;
 
-#[cfg(feature = "certificate-store-windows")]
+#[cfg(any(
+    feature = "certificate-store-windows",
+    feature = "certificate-store-pkcs11",
+    feature = "certificate-store-macos"
+))]
 #[path = "certificate.rs"]
 mod certificate;
-#[cfg(feature = "certificate-store-windows")]
-pub use certificate::{CertificateConfig, CertificateError, CertificateSigner};
 #[cfg(all(windows, feature = "certificate-store-windows"))]
 pub use certificate::WindowsStoreSigner;
+#[cfg(any(
+    feature = "certificate-store-windows",
+    feature = "certificate-store-pkcs11",
+    feature = "certificate-store-macos"
+))]
+pub use certificate::{CertificateConfig, CertificateError, CertificateSigner};
 #[cfg(all(windows, feature = "certificate-store-windows"))]
 pub use fabric_identity_windows::{
     AllowedCertificateProvider, CertificateSelector, CertificateStore,
 };
+#[cfg(all(target_os = "linux", feature = "certificate-store-pkcs11"))]
+#[path = "certificate_pkcs11.rs"]
+mod certificate_pkcs11;
+#[cfg(all(target_os = "linux", feature = "certificate-store-pkcs11"))]
+pub use certificate_pkcs11::{
+    Pkcs11Authentication, Pkcs11ConfigError, Pkcs11Field, Pkcs11PinSource, Pkcs11Selection,
+    Pkcs11Signer, Pkcs11Token,
+};
+/// Native macOS certificate assertions over an explicitly pinned isolated helper.
+#[cfg(feature = "certificate-store-macos")]
+#[path = "certificate_macos.rs"]
+pub mod certificate_macos;
 
 const ASSERTION_LIMIT: u64 = 64 * 1024;
 const MI_VARIABLES: [&str; 6] = [
@@ -67,7 +87,11 @@ pub enum HeadlessError {
     #[error("the selected assertion file could not be read safely")]
     AssertionFile,
     /// The explicitly selected certificate failed without retaining native text.
-    #[cfg(feature = "certificate-store-windows")]
+    #[cfg(any(
+        feature = "certificate-store-windows",
+        feature = "certificate-store-pkcs11",
+        feature = "certificate-store-macos"
+    ))]
     #[error("{0}")]
     Certificate(CertificateError),
     /// The requested scope is not one supported single audience.
@@ -301,7 +325,11 @@ pub enum HeadlessInput {
         pipeline: Box<PipelinesConfig>,
     },
     /// Explicit non-exporting native certificate signer.
-    #[cfg(feature = "certificate-store-windows")]
+    #[cfg(any(
+        feature = "certificate-store-windows",
+        feature = "certificate-store-pkcs11",
+        feature = "certificate-store-macos"
+    ))]
     Certificate {
         /// Explicit public-cloud tenant/application binding.
         identity: ServiceIdentity,
@@ -376,7 +404,11 @@ impl HeadlessCredential {
             ))
             .map_err(|_| HeadlessError::Configuration)?,
             HeadlessInput::ManagedIdentity { host, .. } => host.endpoint(),
-            #[cfg(feature = "certificate-store-windows")]
+            #[cfg(any(
+                feature = "certificate-store-windows",
+                feature = "certificate-store-pkcs11",
+                feature = "certificate-store-macos"
+            ))]
             HeadlessInput::Certificate { identity, .. } => Url::parse(&format!(
                 "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
                 identity.tenant()
@@ -435,7 +467,11 @@ impl HeadlessCredential {
             HeadlessInput::AzurePipelines { identity, pipeline } => {
                 pipeline.provider(identity, options)?
             }
-            #[cfg(feature = "certificate-store-windows")]
+            #[cfg(any(
+                feature = "certificate-store-windows",
+                feature = "certificate-store-pkcs11",
+                feature = "certificate-store-macos"
+            ))]
             HeadlessInput::Certificate {
                 identity,
                 certificate,

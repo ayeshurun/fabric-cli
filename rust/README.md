@@ -3,7 +3,7 @@
 # Microsoft Fabric CLI and SDK for Rust
 
 This workspace provides the `fab-rs` command-line application, reusable Fabric
-service clients, deployment orchestration, and optional Windows authentication.
+service clients, deployment orchestration, and optional native authentication.
 Applications can use the SDK and deployment libraries without invoking the CLI.
 
 ## Get started
@@ -69,6 +69,11 @@ front-ends are not implemented by this layout.
 Focused SDK crates provide additional service APIs, including jobs, OneLake,
 access, catalog, tables and raw requests. Each crate documents its own public
 interface and supported operations.
+
+For current implementation boundaries, use the
+[command/resource acceptance inventory](docs/command-parity.md), not historical
+scaffold tables. [Coverage reporting](docs/test-coverage.md) distinguishes actual
+line/function/region measurements from registered commands and test counts.
 
 Service and deployment libraries do not discover credentials, prompt users, create a runtime, initialize
 global logging, or terminate the process. The caller supplies these capabilities

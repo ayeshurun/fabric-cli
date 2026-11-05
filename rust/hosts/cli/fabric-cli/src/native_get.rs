@@ -3,7 +3,10 @@
 
 //! Native GET capabilities and one-shot delivery on the caller's runtime.
 
-#![cfg_attr(not(any(windows, feature = "headless")), allow(dead_code))]
+#![cfg_attr(
+    not(any(windows, feature = "headless", feature = "interactive")),
+    allow(dead_code)
+)]
 
 use super::{CommandOutcome, Failure, NativeTransferUi};
 use fabric_cli::{
@@ -11,7 +14,8 @@ use fabric_cli::{
     session::{
         ReadSession,
         get_host::{
-            ClockedGetHost, GetDispatch, GetErrorKind, GetEvidence, GetFailure, GetWriteFailure,
+            ClockedGetHost, GetDispatch, GetErrorKind, GetEvidence, GetFailure, GetResourceConfig,
+            GetWriteFailure,
             output::{GetOutputClock, LocalTimestamp},
         },
     },
@@ -122,6 +126,7 @@ pub(super) struct Inputs<'a> {
     pub(super) clock: &'a dyn GetOutputClock,
     pub(super) ui: &'a dyn TransferUi,
     pub(super) files: Files<'a>,
+    pub(super) resource_config: GetResourceConfig,
 }
 
 pub(super) struct NativeClock(pub(super) Handle);
@@ -192,7 +197,7 @@ impl Delivery {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "headless"))]
     pub(super) fn into_plan_parts(self) -> (TextPlan, CommandOutcome) {
         match self {
             Self::Plan { plan, outcome } => (plan, outcome),
@@ -335,6 +340,21 @@ fn error_outcome(kind: &GetErrorKind, exit: u8) -> CommandOutcome {
         GetErrorKind::Operation(error) if operation_cancelled(error) => {
             CommandOutcome::Cancelled(exit)
         }
+        GetErrorKind::Api(error) if api_cancelled(error) => CommandOutcome::Cancelled(exit),
+        GetErrorKind::Collection(error) if api_cancelled(&error.error) => {
+            CommandOutcome::Cancelled(exit)
+        }
+        GetErrorKind::OneLake(fabric_sdk_onelake::OneLakeError::Cancelled) => {
+            CommandOutcome::Cancelled(exit)
+        }
+        GetErrorKind::Resource(error)
+            if matches!(
+                error.code.as_str(),
+                "Cancelled" | "LongRunningOperationCancelled"
+            ) =>
+        {
+            CommandOutcome::Cancelled(exit)
+        }
         GetErrorKind::Definition(error) => match &error.kind {
             DefinitionErrorKind::Operation(error) if operation_cancelled(error) => {
                 CommandOutcome::Cancelled(exit)
@@ -366,6 +386,17 @@ fn error_outcome(kind: &GetErrorKind, exit: u8) -> CommandOutcome {
     }
 }
 
+fn api_cancelled(error: &fabric_sdk_api::ApiError) -> bool {
+    matches!(
+        error,
+        fabric_sdk_api::ApiError::Cancelled
+            | fabric_sdk_api::ApiError::Execution(fabric_sdk_api::ExecutionError::Cancelled)
+    ) || matches!(
+        error,
+        fabric_sdk_api::ApiError::Operation(error) if operation_cancelled(error)
+    )
+}
+
 fn get_outcome(dispatch: &GetDispatch) -> CommandOutcome {
     match &dispatch.result {
         Ok(_) => CommandOutcome::Returned(dispatch.plan.exit_code),
@@ -394,6 +425,7 @@ pub(super) async fn dispatch(
             clock: &clock,
             ui: &NativeTransferUi,
             files: Files::native(),
+            resource_config: GetResourceConfig::default(),
         },
     )
     .await
@@ -434,7 +466,14 @@ async fn dispatch_selected(
     };
     Delivery::get(
         reads
-            .dispatch_get_with_storage(command, http, &mut host, inputs.evidence, inputs.cancelled)
+            .dispatch_get_with_resource_storage(
+                command,
+                http,
+                &mut host,
+                inputs.evidence,
+                &inputs.resource_config,
+                inputs.cancelled,
+            )
             .await,
     )
 }

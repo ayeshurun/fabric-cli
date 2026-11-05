@@ -3,6 +3,8 @@
 
 //! Offline native selection -> existing production read/job sessions.
 
+#![deny(unnameable_test_items)]
+
 #[allow(dead_code)]
 mod folder_support;
 mod job_execution_support;
@@ -162,6 +164,64 @@ fn consumed_saved_settings_reject_wrong_types_case_and_unknown_values_without_ec
     }
 }
 
+#[test]
+fn capacity_defaults_preserve_optional_raw_strings_in_an_owned_command_snapshot() {
+    for selected in [
+        NativeSettings::select(None).unwrap(),
+        NativeSettings::select(Some(&Map::new())).unwrap(),
+    ] {
+        assert!(selected.get_resources.subscription_id.is_none());
+        assert!(selected.get_resources.resource_group.is_none());
+    }
+    let mut values = saved(json!({
+        "default_az_subscription_id":"SubscriptionCase",
+        "default_az_resource_group":" group with spaces ",
+        "default_capacity":"not-a-subscription-or-resource-group",
+        "tenant":"not-a-credential-selector"
+    }));
+    let selected = NativeSettings::select(Some(&values)).unwrap();
+    let cloned = selected.clone();
+    values.insert("default_az_subscription_id".into(), json!("later-change"));
+    values.insert("default_az_resource_group".into(), Value::Null);
+    for snapshot in [selected, cloned] {
+        assert_eq!(
+            snapshot.get_resources.subscription_id.as_deref(),
+            Some("SubscriptionCase")
+        );
+        assert_eq!(
+            snapshot.get_resources.resource_group.as_deref(),
+            Some(" group with spaces ")
+        );
+    }
+    let empty = NativeSettings::select(Some(&saved(json!({
+        "default_az_subscription_id":"", "default_az_resource_group":""
+    }))))
+    .unwrap();
+    assert_eq!(empty.get_resources.subscription_id.as_deref(), Some(""));
+    assert_eq!(empty.get_resources.resource_group.as_deref(), Some(""));
+}
+
+#[test]
+fn capacity_defaults_reject_non_string_types_without_echoing_saved_values() {
+    for key in ["default_az_subscription_id", "default_az_resource_group"] {
+        for invalid in [
+            Value::Null,
+            json!(true),
+            json!(1),
+            json!([]),
+            json!({}),
+            json!(["private-invalid-value"]),
+            json!({"private-invalid-value":true}),
+        ] {
+            let mut values = Map::new();
+            values.insert(key.into(), invalid);
+            let error = NativeSettings::select(Some(&values)).unwrap_err();
+            assert!(matches!(error, SelectionError::InvalidSetting(found) if found == key));
+            assert!(!error.to_string().contains("private-invalid-value"));
+        }
+    }
+}
+
 struct StoreFixture(PathBuf);
 
 impl StoreFixture {
@@ -264,7 +324,7 @@ fn saved_hidden_names_reach_real_read_session_and_explicit_output_still_wins() {
     http.assert_consumed();
 }
 
-fn job_case(selected: NativeSettings, extra: &[&str], replies: Vec<Value>) -> Value {
+fn job_case(selected: &NativeSettings, extra: &[&str], replies: Vec<Value>) -> Value {
     let mut args = vec!["job", "run", "Demo.Workspace/Book.Notebook"];
     args.extend_from_slice(extra);
     let command = selected.job_command(&job(&args)).unwrap();
@@ -293,7 +353,7 @@ fn saved_cancel_policy_controls_actual_timeout_post_without_claiming_completion(
             replies.push(json!({"status":202,"body":null}));
         }
         let observation =
-            job_execution_support::observe(&job_case(selected, &["--timeout=1"], replies));
+            job_execution_support::observe(&job_case(&selected, &["--timeout=1"], replies));
         assert_eq!(observation["exit"], 0);
         assert_eq!(observation["waits"], json!([1]));
         assert_eq!(
@@ -338,7 +398,7 @@ fn saved_job_configuration_preserves_success_service_errors_and_local_cancellati
     }))))
     .unwrap();
     let success = job_execution_support::observe(&job_case(
-        selected,
+        &selected,
         &["--timeout=600", "--polling_interval=2"],
         vec![
             job_execution_support::accepted(),
@@ -349,14 +409,14 @@ fn saved_job_configuration_preserves_success_service_errors_and_local_cancellati
     assert_eq!(success["waits"], json!([2]));
     assert!(success["stdout"].as_str().unwrap().contains("completed"));
     let failure = job_execution_support::observe(&job_case(
-        selected,
+        &selected,
         &["--timeout=600"],
         vec![json!({"status":401,"body":{"errorCode":"Unauthorized","message":"synthetic"}})],
     ));
     assert_eq!(failure["exit"], 4);
     assert_eq!(failure["requests"].as_array().unwrap().len(), 3);
     let mut cancelled = job_case(
-        selected,
+        &selected,
         &["--timeout=600"],
         vec![job_execution_support::accepted()],
     );

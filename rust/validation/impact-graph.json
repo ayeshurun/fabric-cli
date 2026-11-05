@@ -108,6 +108,30 @@
       "checks": ["certificate", "combined"]
     },
     {
+      "id": "identity-interactive",
+      "package": "fabric-identity",
+      "inputs": ["rust/infrastructure/identity/fabric-identity/src/interactive*.rs", "rust/infrastructure/identity/fabric-identity/src/bin/protected_store_helper.rs", "rust/infrastructure/identity/fabric-identity/tests/protected_store_helper.rs"],
+      "depends_on": ["identity-policy", "identity-macos-helper"],
+      "tests": [{"package": "fabric-identity", "target": "lib"}, {"package": "fabric-identity", "target": "test:protected_store_helper"}, {"package": "fabric-identity", "target": "bin:fabric-protected-store-helper"}],
+      "checks": ["interactive", "combined"]
+    },
+    {
+      "id": "identity-macos-helper",
+      "package": "fabric-identity",
+      "inputs": ["rust/infrastructure/identity/fabric-identity/src/macos_helper.rs"],
+      "depends_on": ["identity-policy"],
+      "tests": [{"package": "fabric-identity", "target": "lib"}],
+      "checks": ["interactive", "certificate", "combined"]
+    },
+    {
+      "id": "identity-native-certificates",
+      "package": "fabric-identity",
+      "inputs": ["rust/infrastructure/identity/fabric-identity/src/certificate_pkcs11.rs", "rust/infrastructure/identity/fabric-identity/src/certificate_macos*.rs", "rust/infrastructure/identity/fabric-identity/src/bin/keychain_helper.rs"],
+      "depends_on": ["identity-headless", "identity-macos-helper"],
+      "tests": [{"package": "fabric-identity", "target": "lib"}],
+      "checks": ["certificate", "combined"]
+    },
+    {
       "id": "windows-broker",
       "package": "fabric-identity-windows",
       "inputs": ["rust/infrastructure/identity/fabric-identity-windows/src/lib.rs", "rust/infrastructure/identity/fabric-identity-windows/src/native.rs", "rust/infrastructure/identity/fabric-identity-windows/src/request.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra.rs", "rust/infrastructure/identity/fabric-identity-windows/src/entra_contract.rs", "rust/infrastructure/identity/fabric-identity-windows/src/selection.rs"],
@@ -742,25 +766,26 @@
     {
       "id": "cli-auth",
       "package": "fabric-cli",
-      "inputs": ["rust/hosts/cli/fabric-cli/src/auth.rs", "rust/hosts/cli/fabric-cli/src/auth_binding.rs", "rust/hosts/cli/fabric-cli/src/runtime_config.rs", "rust/hosts/cli/fabric-cli/src/auth_commands.rs", "rust/hosts/cli/fabric-cli/src/parser/auth.rs"],
-      "depends_on": ["identity-broker"],
+      "inputs": ["rust/hosts/cli/fabric-cli/src/auth.rs", "rust/hosts/cli/fabric-cli/src/auth_binding.rs", "rust/hosts/cli/fabric-cli/src/interactive.rs", "rust/hosts/cli/fabric-cli/src/interactive_binding.rs", "rust/hosts/cli/fabric-cli/src/runtime_config.rs", "rust/hosts/cli/fabric-cli/src/auth_commands.rs", "rust/hosts/cli/fabric-cli/src/parser/auth.rs"],
+      "depends_on": ["identity-broker", "identity-interactive"],
       "tests": [
         {"package": "fabric-cli", "target": "lib"},
         {"package": "fabric-cli", "target": "bin:fab-rs"},
         {"package": "fabric-cli", "target": "test:auth_arguments"},
+        {"package": "fabric-cli", "target": "test:interactive_arguments"},
         {"package": "fabric-cli", "target": "test:auth_commands"},
         {"package": "fabric-cli", "target": "test:broker_selection"},
         {"package": "fabric-cli", "target": "test:default_config_root"},
         {"package": "fabric-cli", "target": "test:cli_contract"},
         {"package": "fabric-cli", "target": "test:argv_contract"}
       ],
-      "checks": ["broker", "native-read", "combined"]
+      "checks": ["broker", "interactive", "native-read", "combined"]
     },
     {
       "id": "cli-headless",
       "package": "fabric-cli",
       "inputs": ["rust/hosts/cli/fabric-cli/src/headless.rs", "rust/hosts/cli/fabric-cli/src/headless_host_tests.rs"],
-      "depends_on": ["identity-headless", "identity-certificate", "transport"],
+      "depends_on": ["identity-headless", "identity-certificate", "identity-native-certificates", "transport"],
       "tests": [
         {"package": "fabric-cli", "target": "bin:fab-rs"},
         {"package": "fabric-cli", "target": "test:headless_graph"},
@@ -847,7 +872,7 @@
         "cli-updater", "cli-auth", "cli-headless", "cli-native-shared", "cli-shared-test-helpers"
       ],
       "tests": [{"package": "fabric-cli", "target": "test:workspace_contract"}],
-      "checks": ["dependency-graph"]
+      "checks": ["dependency-graph", "command-inventory"]
     }
   ],
   "profiles": [
@@ -908,14 +933,51 @@
       "checks": ["updater"]
     },
     {
+      "id": "interactive",
+      "packages": ["fabric-cli", "fabric-identity", "fabric-sdk-transport"],
+      "features": ["fabric-cli/interactive", "fabric-identity/interactive", "fabric-sdk-transport/hyper-rustls"],
+      "platforms": ["windows", "linux", "macos"],
+      "checks": ["interactive"]
+    },
+    {
+      "id": "certificate-pkcs11",
+      "packages": ["fabric-cli", "fabric-identity"],
+      "features": ["fabric-cli/certificate-store-pkcs11", "fabric-identity/certificate-store-pkcs11"],
+      "platforms": ["windows", "linux", "macos"],
+      "checks": ["certificate"]
+    },
+    {
+      "id": "certificate-macos",
+      "packages": ["fabric-cli", "fabric-identity"],
+      "features": ["fabric-cli/certificate-store-macos", "fabric-identity/certificate-store-macos"],
+      "platforms": ["windows", "linux", "macos"],
+      "checks": ["certificate"]
+    },
+    {
       "id": "combined",
       "packages": ["fabric-cli", "fabric-identity", "fabric-identity-windows", "fabric-cli-repl", "fabric-cli-update", "fabric-sdk-transport"],
-      "features": ["fabric-cli/native-read", "fabric-cli/headless", "fabric-cli/certificate-store-windows", "fabric-cli/repl", "fabric-cli/self-update", "fabric-identity/certificate-store-windows", "fabric-identity-windows/certificate-store", "fabric-cli-update/fixture-harness"],
+      "features": ["fabric-cli/native-read", "fabric-cli/headless", "fabric-cli/interactive", "fabric-cli/certificate-store-windows", "fabric-cli/certificate-store-pkcs11", "fabric-cli/certificate-store-macos", "fabric-cli/repl", "fabric-cli/self-update", "fabric-identity/interactive", "fabric-identity/certificate-store-windows", "fabric-identity/certificate-store-pkcs11", "fabric-identity/certificate-store-macos", "fabric-identity-windows/certificate-store", "fabric-cli-update/fixture-harness"],
       "platforms": ["windows", "linux", "macos"],
       "checks": ["combined"]
     }
   ],
   "checks": [
+    {
+      "id": "command-inventory",
+      "packages": [],
+      "components": ["workspace-architecture"],
+      "inputs": ["rust/validation/command-acceptance.json", "rust/scripts/check_command_acceptance.py", "rust/scripts/test_check_command_acceptance.py"],
+      "platforms": ["windows", "linux", "macos"],
+      "depends_on": []
+    },
+    {
+      "id": "interactive",
+      "packages": ["fabric-cli", "fabric-identity"],
+      "components": ["identity-interactive", "cli-auth"],
+      "inputs": [],
+      "platforms": ["windows", "linux", "macos"],
+      "depends_on": ["selector-tests"]
+    },
     {
       "id": "selector-tests",
       "packages": [],

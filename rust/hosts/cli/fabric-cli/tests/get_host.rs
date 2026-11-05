@@ -8,6 +8,10 @@
 #[allow(dead_code)]
 mod support;
 
+#[cfg(feature = "native-host")]
+#[path = "get_host_cases/resources.rs"]
+mod resource_cases;
+
 use fabric_cli::{
     PythonQuery, ReadConfig, ReadHost,
     parser::{Invocation, ReadCommand, parse_args},
@@ -261,6 +265,7 @@ impl TransferUi for Ui {
 
 struct Files {
     events: Events,
+    expected_name: &'static str,
     storage: ExportStorage,
     writes: Vec<(String, Vec<u8>)>,
     fail: Option<&'static str>,
@@ -271,6 +276,7 @@ impl Files {
     fn new(events: Events) -> Self {
         Self {
             events,
+            expected_name: "Book.Notebook",
             storage: ExportStorage::Local,
             writes: Vec::new(),
             fail: None,
@@ -292,7 +298,7 @@ impl DefinitionFileSystem for Files {
         self.phase("preflight")
     }
     fn create_directory(&mut self, _: &Path, name: &str) -> io::Result<()> {
-        assert_eq!(name, "Book.Notebook");
+        assert_eq!(name, self.expected_name);
         self.phase("mkdir")
     }
     fn write(&mut self, _: &Path, file: &DefinitionFile) -> io::Result<()> {
