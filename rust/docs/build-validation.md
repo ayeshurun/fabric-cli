@@ -207,7 +207,7 @@ the existing fail-closed native/final gates and do not waive source parity check
 The feature enables explicit platform/additional trust and unauthenticated static
 HTTP proxy support, not general enterprise proxy, broker, live-service or
 installation certification. See the
-[native transport contract](../infrastructure/http/fabric-sdk-transport/README.md).
+[native transport contract](../sdk/http/transport/README.md).
 
 ### Executable source-parity gate
 
