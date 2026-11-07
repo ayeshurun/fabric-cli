@@ -46,7 +46,7 @@ const inside = (parent, child) => {
 
 test('native preflights preserve exact engineering inventory and the mandatory full matrix', () => {
   const workflow = fs.readFileSync(path.join(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
-  assert.match(workflow, /pattern, count = "test_native_acceptance\.py", 33/);
+  assert.match(workflow, /pattern, count = "test_native_acceptance\*\.py", 38/);
   assert.ok(workflow.includes('result.testsRun == count and not result.expectedFailures and skips == expected'));
   assert.ok(workflow.includes('requires_native_POSIX_PTY'));
   assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
@@ -262,7 +262,7 @@ test('oracle preparation runs all six tooling suites before its captured marker'
   assert.equal(result.length, 7);
   assert.deepEqual(result.slice(0, -1).map(command => valueAfter(command, '-p')).sort(), [
     'test_assemble_native_release.py', 'test_check_command_acceptance.py', 'test_check_report.py',
-    'test_native_acceptance.py', 'test_pinned_python_source.py', 'test_release_verify.py',
+    'test_native_acceptance*.py', 'test_pinned_python_source.py', 'test_release_verify.py',
   ]);
   const identity = result.find(command => command.args.includes('test_check_report.py'));
   assert.equal(valueAfter(identity, '-s'), path.join(rust, 'tests', 'acceptance', 'identity'));

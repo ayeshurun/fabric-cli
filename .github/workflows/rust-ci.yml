@@ -112,7 +112,7 @@ jobs:
               pathlib.Path("receipt.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
               print(json.dumps(report))
           persist()
-          pattern, count = "test_native_acceptance.py", 33
+          pattern, count = "test_native_acceptance*.py", 38
           suite = unittest.defaultTestLoader.discover(str(source), pattern=pattern)
           discovered = suite.countTestCases()
           if discovered != count:
