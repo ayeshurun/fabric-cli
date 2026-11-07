@@ -56,6 +56,11 @@ Certificate feature tests share one test-only declaration of the existing
 public verification vectors. Enabling both PKCS11 and macOS certificate
 features does not load that fixture twice or change its bytes or assertions.
 
+Lexical transfer-path unit tests preserve their Windows inputs on Windows.
+On POSIX they translate only fixture drive prefixes and separators to native
+absolute and relative paths. Every original tilde, named-user and deferred
+validation case remains checked; no production path-selection rule changes.
+
 ## Frozen references alongside current upstream source
 
 The integration branch includes upstream `main` through
