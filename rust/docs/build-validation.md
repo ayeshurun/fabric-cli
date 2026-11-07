@@ -31,6 +31,31 @@ See [current command acceptance](command-parity.md) and
 [stable coverage reporting](test-coverage.md) for scope and denominators;
 neither configured CI nor the historical table below certifies a new candidate.
 
+Subprocess diagnostic contracts distinguish an unconfigured default read host
+from an explicitly selected headless host without `FAB_RUST_AUTH_MODE`.
+Certificate profiles inherit the headless host. Their offline checks retain
+the same exit, stream, sanitization and credential-isolation assertions, with
+the diagnostic expected for the selected feature profile.
+
+The native workflow first runs all 33 existing engineering-harness tests and
+five additional bounded-PTY unit tests with an explicit inventory and the
+original Windows-only POSIX-PTY skip. It then
+preflights every workspace target and feature under strict Clippy before the
+unchanged full dependency-selected plan. Failure in either preflight remains
+blocking; these early checks do not replace native feature profiles or frozen
+source comparisons. Engineering receipts record the exact source SHA, host,
+case counts and observed PTY cleanup data.
+
+PTY cleanup drains already queued output while reaping only the owned child
+within the existing wait budget. A confirmed process-tree cleanup is distinct
+from observing terminal restoration: unavailable terminal state is recorded as
+an observation error with `termios_restored` false. Native terminal acceptance
+still requires an observed restoration; a cleanup unit test cannot establish it.
+
+Certificate feature tests share one test-only declaration of the existing
+public verification vectors. Enabling both PKCS11 and macOS certificate
+features does not load that fixture twice or change its bytes or assertions.
+
 ## Frozen references alongside current upstream source
 
 The integration branch includes upstream `main` through

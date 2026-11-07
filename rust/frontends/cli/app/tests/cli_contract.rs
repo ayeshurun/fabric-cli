@@ -218,8 +218,26 @@ fn reads_are_recognized_but_never_discover_credentials_or_fake_success() {
         assert_eq!(
             serde_json::from_slice::<serde_json::Value>(&output.stderr).unwrap(),
             serde_json::json!({"error":{
-                "code":"NotConfigured",
-                "message": if cfg!(all(windows, feature = "native-host", feature = "windows-broker")) {
+                "code": if cfg!(all(
+                    feature = "interactive",
+                    not(all(windows, feature = "windows-broker"))
+                )) {
+                    "invalid_configuration"
+                } else {
+                    "NotConfigured"
+                },
+                "message": if cfg!(all(
+                    feature = "interactive",
+                    not(all(windows, feature = "windows-broker"))
+                )) {
+                    "Device-code login requires explicit tenant and client GUIDs; account is an optional UPN hint.".to_owned()
+                } else if cfg!(all(
+                    feature = "native-host",
+                    not(feature = "native-read"),
+                    any(windows, feature = "headless")
+                )) {
+                    "An explicit FAB_RUST_AUTH_MODE is required.".to_owned()
+                } else if cfg!(all(windows, feature = "native-host", feature = "windows-broker")) {
                     "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly.".to_owned()
                 } else {
                     fabric_cli::HostError::NotConfigured.to_string()

@@ -352,7 +352,7 @@ impl ProtectedReply {
 }
 
 #[cfg(target_os = "macos")]
-pub(crate) fn exchange(
+pub(super) fn exchange(
     helper: &MacProtectedStoreHelper,
     operation: &super::store::MacOperation,
     request: ProtectedRequest,
