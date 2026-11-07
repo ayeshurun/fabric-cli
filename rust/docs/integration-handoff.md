@@ -17,6 +17,13 @@ than extending the historical merger chains below. At each stage, use distinct
 review perspectives and record actual evidence tied to the immutable subject.
 Source unions and old component checks do not prove a combined executable.
 
+The current package roots are `sdk/` for reusable libraries and
+`frontends/cli/` for CLI-specific packages. Package names, logical layers,
+credential injection and optional native boundaries remain unchanged.
+See [physical organization](architecture.md#physical-organization) for the
+current paths. Dated receipts below retain the paths used at their checkpoints;
+they are not current file locators or validation evidence for a relocated tree.
+
 Within authorized scope, research, implement, validate, and repair without routine
 human handoffs. Use the bounded repair and blocker protocol when intent, authority,
 or required evidence is missing. The assigned integration owner remains the only
