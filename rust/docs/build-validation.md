@@ -52,6 +52,10 @@ from observing terminal restoration: unavailable terminal state is recorded as
 an observation error with `termios_restored` false. Native terminal acceptance
 still requires an observed restoration; a cleanup unit test cannot establish it.
 
+Certificate feature tests share one test-only declaration of the existing
+public verification vectors. Enabling both PKCS11 and macOS certificate
+features does not load that fixture twice or change its bytes or assertions.
+
 ## Frozen references alongside current upstream source
 
 The integration branch includes upstream `main` through
