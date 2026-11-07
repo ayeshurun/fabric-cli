@@ -166,7 +166,7 @@ fn auth_help_and_invalid_selectors_never_start_a_login() {
         let data: serde_json::Value = serde_json::from_str(&stderr).unwrap();
         assert_eq!(
             data["error"]["code"],
-            if cfg!(windows) {
+            if cfg!(any(windows, feature = "interactive")) {
                 "invalid_configuration"
             } else {
                 "unsupported"
@@ -301,7 +301,7 @@ fn native_reads_have_a_real_host_but_invalid_selection_never_accesses_credential
     let error: serde_json::Value = serde_json::from_str(&text).unwrap();
     assert_eq!(
         error["error"]["code"],
-        if cfg!(windows) {
+        if cfg!(any(windows, feature = "interactive")) {
             "invalid_configuration"
         } else {
             "unsupported"

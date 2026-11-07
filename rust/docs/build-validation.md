@@ -57,6 +57,14 @@ Batch authentication expectations follow the actual selected platform/provider:
 on POSIX, the default device-code method either reports missing explicit
 configuration or an unavailable feature, without contacting a provider.
 
+The same test-only profile classifier applies to rootless read, job and endpoint
+subprocess contracts. An interactive non-broker profile with no explicit
+configuration reports `invalid_configuration` before selecting credentials;
+other unconfigured profiles retain `NotConfigured`. On macOS, a batch without
+the required protected-store helper stops at that configuration failure, without
+running later mutations or emitting a completed-command summary. The existing
+handled missing-selection branch remains exercised on its applicable profiles.
+
 The complete CLI preflight creates its isolated test directory under
 `RUNNER_TEMP` and supplies the identity, updater and impact test-root bindings.
 Its artifacts are retained with the native results; tests never need a fallback

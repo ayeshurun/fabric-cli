@@ -7,6 +7,9 @@
 
 use std::process::{Command, Output};
 
+#[path = "support/unconfigured_profile.rs"]
+mod unconfigured_profile;
+
 fn invoke(host: Option<&str>, args: &[&str]) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_fab-rs"));
     command.env_clear();
@@ -70,7 +73,7 @@ fn public_daily_and_msit_do_not_discover_an_identity() {
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
         let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
-        assert_eq!(error["error"]["code"], "NotConfigured");
+        assert_eq!(error["error"]["code"], unconfigured_profile::error_code());
     }
 }
 
@@ -116,7 +119,11 @@ fn migrated_job_leaves_require_explicit_identity_without_discovering_one() {
             assert_eq!(output.status.code(), Some(1), "{host}: {args:?}");
             assert!(output.stdout.is_empty(), "{host}: {args:?}");
             let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
-            assert_eq!(error["error"]["code"], "NotConfigured", "{host}: {args:?}");
+            assert_eq!(
+                error["error"]["code"],
+                unconfigured_profile::error_code(),
+                "{host}: {args:?}"
+            );
         }
     }
 }
@@ -146,7 +153,11 @@ fn migrated_definition_leaves_require_identity_before_filesystem_activation() {
             assert_eq!(output.status.code(), Some(1), "{host}: {args:?}");
             assert!(output.stdout.is_empty(), "{host}: {args:?}");
             let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
-            assert_eq!(error["error"]["code"], "NotConfigured", "{host}: {args:?}");
+            assert_eq!(
+                error["error"]["code"],
+                unconfigured_profile::error_code(),
+                "{host}: {args:?}"
+            );
         }
     }
 }

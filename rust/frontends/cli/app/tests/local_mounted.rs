@@ -12,6 +12,9 @@ use std::{
 
 struct Root(PathBuf);
 
+#[path = "support/unconfigured_profile.rs"]
+mod unconfigured_profile;
+
 impl Root {
     fn new() -> Self {
         static NEXT: AtomicUsize = AtomicUsize::new(0);
@@ -451,6 +454,14 @@ fn remote_family_schema_is_not_a_successful_stub_or_implicit_identity() {
         let output = invoke(&root.0, &args);
         assert_eq!(output.status.code(), Some(1), "{args:?}");
         assert!(output.stdout.is_empty());
-        assert!(String::from_utf8_lossy(&output.stderr).contains("NotConfigured"));
+        let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+        assert_eq!(
+            error["error"]["code"],
+            if cfg!(target_os = "macos") {
+                unconfigured_profile::error_code()
+            } else {
+                "NotConfigured"
+            }
+        );
     }
 }
