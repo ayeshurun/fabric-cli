@@ -22,6 +22,11 @@ source-binding, execution and validation-mode usage, see
 [dependency validation](../docs/dependency-validation.md). This document records
 the catalog API and its source-derived contract mapping.
 
+The shared executor retains each complete command ID and literal argv in
+`commands.json`. Long command IDs use a bounded diagnostic filename with a
+digest suffix, so a full-workspace target selection cannot exceed the host's
+filename limit. This does not shorten commands or omit selected targets.
+
 All paths are repository-relative POSIX globs, irrespective of the execution
 platform. A component has an owning Cargo package, input globs, dependency
 component IDs, exact test descriptors, and additional check IDs. A dependency

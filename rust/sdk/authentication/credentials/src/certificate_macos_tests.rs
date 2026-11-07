@@ -303,7 +303,7 @@ fn selected_certificate_is_verified_again_before_host_publication() {
     );
 }
 
-#[path = "../../fabric-identity-windows/src/certificate_vectors.rs"]
+#[path = "../../windows/src/certificate_vectors.rs"]
 mod public_vector;
 
 #[test]
