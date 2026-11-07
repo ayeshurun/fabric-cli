@@ -40,7 +40,8 @@ the diagnostic expected for the selected feature profile.
 The native workflow first runs all 33 existing engineering-harness tests and
 five additional bounded-PTY unit tests with an explicit inventory and the
 original Windows-only POSIX-PTY skip. It then
-preflights every workspace target and feature under strict Clippy before the
+preflights every workspace target and feature under strict Clippy and exercises
+all CLI targets with every feature before the
 unchanged full dependency-selected plan. Failure in either preflight remains
 blocking; these early checks do not replace native feature profiles or frozen
 source comparisons. Engineering receipts record the exact source SHA, host,

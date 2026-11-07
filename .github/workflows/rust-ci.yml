@@ -148,6 +148,9 @@ jobs:
         if: success() || failure()
         working-directory: rust
         run: cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Exercise complete native CLI targets before the full feature plan
+        working-directory: rust
+        run: cargo test --offline --locked -p fabric-cli --all-targets --all-features
       - name: Execute the shared local and CI validation plan
         run: >-
           node rust/scripts/validate-impact.cjs

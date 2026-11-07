@@ -52,9 +52,12 @@ test('native preflights preserve exact engineering inventory and the mandatory f
   assert.ok(workflow.includes('with open("native-acceptance.log", "w", encoding="utf-8")'));
   assert.ok(!workflow.includes('with open(pattern + ".log"'));
   assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
+  assert.ok(workflow.includes('cargo test --offline --locked -p fabric-cli --all-targets --all-features'));
   assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
     workflow.indexOf('Preflight every current feature and target under strict native lints'));
   assert.ok(workflow.indexOf('Preflight every current feature and target under strict native lints') <
+    workflow.indexOf('Exercise complete native CLI targets before the full feature plan'));
+  assert.ok(workflow.indexOf('Exercise complete native CLI targets before the full feature plan') <
     workflow.indexOf('Execute the shared local and CI validation plan'));
   assert.ok(workflow.includes('--restore-oracle-deps --execute'));
   assert.ok(workflow.includes('os: [windows-2025, ubuntu-24.04, macos-15]'));
