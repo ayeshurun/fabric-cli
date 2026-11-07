@@ -62,6 +62,19 @@ test('native preflights preserve exact engineering inventory and the mandatory f
     workflow.indexOf('Exercise complete native CLI targets before the full feature plan'));
   assert.ok(workflow.indexOf('Exercise complete native CLI targets before the full feature plan') <
     workflow.indexOf('Execute the shared local and CI validation plan'));
+  const cliPreflight = workflow.slice(
+    workflow.indexOf('      - name: Exercise complete native CLI targets before the full feature plan'),
+    workflow.indexOf('      - name: Execute the shared local and CI validation plan'));
+  const preflightRoot = '${{ runner.temp }}/rust-cli-preflight';
+  for (const name of ['FAB_IDENTITY_TEST_ROOT', 'FAB_UPDATE_TEST_ROOT', 'IMPACT_TEST_ROOT']) {
+    assert.ok(cliPreflight.includes(`${name}: ${preflightRoot}`));
+  }
+  assert.ok(cliPreflight.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
+  assert.ok(cliPreflight.indexOf('mkdir -p "$FAB_IDENTITY_TEST_ROOT"') <
+    cliPreflight.indexOf('cargo test --offline --locked'));
+  const retainedArtifacts = workflow.slice(
+    workflow.indexOf('      - name: Retain plan and actual command exits, hashes and coverage'));
+  assert.ok(retainedArtifacts.includes(preflightRoot));
   assert.ok(workflow.includes('--restore-oracle-deps --execute'));
   assert.ok(workflow.includes('os: [windows-2025, ubuntu-24.04, macos-15]'));
   assert.ok(workflow.includes('timeout-minutes: 120'));

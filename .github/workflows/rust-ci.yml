@@ -152,6 +152,7 @@ jobs:
         env:
           FAB_IDENTITY_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight
           FAB_UPDATE_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight
+          IMPACT_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight
         working-directory: rust
         run: |
           mkdir -p "$FAB_IDENTITY_TEST_ROOT"
