@@ -49,6 +49,8 @@ test('native preflights preserve exact engineering inventory and the mandatory f
   assert.match(workflow, /pattern, count = "test_native_acceptance\*\.py", 38/);
   assert.ok(workflow.includes('result.testsRun == count and not result.expectedFailures and skips == expected'));
   assert.ok(workflow.includes('requires_native_POSIX_PTY'));
+  assert.ok(workflow.includes('with open("native-acceptance.log", "w", encoding="utf-8")'));
+  assert.ok(!workflow.includes('with open(pattern + ".log"'));
   assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
   assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
     workflow.indexOf('Preflight every current feature and target under strict native lints'));
