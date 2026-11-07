@@ -1140,7 +1140,7 @@ fn signing_plan(context: &Pkcs11, slot: Slot, bits: usize) -> Result<SigningPlan
 }
 
 #[cfg(test)]
-#[path = "../../fabric-identity-windows/src/certificate_vectors.rs"]
+#[path = "../../windows/src/certificate_vectors.rs"]
 mod public_vectors;
 
 #[cfg(test)]
