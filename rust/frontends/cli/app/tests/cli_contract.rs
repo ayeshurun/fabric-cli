@@ -206,6 +206,39 @@ fn authentication_rejects_raw_tokens_and_invalid_timeouts_before_native_calls() 
 
 #[test]
 fn reads_are_recognized_but_never_discover_credentials_or_fake_success() {
+    let (code, message) = if cfg!(all(
+        feature = "interactive",
+        not(all(windows, feature = "windows-broker"))
+    )) {
+        (
+            "invalid_configuration",
+            "Device-code login requires explicit tenant and client GUIDs; account is an optional UPN hint.".to_owned(),
+        )
+    } else if cfg!(all(
+        feature = "native-host",
+        not(feature = "native-read"),
+        any(windows, feature = "headless")
+    )) {
+        (
+            "NotConfigured",
+            "An explicit FAB_RUST_AUTH_MODE is required.".to_owned(),
+        )
+    } else if cfg!(all(
+        windows,
+        feature = "native-host",
+        feature = "windows-broker"
+    )) {
+        (
+            "NotConfigured",
+            "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly.".to_owned(),
+        )
+    } else {
+        (
+            "NotConfigured",
+            fabric_cli::HostError::NotConfigured.to_string(),
+        )
+    };
+    let expected = serde_json::json!({"error": {"code": code, "message": message}});
     for args in [
         vec!["ls"],
         vec!["dir", "/", "-la"],
@@ -217,20 +250,7 @@ fn reads_are_recognized_but_never_discover_credentials_or_fake_success() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             serde_json::from_slice::<serde_json::Value>(&output.stderr).unwrap(),
-            serde_json::json!({"error":{
-                "code":"NotConfigured",
-                "message": if cfg!(all(
-                    feature = "native-host",
-                    not(feature = "native-read"),
-                    any(windows, feature = "headless")
-                )) {
-                    "An explicit FAB_RUST_AUTH_MODE is required.".to_owned()
-                } else if cfg!(all(windows, feature = "native-host", feature = "windows-broker")) {
-                    "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly.".to_owned()
-                } else {
-                    fabric_cli::HostError::NotConfigured.to_string()
-                },
-            }})
+            expected
         );
         assert!(!String::from_utf8_lossy(&output.stderr).contains("Secret"));
     }
