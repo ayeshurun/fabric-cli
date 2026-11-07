@@ -44,6 +44,23 @@ const inside = (parent, child) => {
     !path.isAbsolute(relative), `${child} is not contained in ${parent}`);
 };
 
+test('native preflights preserve exact engineering inventory and the mandatory full matrix', () => {
+  const workflow = fs.readFileSync(path.join(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
+  assert.match(workflow, /pattern, count = "test_native_acceptance\.py", 33/);
+  assert.ok(workflow.includes('result.testsRun == count and not result.expectedFailures and skips == expected'));
+  assert.ok(workflow.includes('requires_native_POSIX_PTY'));
+  assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
+  assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
+    workflow.indexOf('Preflight every current feature and target under strict native lints'));
+  assert.ok(workflow.indexOf('Preflight every current feature and target under strict native lints') <
+    workflow.indexOf('Execute the shared local and CI validation plan'));
+  assert.ok(workflow.includes('--restore-oracle-deps --execute'));
+  assert.ok(workflow.includes('os: [windows-2025, ubuntu-24.04, macos-15]'));
+  assert.ok(workflow.includes('timeout-minutes: 120'));
+  assert.ok(workflow.includes('contents: read'));
+  assert.ok(!workflow.includes('continue-on-error'));
+});
+
 function withTargetEnvironment(value, action) {
   const previous = process.env.CARGO_TARGET_DIR;
   if (value === undefined) delete process.env.CARGO_TARGET_DIR;
