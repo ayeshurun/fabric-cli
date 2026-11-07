@@ -65,6 +65,12 @@ the required protected-store helper stops at that configuration failure, without
 running later mutations or emitting a completed-command summary. The existing
 handled missing-selection branch remains exercised on its applicable profiles.
 
+The standalone `interactive` feature composes the same private native batch
+binding, home-context and outcome helpers as broker and headless hosts. It does
+not require enabling `headless`, changing SDK dependencies or altering the
+existing helper algorithms. The full matrix checks this isolated feature
+separately; an all-feature build alone cannot establish its compilation.
+
 The complete CLI preflight creates its isolated test directory under
 `RUNNER_TEMP` and supplies the identity, updater and impact test-root bindings.
 Its artifacts are retained with the native results; tests never need a fallback
