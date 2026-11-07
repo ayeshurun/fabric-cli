@@ -47,6 +47,11 @@ blocking; these early checks do not replace native feature profiles or frozen
 source comparisons. Engineering receipts record the exact source SHA, host,
 case counts and observed PTY cleanup data.
 
+The complete CLI preflight creates its isolated test directory under
+`RUNNER_TEMP` and supplies the identity, updater and impact test-root bindings.
+Its artifacts are retained with the native results; tests never need a fallback
+directory inside the checkout.
+
 PTY cleanup drains already queued output while reaping only the owned child
 within the existing wait budget. A confirmed process-tree cleanup is distinct
 from observing terminal restoration: unavailable terminal state is recorded as
