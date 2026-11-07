@@ -110,7 +110,7 @@ const REGISTRY = Object.freeze({
   'oracle-tools': {
     step: 'Prepare isolated frozen Python source and candidate oracle overlays',
     commands: c => [
-      ...['test_release_verify.py', 'test_native_acceptance.py',
+      ...['test_release_verify.py', 'test_native_acceptance*.py',
         'test_assemble_native_release.py', 'test_pinned_python_source.py',
         'test_check_command_acceptance.py']
         .map(pattern => c.toolingUnit(['scripts'], pattern)),
@@ -124,8 +124,8 @@ const REGISTRY = Object.freeze({
   },
   'batch-oracle': {
     step: 'Verify independent pinned batch observations',
-    commands: c => [c.reference(['hosts', 'cli', 'fabric-cli', 'tests', 'batch_reference.py'],
-      '--check', c.file('hosts', 'cli', 'fabric-cli', 'tests', 'batch_source.json'))],
+    commands: c => [c.reference(['frontends', 'cli', 'app', 'tests', 'batch_reference.py'],
+      '--check', c.file('frontends', 'cli', 'app', 'tests', 'batch_source.json'))],
   },
   transport: {
     step: 'Validate the explicitly selected native transport',
@@ -203,7 +203,7 @@ const REGISTRY = Object.freeze({
   repl: {
     step: 'Check optional removable terminal host without terminal or identity access',
     // Core: fabric-cli + fabric-cli-repl, feature fabric-cli/repl.
-    commands: c => [c.unit(['hosts', 'repl', 'fabric-cli-repl', 'tests'],
+    commands: c => [c.unit(['frontends', 'cli', 'shell', 'tests'],
       'test_source_oracle.py', false)],
   },
   interactive: {
@@ -270,7 +270,7 @@ const REGISTRY = Object.freeze({
   },
   'import-oracle': {
     step: 'Require immutable import input and Environment lifecycle source receipts',
-    commands: c => [c.reference(['capabilities', 'deployment', 'fabric-deploy',
+    commands: c => [c.reference(['sdk', 'deployment',
       'tests', 'definition_import_reference_checks.py'])],
   },
   'parameters-oracle': {
@@ -285,7 +285,7 @@ const REGISTRY = Object.freeze({
       ...['configured_flags', 'flag_protocol', 'config_value_edges', 'parameter_context',
         'parameter_pipeline', 'path_filter', 'selected_constants', 'parameter_resolution',
         'parameter_schema_edges', 'config_extensions_execution'].map(name =>
-        c.reference(['capabilities', 'deployment', 'fabric-deploy', 'tests',
+        c.reference(['sdk', 'deployment', 'tests',
           `${name}_reference.py`], '--reference-root', c.parameterRoot)),
     ],
   },

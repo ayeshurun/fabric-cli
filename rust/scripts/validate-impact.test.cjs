@@ -71,6 +71,28 @@ test('default full packages are grouped but exact target commands remain separat
   assert.deepEqual(commands[1].args.slice(-5), ['--bin', 'demo', '--example', 'probe', '--lib']);
 });
 
+test('full-workspace command ids use bounded diagnostic filenames without losing receipt identity', t => {
+  const root = temporary(t);
+  const context = {root, artifacts: root, commandTimeout: 1000, deadline: Date.now() + 10000, results: []};
+  const id = `default:test:${Array.from({length: 35}, (_, index) =>
+    `fabric-workspace-component-${index}`).join(',')}`;
+  const execute = () => ({status: 0, stdout: 'recorded stdout', stderr: 'recorded stderr'});
+  for (const suffix of ['', ',different-final-component']) {
+    commandResult({id: id + suffix, program: 'cargo', args: ['test', '--all-targets']},
+      context, execute);
+  }
+  assert.deepEqual(context.results.map(record => record.id), [id, `${id},different-final-component`]);
+  for (const record of context.results) {
+    assert.ok(Buffer.byteLength(path.basename(record.stdout)) <= 80);
+    assert.ok(Buffer.byteLength(path.basename(record.stderr)) <= 80);
+    assert.equal(fs.readFileSync(record.stdout, 'utf8'), 'recorded stdout');
+    assert.equal(fs.readFileSync(record.stderr, 'utf8'), 'recorded stderr');
+    assert.deepEqual(record.args, ['test', '--all-targets']);
+  }
+  assert.notEqual(path.basename(context.results[0].stdout).slice(4),
+    path.basename(context.results[1].stdout).slice(4));
+});
+
 test('feature tests use the tested package feature forwarding, never unrelated workspace features', () => {
   const p = plan();
   assert.deepEqual(ownFeatures(p.profiles[0], 'cli'), ['cli/native-read']);
@@ -143,6 +165,10 @@ test('recorded command execution retains failures, output hashes, counts and lit
     assert.equal(program, 'cargo');
     assert.deepEqual(args, command.args);
     assert.equal(opts.shell, false);
+    for (const name of ['FAB_UPDATE_TEST_ROOT', 'FAB_IDENTITY_TEST_ROOT']) {
+      assert.equal(opts.env[name], root);
+      assert.ok(path.isAbsolute(opts.env[name]));
+    }
     return {status: 0, stdout: 'test result: ok. 4 passed; 0 failed; 1 ignored;\n', stderr: ''};
   };
   commandResult(command, context, execute);

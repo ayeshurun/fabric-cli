@@ -44,6 +44,44 @@ const inside = (parent, child) => {
     !path.isAbsolute(relative), `${child} is not contained in ${parent}`);
 };
 
+test('native preflights preserve exact engineering inventory and the mandatory full matrix', () => {
+  const workflow = fs.readFileSync(path.join(__dirname, '../../.github/workflows/rust-ci.yml'), 'utf8');
+  assert.match(workflow, /pattern, count = "test_native_acceptance\*\.py", 38/);
+  assert.ok(workflow.includes('result.testsRun == count and not result.expectedFailures and skips == expected'));
+  assert.ok(workflow.includes('requires_native_POSIX_PTY'));
+  assert.ok(workflow.includes('with open("native-acceptance.log", "w", encoding="utf-8")'));
+  assert.ok(!workflow.includes('with open(pattern + ".log"'));
+  assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
+  assert.ok(workflow.includes('cargo test --offline --locked -p fabric-cli --all-targets --all-features --no-fail-fast'));
+  assert.ok(workflow.includes('FAB_IDENTITY_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('FAB_UPDATE_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
+  assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
+    workflow.indexOf('Preflight every current feature and target under strict native lints'));
+  assert.ok(workflow.indexOf('Preflight every current feature and target under strict native lints') <
+    workflow.indexOf('Exercise complete native CLI targets before the full feature plan'));
+  assert.ok(workflow.indexOf('Exercise complete native CLI targets before the full feature plan') <
+    workflow.indexOf('Execute the shared local and CI validation plan'));
+  const cliPreflight = workflow.slice(
+    workflow.indexOf('      - name: Exercise complete native CLI targets before the full feature plan'),
+    workflow.indexOf('      - name: Execute the shared local and CI validation plan'));
+  const preflightRoot = '${{ runner.temp }}/rust-cli-preflight';
+  for (const name of ['FAB_IDENTITY_TEST_ROOT', 'FAB_UPDATE_TEST_ROOT', 'IMPACT_TEST_ROOT']) {
+    assert.ok(cliPreflight.includes(`${name}: ${preflightRoot}`));
+  }
+  assert.ok(cliPreflight.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
+  assert.ok(cliPreflight.indexOf('mkdir -p "$FAB_IDENTITY_TEST_ROOT"') <
+    cliPreflight.indexOf('cargo test --offline --locked'));
+  const retainedArtifacts = workflow.slice(
+    workflow.indexOf('      - name: Retain plan and actual command exits, hashes and coverage'));
+  assert.ok(retainedArtifacts.includes(preflightRoot));
+  assert.ok(workflow.includes('--restore-oracle-deps --execute'));
+  assert.ok(workflow.includes('os: [windows-2025, ubuntu-24.04, macos-15]'));
+  assert.ok(workflow.includes('timeout-minutes: 120'));
+  assert.ok(workflow.includes('contents: read'));
+  assert.ok(!workflow.includes('continue-on-error'));
+});
+
 function withTargetEnvironment(value, action) {
   const previous = process.env.CARGO_TARGET_DIR;
   if (value === undefined) delete process.env.CARGO_TARGET_DIR;
@@ -245,7 +283,7 @@ test('oracle preparation runs all six tooling suites before its captured marker'
   assert.equal(result.length, 7);
   assert.deepEqual(result.slice(0, -1).map(command => valueAfter(command, '-p')).sort(), [
     'test_assemble_native_release.py', 'test_check_command_acceptance.py', 'test_check_report.py',
-    'test_native_acceptance.py', 'test_pinned_python_source.py', 'test_release_verify.py',
+    'test_native_acceptance*.py', 'test_pinned_python_source.py', 'test_release_verify.py',
   ]);
   const identity = result.find(command => command.args.includes('test_check_report.py'));
   assert.equal(valueAfter(identity, '-s'), path.join(rust, 'tests', 'acceptance', 'identity'));
@@ -398,16 +436,15 @@ test('parameter source has finite immutable Git argv before all ten frozen compa
     'parameter_resolution', 'parameter_schema_edges', 'config_extensions_execution'];
   result.slice(4).forEach((command, index) => {
     assert.equal(command.cwd, pinnedRust);
-    assert.deepEqual(command.args, ['-B', path.join('capabilities', 'deployment',
-      'fabric-deploy', 'tests', `${references[index]}_reference.py`),
+    assert.deepEqual(command.args, ['-B', path.join('sdk', 'deployment', 'tests', `${references[index]}_reference.py`),
     '--reference-root', parameterRoot]);
   });
 });
 
 test('remaining frozen source gates preserve batch, definition, import and export selectors', () => {
   assert.deepEqual(commands('batch-oracle')[0].args, ['-B',
-    path.join('hosts', 'cli', 'fabric-cli', 'tests', 'batch_reference.py'),
-    '--check', path.join('hosts', 'cli', 'fabric-cli', 'tests', 'batch_source.json')]);
+    path.join('frontends', 'cli', 'app', 'tests', 'batch_reference.py'),
+    '--check', path.join('frontends', 'cli', 'app', 'tests', 'batch_source.json')]);
   const definitions = commands('definitions-oracle');
   assert.equal(definitions.length, 3);
   assert.equal(valueAfter(definitions[0], '-p'), 'test_run_definition_parity.py');
@@ -415,8 +452,7 @@ test('remaining frozen source gates preserve batch, definition, import and expor
   assert.equal(valueAfter(definitions[1], '--artifacts'), path.join(artifacts, 'definition-parity'));
   assert.deepEqual(definitions[2].args, ['test', '--offline', '--locked', '-p',
     'fabric-deploy', '--test', 'definitions']);
-  assert.equal(script(commands('import-oracle')[0]), path.join('capabilities', 'deployment',
-    'fabric-deploy', 'tests', 'definition_import_reference_checks.py'));
+  assert.equal(script(commands('import-oracle')[0]), path.join('sdk', 'deployment', 'tests', 'definition_import_reference_checks.py'));
   const [exportCommand] = commands('export-oracle');
   assert.equal(script(exportCommand), path.join('tests', 'compatibility', 'run_export_source_parity.py'));
   assert.equal(valueAfter(exportCommand, '--artifacts'),
