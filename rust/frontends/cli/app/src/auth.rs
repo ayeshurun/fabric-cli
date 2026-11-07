@@ -7,7 +7,9 @@ use fabric_cli::parser::AuthCommand;
 use fabric_cli_output::text::OutputFormat;
 #[cfg(all(test, windows, feature = "windows-broker"))]
 use serde_json::json;
-use std::io::{self, Write};
+use std::io;
+#[cfg(any(all(windows, feature = "windows-broker"), feature = "interactive"))]
+use std::io::Write;
 #[cfg(all(windows, feature = "windows-broker"))]
 use std::sync::{
     Arc,
@@ -394,6 +396,7 @@ fn write_auth_outcome(
     write_auth_outcome_with_format(result, OutputFormat::Json, stdout, stderr)
 }
 
+#[cfg(any(all(windows, feature = "windows-broker"), feature = "interactive"))]
 pub(crate) fn write_auth_outcome_with_format(
     result: Result<serde_json::Value, commands::Failure>,
     format: OutputFormat,

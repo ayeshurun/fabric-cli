@@ -71,6 +71,11 @@ not require enabling `headless`, changing SDK dependencies or altering the
 existing helper algorithms. The full matrix checks this isolated feature
 separately; an all-feature build alone cannot establish its compilation.
 
+The private authentication outcome writer and its `Write` import compile for
+their actual Windows-broker and interactive callers. POSIX broker-only builds
+retain their explicit unsupported-provider behavior without an unused
+presentation helper or a lint suppression.
+
 The complete CLI preflight creates its isolated test directory under
 `RUNNER_TEMP` and supplies the identity, updater and impact test-root bindings.
 Its artifacts are retained with the native results; tests never need a fallback
