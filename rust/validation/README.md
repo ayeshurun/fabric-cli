@@ -42,6 +42,10 @@ not component owning-package fields or test packages supplied solely by
 structural components. An uncovered reverse Cargo consumer still requires its
 full runtime tests even when its architecture contract is selected.
 
+The shared subprocess profile helper is an input of `cli-shared-test-helpers`.
+Its headless, job, local and endpoint configuration consumers remain explicit
+test targets alongside the existing helper inclusion union.
+
 A test descriptor names its Cargo package and one actual `lib`, `bin:NAME`,
 `test:NAME`, or `example:NAME` target. This catalog deliberately uses no test-name
 filters: the integration targets often contain several item families or include

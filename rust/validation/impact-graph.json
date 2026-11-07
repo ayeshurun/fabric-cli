@@ -830,6 +830,10 @@
       "inputs": ["rust/frontends/cli/app/tests/family_support/**", "rust/frontends/cli/app/tests/folder_support/**", "rust/frontends/cli/app/tests/support/**"],
       "depends_on": [],
       "tests": [
+        {"package": "fabric-cli", "target": "test:headless_configuration"},
+        {"package": "fabric-cli", "target": "test:job_cli_contract"},
+        {"package": "fabric-cli", "target": "test:local_mounted"},
+        {"package": "fabric-cli", "target": "test:native_endpoint_configuration"},
         {"package": "fabric-cli", "target": "test:family_mounts"},
         {"package": "fabric-cli", "target": "test:deploy_full"},
         {"package": "fabric-cli", "target": "test:deploy_mount"},

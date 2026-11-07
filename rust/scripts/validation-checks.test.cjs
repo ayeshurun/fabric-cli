@@ -52,10 +52,29 @@ test('native preflights preserve exact engineering inventory and the mandatory f
   assert.ok(workflow.includes('with open("native-acceptance.log", "w", encoding="utf-8")'));
   assert.ok(!workflow.includes('with open(pattern + ".log"'));
   assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
+  assert.ok(workflow.includes('cargo test --offline --locked -p fabric-cli --all-targets --all-features --no-fail-fast'));
+  assert.ok(workflow.includes('FAB_IDENTITY_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('FAB_UPDATE_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
   assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
     workflow.indexOf('Preflight every current feature and target under strict native lints'));
   assert.ok(workflow.indexOf('Preflight every current feature and target under strict native lints') <
+    workflow.indexOf('Exercise complete native CLI targets before the full feature plan'));
+  assert.ok(workflow.indexOf('Exercise complete native CLI targets before the full feature plan') <
     workflow.indexOf('Execute the shared local and CI validation plan'));
+  const cliPreflight = workflow.slice(
+    workflow.indexOf('      - name: Exercise complete native CLI targets before the full feature plan'),
+    workflow.indexOf('      - name: Execute the shared local and CI validation plan'));
+  const preflightRoot = '${{ runner.temp }}/rust-cli-preflight';
+  for (const name of ['FAB_IDENTITY_TEST_ROOT', 'FAB_UPDATE_TEST_ROOT', 'IMPACT_TEST_ROOT']) {
+    assert.ok(cliPreflight.includes(`${name}: ${preflightRoot}`));
+  }
+  assert.ok(cliPreflight.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
+  assert.ok(cliPreflight.indexOf('mkdir -p "$FAB_IDENTITY_TEST_ROOT"') <
+    cliPreflight.indexOf('cargo test --offline --locked'));
+  const retainedArtifacts = workflow.slice(
+    workflow.indexOf('      - name: Retain plan and actual command exits, hashes and coverage'));
+  assert.ok(retainedArtifacts.includes(preflightRoot));
   assert.ok(workflow.includes('--restore-oracle-deps --execute'));
   assert.ok(workflow.includes('os: [windows-2025, ubuntu-24.04, macos-15]'));
   assert.ok(workflow.includes('timeout-minutes: 120'));

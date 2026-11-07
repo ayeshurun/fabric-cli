@@ -399,13 +399,20 @@ fn native_batch_missing_selection_is_handled_and_last_returned_exit_wins() {
     assert!(version.stderr.is_empty());
     let configured = invoke(&control.0, &["config", "set", "show_hidden", "true"]);
     success(&configured);
-    let message = if cfg!(windows) {
+    let missing_helper = cfg!(all(target_os = "macos", feature = "interactive"));
+    let message = if missing_helper {
+        "Device-code login requires explicit tenant and client GUIDs; account is an optional UPN hint."
+            .to_owned()
+    } else if cfg!(windows) {
         "No Windows broker account is selected. Run fab-rs auth login, or set FAB_RUST_TENANT, FAB_RUST_ACCOUNT and FAB_RUST_CLIENT_ID explicitly."
             .to_owned()
     } else {
         fabric_cli::HostError::NotConfigured.to_string()
     };
-    let error = json!({"error": {"code": "NotConfigured", "message": message}});
+    let error = json!({"error": {
+        "code": if missing_helper { "invalid_configuration" } else { "NotConfigured" },
+        "message": message
+    }});
     let output = invoke(
         &root.0,
         &[
@@ -417,29 +424,41 @@ fn native_batch_missing_selection_is_handled_and_last_returned_exit_wins() {
             "config set show_hidden true",
         ],
     );
-    success(&output);
-    assert_eq!(
-        output.stdout,
-        [
-            version.stdout.as_slice(),
-            configured.stdout.as_slice(),
-            b"\n\n\n* 3 commands executed.\n\n",
-        ]
-        .concat()
-    );
-    assert_eq!(
-        output.stderr,
-        [
-            format!("------------------------------\n{error}\n------------------------------\n")
+    if missing_helper {
+        assert_eq!(output.status.code(), Some(1));
+        assert_eq!(output.stdout, version.stdout);
+        assert_eq!(
+            output.stderr,
+            format!("------------------------------\n{error}\n").as_bytes()
+        );
+        assert!(!root.0.join("config.json").exists());
+    } else {
+        success(&output);
+        assert_eq!(
+            output.stdout,
+            [
+                version.stdout.as_slice(),
+                configured.stdout.as_slice(),
+                b"\n\n\n* 3 commands executed.\n\n",
+            ]
+            .concat()
+        );
+        assert_eq!(
+            output.stderr,
+            [
+                format!(
+                    "------------------------------\n{error}\n------------------------------\n"
+                )
                 .as_bytes(),
-            configured.stderr.as_slice(),
-        ]
-        .concat()
-    );
-    assert_eq!(
-        fs::read(root.0.join("config.json")).unwrap(),
-        fs::read(control.0.join("config.json")).unwrap()
-    );
+                configured.stderr.as_slice(),
+            ]
+            .concat()
+        );
+        assert_eq!(
+            fs::read(root.0.join("config.json")).unwrap(),
+            fs::read(control.0.join("config.json")).unwrap()
+        );
+    }
     assert!(!root.0.join("broker-session.json").exists());
     assert!(!root.0.join("context-37.json").exists());
 
@@ -447,20 +466,28 @@ fn native_batch_missing_selection_is_handled_and_last_returned_exit_wins() {
     assert_eq!(failure_last.status.code(), Some(1));
     assert_eq!(
         failure_last.stdout,
-        [
-            version.stdout.as_slice(),
-            b"\n\n\n* 2 commands executed.\n\n"
-        ]
-        .concat()
+        if missing_helper {
+            version.stdout.clone()
+        } else {
+            [
+                version.stdout.as_slice(),
+                b"\n\n\n* 2 commands executed.\n\n",
+            ]
+            .concat()
+        }
     );
     assert_eq!(
         failure_last.stderr,
         format!("------------------------------\n{error}\n").as_bytes()
     );
-    assert_eq!(
-        fs::read(root.0.join("config.json")).unwrap(),
-        fs::read(control.0.join("config.json")).unwrap()
-    );
+    if missing_helper {
+        assert!(!root.0.join("config.json").exists());
+    } else {
+        assert_eq!(
+            fs::read(root.0.join("config.json")).unwrap(),
+            fs::read(control.0.join("config.json")).unwrap()
+        );
+    }
 }
 
 #[test]
@@ -475,10 +502,16 @@ fn batch_auth_malformed_selection_is_not_cancellation_and_never_opens_a_provider
             "an explicit account, tenant GUID and client GUID are required",
             2,
         )
+    } else if cfg!(feature = "interactive") {
+        (
+            "invalid_configuration",
+            "Device-code login requires explicit tenant and client GUIDs; account is an optional UPN hint.",
+            1,
+        )
     } else {
         (
             "unsupported",
-            "Windows broker authentication requires Windows.",
+            "Device-code authentication requires an interactive feature build; no provider fallback was attempted.",
             1,
         )
     };

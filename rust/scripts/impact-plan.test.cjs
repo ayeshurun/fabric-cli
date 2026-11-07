@@ -877,3 +877,14 @@ test('Advanced identity and CLI catalog inputs use the current package roots', (
     assert.ok(component.checks.includes('combined'), id);
   }
 });
+
+test('Shared unconfigured-profile helper retains every actual subprocess consumer', () => {
+  const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, '../validation/impact-graph.json')));
+  const component = catalog.components.find(item => item.id === 'cli-shared-test-helpers');
+  assert.ok(component.inputs.includes('rust/frontends/cli/app/tests/support/**'));
+  for (const target of ['headless_configuration', 'job_cli_contract',
+    'local_mounted', 'native_endpoint_configuration']) {
+    assert.ok(component.tests.some(item =>
+      item.package === 'fabric-cli' && item.target === `test:${target}`), target);
+  }
+});

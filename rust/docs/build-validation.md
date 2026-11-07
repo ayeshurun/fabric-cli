@@ -40,11 +40,41 @@ the diagnostic expected for the selected feature profile.
 The native workflow first runs all 33 existing engineering-harness tests and
 five additional bounded-PTY unit tests with an explicit inventory and the
 original Windows-only POSIX-PTY skip. It then
-preflights every workspace target and feature under strict Clippy before the
+preflights every workspace target and feature under strict Clippy and exercises
+all CLI targets with every feature before the
 unchanged full dependency-selected plan. Failure in either preflight remains
 blocking; these early checks do not replace native feature profiles or frozen
 source comparisons. Engineering receipts record the exact source SHA, host,
 case counts and observed PTY cleanup data.
+The CLI preflight keeps executing remaining targets after a failed target to
+expose all failures in one bounded run; its final failure still blocks the plan.
+
+Early CLI tests and the shared validator provide explicit artifact-only identity
+and updater fixture roots. The preflight creates its directory under
+`RUNNER_TEMP`; the full validator injects its existing artifact root. Tests do
+not require a writable ambient profile or fall back to source-tree fixtures.
+Batch authentication expectations follow the actual selected platform/provider:
+on POSIX, the default device-code method either reports missing explicit
+configuration or an unavailable feature, without contacting a provider.
+
+The same test-only profile classifier applies to rootless read, job and endpoint
+subprocess contracts. An interactive non-broker profile with no explicit
+configuration reports `invalid_configuration` before selecting credentials;
+other unconfigured profiles retain `NotConfigured`. On macOS, a batch without
+the required protected-store helper stops at that configuration failure, without
+running later mutations or emitting a completed-command summary. The existing
+handled missing-selection branch remains exercised on its applicable profiles.
+
+The standalone `interactive` feature composes the same private native batch
+binding, home-context and outcome helpers as broker and headless hosts. It does
+not require enabling `headless`, changing SDK dependencies or altering the
+existing helper algorithms. The full matrix checks this isolated feature
+separately; an all-feature build alone cannot establish its compilation.
+
+The complete CLI preflight creates its isolated test directory under
+`RUNNER_TEMP` and supplies the identity, updater and impact test-root bindings.
+Its artifacts are retained with the native results; tests never need a fallback
+directory inside the checkout.
 
 PTY cleanup drains already queued output while reaping only the owned child
 within the existing wait budget. A confirmed process-tree cleanup is distinct
@@ -55,6 +85,11 @@ still requires an observed restoration; a cleanup unit test cannot establish it.
 Certificate feature tests share one test-only declaration of the existing
 public verification vectors. Enabling both PKCS11 and macOS certificate
 features does not load that fixture twice or change its bytes or assertions.
+
+Lexical transfer-path unit tests preserve their Windows inputs on Windows.
+On POSIX they translate only fixture drive prefixes and separators to native
+absolute and relative paths. Every original tilde, named-user and deferred
+validation case remains checked; no production path-selection rule changes.
 
 ## Frozen references alongside current upstream source
 

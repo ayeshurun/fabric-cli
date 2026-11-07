@@ -7,6 +7,9 @@
 
 use std::process::{Command, Output};
 
+#[path = "support/unconfigured_profile.rs"]
+mod unconfigured_profile;
+
 fn invoke(args: &[&str], environment: &[(&str, &str)]) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_fab-rs"));
     command
@@ -65,7 +68,10 @@ fn remote_commands_require_explicit_valid_mode_and_never_echo_values() {
         &[("FAB_RUST_CLIENT_SECRET", "synthetic-secret")],
     );
     assert_eq!(result.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&result.stderr).contains("NotConfigured"));
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&result.stderr).unwrap()["error"]["code"],
+        unconfigured_profile::error_code()
+    );
 }
 
 #[test]
@@ -77,7 +83,10 @@ fn pipeline_system_token_alone_never_selects_authentication() {
     assert_eq!(result.status.code(), Some(1));
     assert!(result.stdout.is_empty());
     let error = String::from_utf8_lossy(&result.stderr);
-    assert!(error.contains("NotConfigured"));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&error).unwrap()["error"]["code"],
+        unconfigured_profile::error_code()
+    );
     assert!(!error.contains("sensitive-system-token"));
 }
 
@@ -93,7 +102,10 @@ fn certificate_presence_alone_never_selects_authentication() {
     assert_eq!(result.status.code(), Some(1));
     assert!(result.stdout.is_empty());
     let error = String::from_utf8_lossy(&result.stderr);
-    assert!(error.contains("NotConfigured"));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&error).unwrap()["error"]["code"],
+        unconfigured_profile::error_code()
+    );
     assert!(!error.contains("sensitive-"));
 }
 
