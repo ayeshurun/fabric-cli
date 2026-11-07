@@ -46,6 +46,16 @@ unchanged full dependency-selected plan. Failure in either preflight remains
 blocking; these early checks do not replace native feature profiles or frozen
 source comparisons. Engineering receipts record the exact source SHA, host,
 case counts and observed PTY cleanup data.
+The CLI preflight keeps executing remaining targets after a failed target to
+expose all failures in one bounded run; its final failure still blocks the plan.
+
+Early CLI tests and the shared validator provide explicit artifact-only identity
+and updater fixture roots. The preflight creates its directory under
+`RUNNER_TEMP`; the full validator injects its existing artifact root. Tests do
+not require a writable ambient profile or fall back to source-tree fixtures.
+Batch authentication expectations follow the actual selected platform/provider:
+on POSIX, the default device-code method either reports missing explicit
+configuration or an unavailable feature, without contacting a provider.
 
 PTY cleanup drains already queued output while reaping only the owned child
 within the existing wait budget. A confirmed process-tree cleanup is distinct

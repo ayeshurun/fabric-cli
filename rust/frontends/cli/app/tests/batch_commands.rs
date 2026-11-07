@@ -475,10 +475,16 @@ fn batch_auth_malformed_selection_is_not_cancellation_and_never_opens_a_provider
             "an explicit account, tenant GUID and client GUID are required",
             2,
         )
+    } else if cfg!(feature = "interactive") {
+        (
+            "invalid_configuration",
+            "Device-code login requires explicit tenant and client GUIDs; account is an optional UPN hint.",
+            1,
+        )
     } else {
         (
             "unsupported",
-            "Windows broker authentication requires Windows.",
+            "Device-code authentication requires an interactive feature build; no provider fallback was attempted.",
             1,
         )
     };

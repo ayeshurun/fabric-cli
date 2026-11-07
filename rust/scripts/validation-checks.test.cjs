@@ -52,7 +52,10 @@ test('native preflights preserve exact engineering inventory and the mandatory f
   assert.ok(workflow.includes('with open("native-acceptance.log", "w", encoding="utf-8")'));
   assert.ok(!workflow.includes('with open(pattern + ".log"'));
   assert.ok(workflow.includes('cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings'));
-  assert.ok(workflow.includes('cargo test --offline --locked -p fabric-cli --all-targets --all-features'));
+  assert.ok(workflow.includes('cargo test --offline --locked -p fabric-cli --all-targets --all-features --no-fail-fast'));
+  assert.ok(workflow.includes('FAB_IDENTITY_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('FAB_UPDATE_TEST_ROOT: ${{ runner.temp }}/rust-cli-preflight'));
+  assert.ok(workflow.includes('mkdir -p "$FAB_IDENTITY_TEST_ROOT"'));
   assert.ok(workflow.indexOf('Check bounded engineering cleanup before native compilation') <
     workflow.indexOf('Preflight every current feature and target under strict native lints'));
   assert.ok(workflow.indexOf('Preflight every current feature and target under strict native lints') <
