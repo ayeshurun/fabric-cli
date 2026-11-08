@@ -682,14 +682,13 @@ impl LoadedModule {
 
 impl Drop for LoadedModule {
     fn drop(&mut self) {
-        if self.initialized {
-            if let Some(context) = self.context.take() {
-                if context.clone().finalize().is_err() {
-                    std::mem::forget(context);
-                    if let Some(file) = self.file.take() {
-                        std::mem::forget(file);
-                    }
-                }
+        if self.initialized
+            && let Some(context) = self.context.take()
+            && context.clone().finalize().is_err()
+        {
+            std::mem::forget(context);
+            if let Some(file) = self.file.take() {
+                std::mem::forget(file);
             }
         }
     }
@@ -1140,13 +1139,10 @@ fn signing_plan(context: &Pkcs11, slot: Slot, bits: usize) -> Result<SigningPlan
 }
 
 #[cfg(test)]
-#[path = "../../windows/src/certificate_vectors.rs"]
-mod public_vectors;
-
-#[cfg(test)]
 mod tests {
     #![deny(unnameable_test_items)]
 
+    use super::super::public_certificate_vectors as public_vectors;
     use super::*;
     use std::{
         io::Cursor,
@@ -1363,7 +1359,9 @@ mod tests {
     fn hex(value: &str) -> Vec<u8> {
         value
             .as_bytes()
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
             .collect()
     }

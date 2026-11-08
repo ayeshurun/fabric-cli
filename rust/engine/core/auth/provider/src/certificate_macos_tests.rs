@@ -303,8 +303,7 @@ fn selected_certificate_is_verified_again_before_host_publication() {
     );
 }
 
-#[path = "../../windows/src/certificate_vectors.rs"]
-mod public_vector;
+use super::super::public_certificate_vectors as public_vector;
 
 #[test]
 fn finite_pipe_reads_accept_exact_limit_and_reject_overflow() {

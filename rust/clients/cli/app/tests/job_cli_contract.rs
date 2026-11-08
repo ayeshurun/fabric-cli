@@ -5,6 +5,9 @@
 
 use std::process::{Command, Output};
 
+#[path = "support/unconfigured_profile.rs"]
+mod unconfigured_profile;
+
 fn invoke(args: &[&str], selectors: bool) -> Output {
     let mut binary = Command::new(env!("CARGO_BIN_EXE_fab-rs"));
     binary.env_clear();
@@ -65,7 +68,7 @@ fn job_reads_never_discover_credentials_or_fabricate_success() {
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
         let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
-        assert_eq!(error["error"]["code"], "NotConfigured");
+        assert_eq!(error["error"]["code"], unconfigured_profile::error_code());
         assert!(!String::from_utf8_lossy(&output.stderr).contains("Secret"));
     }
 }
@@ -109,7 +112,7 @@ fn native_job_selection_preserves_read_failure_order_without_credentials() {
     let error: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
     assert_eq!(
         error["error"]["code"],
-        if cfg!(windows) {
+        if cfg!(any(windows, feature = "interactive")) {
             "invalid_configuration"
         } else {
             "unsupported"

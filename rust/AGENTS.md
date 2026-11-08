@@ -93,13 +93,14 @@ CLA, required checks, restricted-area review, and authority boundaries still app
 Run the pinned checks from this directory, not the repository root. There is no
 fixed crate count. Prefer focused crates that enable independent ownership,
 implementation, and testing, with explicit interfaces and acyclic dependencies.
-Crates live below `engine/` and `clients/` with short responsibility-based
-directory names and unchanged Cargo package identities. Register new packages
-in the explicit workspace `members`; architecture tests recursively discover
-both roots and reject unregistered packages. Group reusable clients and
-workflows under engine control/data-plane capabilities, shared foundations under
-`engine/core/`, and CLI composition/adapters under `clients/cli/`. Physical
-grouping does not change architectural layers or permit new dependency edges.
+Reusable packages live under `engine/`, grouped by control/data-plane
+capabilities and shared `core/` foundations, and CLI-specific packages under
+`clients/cli/`. Register package leaves in the explicit workspace `members`;
+grouping directories are not crates. The architecture contract independently
+discovers manifests recursively under both roots and rejects unregistered
+packages and obsolete production roots. Physical grouping does not change
+architectural layers or permit new dependency edges. Authentication providers
+remain optional companion packages; SDK service clients still inject credentials.
 Declare each crate's
 `package.metadata.fabric.layer` and add safe crates to `default-members` as
 described in the architecture guide. The owner-approved optional

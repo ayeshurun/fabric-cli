@@ -38,9 +38,15 @@ pub(crate) struct BatchState {
     interactive: bool,
     initial: Result<(String, bool), fabric_cli_output::CommandError>,
     pub(crate) navigation: Option<NavigationState>,
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive", test)
+    ))]
     binding: Option<(String, String, String, String)>,
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless")))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive")
+    ))]
     home: Result<Option<String>, String>,
 }
 
@@ -66,9 +72,15 @@ impl BatchState {
             interactive: false,
             initial: initial.map_err(|error| error.command_error()),
             navigation: None,
-            #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+            #[cfg(all(
+                feature = "native-host",
+                any(windows, feature = "headless", feature = "interactive", test)
+            ))]
             binding: None,
-            #[cfg(all(feature = "native-host", any(windows, feature = "headless")))]
+            #[cfg(all(
+                feature = "native-host",
+                any(windows, feature = "headless", feature = "interactive")
+            ))]
             home: match std::env::var("FAB_RUST_HOME") {
                 Ok(home) => Ok(Some(home)),
                 Err(std::env::VarError::NotPresent) => Ok(None),
@@ -123,7 +135,10 @@ impl BatchState {
         )
     }
 
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive", test)
+    ))]
     pub(crate) async fn family<T>(
         &mut self,
         execute: impl AsyncFnOnce(&mut NavigationState) -> T,
@@ -135,12 +150,18 @@ impl BatchState {
         result
     }
 
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless")))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive")
+    ))]
     pub(crate) fn home(&self) -> Result<Option<String>, String> {
         self.home.clone()
     }
 
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive", test)
+    ))]
     pub(crate) fn bind(
         &mut self,
         tenant: &str,
@@ -151,7 +172,10 @@ impl BatchState {
         self.bind_provider(tenant, account, client, "broker", home)
     }
 
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive", test)
+    ))]
     pub(crate) fn bind_provider(
         &mut self,
         tenant: &str,
@@ -181,7 +205,10 @@ impl BatchState {
         Ok(())
     }
 
-    #[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+    #[cfg(all(
+        feature = "native-host",
+        any(windows, feature = "headless", feature = "interactive", test)
+    ))]
     pub(crate) fn bind_read_provider(
         &mut self,
         tenant: &str,
@@ -242,7 +269,10 @@ fn code_outcome(code: Option<&str>, exit: u8) -> CommandOutcome {
     }
 }
 
-#[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+#[cfg(all(
+    feature = "native-host",
+    any(windows, feature = "headless", feature = "interactive", test)
+))]
 pub(crate) fn read_outcome(output: &fabric_cli::session::ReadDispatch) -> CommandOutcome {
     use fabric_sdk_operations::{OperationErrorKind, OperationExecutionError};
 
@@ -269,7 +299,10 @@ pub(crate) fn read_outcome(output: &fabric_cli::session::ReadDispatch) -> Comman
         })
 }
 
-#[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+#[cfg(all(
+    feature = "native-host",
+    any(windows, feature = "headless", feature = "interactive", test)
+))]
 pub(crate) fn job_outcome(output: &fabric_cli::jobs::JobDispatch) -> CommandOutcome {
     let exit = output.plan.exit_code;
     output
@@ -283,7 +316,10 @@ pub(crate) fn job_outcome(output: &fabric_cli::jobs::JobDispatch) -> CommandOutc
         })
 }
 
-#[cfg(all(feature = "native-host", any(windows, feature = "headless", test)))]
+#[cfg(all(
+    feature = "native-host",
+    any(windows, feature = "headless", feature = "interactive", test)
+))]
 pub(crate) fn family_outcome(output: &fabric_cli::families::FamilyOutput) -> CommandOutcome {
     use fabric_cli::families::FamilyEvidence;
     let exit = output.plan.exit_code;

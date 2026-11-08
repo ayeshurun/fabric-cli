@@ -24,52 +24,55 @@ See the [CLI guide](clients/cli/app/README.md) for command composition and
 
 ## Workspace components
 
-The engine provides reusable Fabric capabilities and infrastructure. CLI
-application composition and adapters live separately:
+The source roots separate reusable functionality from CLI-specific interaction.
+Paths below are relative to this directory; each package leaf retains its own
+manifest, source, tests, examples and assets:
 
 ```text
-clients/cli/
-  app/             Executable composition and command dispatch
-  state/           CLI context and path resolution
-  output/          Presentation and stream contracts
-  query/           CLI query projection
-  commands/        Separate resource, mutation, job, storage, local,
-                   transfer and table adapters
-  repl/            Optional terminal editor and removable shell loop
-  update/          Release verification, updater and executable helper
 engine/
-  sdk/             Existing fabric-sdk convenience library
+  sdk/             Reusable convenience SDK entry point
   control-plane/
-    resources/     Workspace, capacity, folder and item clients
-    jobs/          Job instances, submission and schedules
-    acl/           Access-role and label requests
-    catalog/       Catalog search and specialized metadata
-    deployment/    Configuration, planning, publishing and removal
+    resources/     capacities/, workspaces/, folders/ and items/
+    jobs/          Job APIs and schedules
+    acl/           Access APIs
+    catalog/       Metadata discovery
+    deployment/    Reusable deployment workflows
   data-plane/
-    onelake/       Separate client and HTTP adapter packages
-    tables/        Lakehouse/Delta schema, loading and maintenance
+    tables/        Lakehouse/Delta table capabilities
+    onelake/       client/ models and http/ adapter
   core/
-    contracts/     Shared request, endpoint and credential contracts
-    json/          Ordered JSON encoding
-    auth/          Separate provider and native Windows packages
-    http/          Separate requests, executor and transport packages
-    lro/           Long-running-operation lifecycle and reconciliation
-    pagination/    Shared bounded continuation traversal
+    contracts/     Endpoint and credential contracts
+    json/          Shared ordered JSON encoding
+    auth/          provider/ credentials and isolated windows/ interop
+    http/          requests/, executor/ and optional transport/
+    pagination/    Shared paging
+    lro/           Long-running-operation lifecycle
+clients/cli/
+  app/             fab-rs executable and central composition
+  commands/        resources/, mutations/, jobs/, storage/,
+                   tables/, local/ and transfer/ adapters
+  state/           Path resolution and command context
+  query/           CLI query projection
+  output/          Presentation and streams
+  repl/            Optional terminal editor and shell loop
+  update/          Pinned-trust release verification and updates
 ```
 
-Each leaf crate retains its Cargo package name and dependency boundaries.
-The SDK directory is a convenience entry point, not the only route to engine
-functionality. Its existing Notebook implementation remains there. Control/data
-plane directories group responsibilities; table loading and maintenance still
-compose job and operation APIs. The core directory does not change package-layer
-rules or permit SDK-to-identity dependencies.
+Each leaf crate retains its package name and dependency boundaries. Grouping
+directories are not additional packages. Physical placement under `engine/` does
+not change logical layers or make authentication providers dependencies of SDK
+service clients. CLI deployment handling stays in `clients/cli/app/src/deploy.rs`;
+the reusable workflow library is `engine/control-plane/deployment/`. Additional front-ends,
+such as MCP servers or Azure DevOps tasks, can add host composition and
+capability-specific adapters without invoking the CLI executable. Those
+front-ends are not implemented by this layout.
 
-Additional front-ends, such as MCP servers or Azure DevOps tasks, can add
-application composition under `clients/` without invoking the CLI executable.
-Those front-ends are not implemented by this layout. Separate crates preserve
-targeted development, but shared interfaces and downstream consumers still
-determine rebuild and validation scope. See the
-[architecture guide](docs/architecture.md) for ownership boundaries and membership.
+Control/data-plane groups describe capability ownership, not every network
+request: table capabilities also orchestrate load and maintenance jobs.
+`engine/sdk/` retains existing item-type implementations and is not a complete
+umbrella for every capability. Focused crates remain directly usable.
+See [architecture](docs/architecture.md#physical-organization) for directory
+responsibilities and unchanged dependency-layer rules.
 
 | Component | Responsibility |
 | --- | --- |

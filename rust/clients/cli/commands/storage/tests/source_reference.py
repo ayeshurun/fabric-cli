@@ -27,9 +27,7 @@ from urllib.parse import parse_qsl, quote, urlencode
 sys.path.insert(
     0,
     str(
-        Path(__file__).resolve().parents[2]
-        / "mutations"
-        / "tests"
+        Path(__file__).resolve().parents[2] / "mutations" / "tests"
     ),
 )
 from error_reference import constants

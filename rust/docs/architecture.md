@@ -12,52 +12,48 @@ It is not a full port, release contract, or replacement for the Python product.
 
 ### Physical organization
 
-The workspace separates reusable engine libraries from application clients.
-Directory names describe responsibilities without repeating Cargo package
-prefixes. Every package retains its name, public API, features and architectural
-layer; moving a directory does not merge libraries or add dependency permission.
+The two source roots separate reusable functionality from user interaction.
+Engine capabilities use short directory names; CLI-specific composition and adapters
+live under `clients/cli/`. Packages remain independently buildable, with
+unchanged names and logical layers:
 
 | Location | Ownership |
 | --- | --- |
-| `engine/control-plane/resources/` | Workspace, item, folder and capacity clients; generic resource metadata and lifecycle |
-| `engine/control-plane/jobs/` | Job submission, instances, schedules and cancellation |
-| `engine/control-plane/acl/` | Access-role and label requests |
-| `engine/control-plane/catalog/` | Catalog search and specialized metadata/read routes |
-| `engine/control-plane/deployment/` | Configuration, transforms, planning, publication and removal workflows |
-| `engine/data-plane/onelake/` | Storage models/client/mutations and separate HTTP adapter |
-| `engine/data-plane/tables/` | Lakehouse/Delta schema access, table loading and maintenance |
-| `engine/core/contracts/` | Shared request, endpoint, credential and error contracts |
-| `engine/core/json/` | Shared ordered JSON encoding |
-| `engine/core/auth/` | Optional credential implementations and isolated Windows interop |
-| `engine/core/http/` | Explicit REST requests, shared execution and optional native transport in separate crates |
-| `engine/core/lro/` | Bounded request, acceptance, polling and result reconciliation |
-| `engine/core/pagination/` | Shared continuation traversal |
-| `engine/sdk/` | Existing `fabric-sdk` convenience entry point; focused engine packages remain directly usable |
-| `clients/cli/app/` | Executable composition, argument dispatch and native host |
-| `clients/cli/state/`, `output/`, `query/` | Separate CLI context, presentation and query-projection packages |
-| `clients/cli/commands/` | Resource, mutation, job, storage, local, transfer and table adapters in separate packages |
+| `engine/sdk/` | Convenience SDK entry point, including existing item-type implementations; not a complete umbrella |
+| `engine/control-plane/resources/` | Capacity, workspace, folder and generic item clients in separate package leaves |
+| `engine/control-plane/jobs/`, `engine/control-plane/acl/`, `engine/control-plane/catalog/` | Job and schedule APIs, access configuration and metadata discovery |
+| `engine/data-plane/tables/` | Lakehouse/Delta table capabilities, including load and maintenance orchestration |
+| `engine/data-plane/onelake/client/`, `engine/data-plane/onelake/http/` | OneLake models and HTTP adapter |
+| `engine/core/auth/provider/`, `engine/core/auth/windows/` | Optional credential providers and isolated Windows interop |
+| `engine/control-plane/deployment/` | Reusable configuration, transforms, planning, publication and definition operations |
+| `engine/core/http/requests/`, `engine/core/http/executor/`, `engine/core/http/transport/` | Explicit API requests, shared HTTP execution and optional native transport |
+| `engine/core/pagination/`, `engine/core/lro/` | Shared paging, request completion and polling |
+| `engine/core/contracts/`, `engine/core/json/` | Shared endpoint/credential contracts and ordered JSON encoding |
+| `clients/cli/app/` | `fab-rs` executable, central composition and CLI deployment handling |
+| `clients/cli/commands/` | Resource, resource-mutation, job, file, table, local and transfer adapters |
+| `clients/cli/state/`, `query/`, `output/` | CLI-specific context, query and presentation (all paths under `clients/cli/`) |
 | `clients/cli/repl/` | Removable shell loop and opt-in Reedline terminal adapter |
 | `clients/cli/update/` | Pinned-trust release verification and optional standalone updater |
 
-Control plane and data plane are capability/ownership groupings, not strict
-classifications of every request. The table package reads Delta metadata but
-also submits loading and maintenance operations through jobs and LRO. Deployment
-prepares local definitions to orchestrate resource publication; this is not
-business-data ingestion. These legitimate cross-group dependencies remain.
-`engine/core/` is a physical foundation grouping, not a declaration that its
-auth, HTTP, LRO or pagination packages have the architectural `core` layer.
-SDK consumers continue injecting credentials without depending on identity
-implementations. The convenience SDK retains its existing Notebook implementation;
-this layout does not claim that it is aggregation-only or covers every capability.
-
-Each leaf directory contains an existing named crate. The table records
-ownership boundaries, not assigned teams; `.github/CODEOWNERS` remains the
-authority for configured reviewers. There are no empty MCP or
+Each package leaf retains its manifest, sources, tests, examples and assets;
+grouping directories are not packages. Directory names do not change package or
+target names. Authentication and deployment retain their identity/deploy logical
+layers, not the SDK layer, and service clients do not depend on identity providers.
+CLI deployment argument handling remains in `clients/cli/app/src/deploy.rs`,
+not a new command package. There are no empty MCP or
 Azure DevOps task packages. Future front-ends should compose reusable APIs and
 provide their own input, confirmation and output adapters; they must not launch
 the CLI or depend on CLI-specific types simply to reuse service operations.
 Extracting additional front-end-neutral workflows requires separate interface
 review, not relabeling CLI crates or relaxing the layer rules below.
+
+Control/data planes group capability ownership rather than classify every
+network request. Table capabilities compose OneLake reads with load and
+maintenance jobs; deployment remains control-plane orchestration despite local
+configuration and definition preparation. `engine/core/` groups shared
+foundations without changing their existing core, identity or SDK layers.
+Focused capability crates remain directly consumable; this layout does not
+extract shared contracts or remove existing facade and CLI mutation coupling.
 
 | Layer (initial crate) | Ownership | Allowed dependency layers |
 | --- | --- | --- |
@@ -113,14 +109,13 @@ The same composition mounts cancellation and all three schedule mutations throug
 `Invocation::JobMutation`, with shared generic-operation reconciliation and
 explicit injected confirmation. Native non-forced removal remains unsupported,
 not an implicit yes or blocking library prompt.
-The initial five crates are not a fixed count or a maximum. The mixed-depth tree
-uses explicit paths in workspace `members`. Add each new package there and in
-the centralized dependencies as needed. Architecture tests recursively discover
-package manifests below `engine/` and `clients/` and compare them with Cargo
-metadata, so an unregistered package cannot silently escape validation.
-Discovery stops at a package boundary; do not hide new packages inside another
-package's source, tests or templates. Use sibling leaf directories when extracting
-additional implementations.
+The initial five crates are not a fixed count or a maximum. Workspace membership
+registers package leaves under `engine/` and `clients/` using explicit paths
+for the mixed-depth tree. Independent recursive manifest discovery in
+the architecture contract detects unregistered packages and rejects obsolete
+production source trees. Discovery continues through package directories, so
+nested manifests must also be registered explicitly. Do not use a blanket
+`engine/*` glob: it would also match grouping directories without manifests.
 Default members explicitly include safe crates and exclude the
 optional `fabric-identity-windows` native boundary. Add new safe crates to
 `default-members`. Each crate declares its architectural layer in its own manifest:

@@ -61,6 +61,16 @@ pub use certificate_pkcs11::{
 #[path = "certificate_macos.rs"]
 pub mod certificate_macos;
 
+#[cfg(all(
+    test,
+    any(
+        all(target_os = "linux", feature = "certificate-store-pkcs11"),
+        feature = "certificate-store-macos"
+    )
+))]
+#[path = "../../windows/src/certificate_vectors.rs"]
+mod public_certificate_vectors;
+
 const ASSERTION_LIMIT: u64 = 64 * 1024;
 const MI_VARIABLES: [&str; 6] = [
     "IDENTITY_ENDPOINT",

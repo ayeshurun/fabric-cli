@@ -36,12 +36,12 @@ Full generation and Cargo checks require the shared host's validation slot.
 
 ```powershell
 # Small offline safety checks; no full-scalar sweep.
-python -B -m unittest discover -s hosts\cli\fabric-cli-output\tests\production_unicode -p test_generate.py
-python -B hosts\cli\fabric-cli-output\tests\production_unicode\generate.py
+python -B -m unittest discover -s frontends\cli\output\tests\production_unicode -p test_generate.py
+python -B frontends\cli\output\tests\production_unicode\generate.py
 
 # Additive generation refuses existing artifact destinations.
-python -B hosts\cli\fabric-cli-output\tests\production_unicode\generate.py --generate --full-scalar-slot
-python -B hosts\cli\fabric-cli-output\tests\production_unicode\generate.py --verify --full-scalar-slot
+python -B frontends\cli\output\tests\production_unicode\generate.py --generate --full-scalar-slot
+python -B frontends\cli\output\tests\production_unicode\generate.py --verify --full-scalar-slot
 
 cargo test --offline --locked -p fabric-cli-output production_unicode -- --test-threads=1
 cargo test --offline --locked -p fabric-cli-output -- --test-threads=1

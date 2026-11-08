@@ -147,13 +147,15 @@ fn workspace_members_and_internal_edges_respect_library_boundaries() {
     while let Some(directory) = pending.pop() {
         let manifest = directory.join("Cargo.toml");
         if manifest.is_file() {
-            discovered.insert(std::fs::canonicalize(manifest).unwrap());
-        } else {
-            for entry in std::fs::read_dir(&directory).unwrap() {
-                let entry = entry.unwrap();
-                if entry.file_type().unwrap().is_dir() {
-                    pending.push(entry.path());
-                }
+            assert!(
+                discovered.insert(std::fs::canonicalize(manifest).unwrap()),
+                "source packages must be discovered exactly once"
+            );
+        }
+        for entry in std::fs::read_dir(&directory).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_dir() {
+                pending.push(entry.path());
             }
         }
     }
@@ -161,10 +163,17 @@ fn workspace_members_and_internal_edges_respect_library_boundaries() {
         declared, discovered,
         "every engine and client crate must be a workspace member"
     );
-    for obsolete in ["crates", "capabilities", "hosts", "infrastructure", "sdk"] {
+    for obsolete in [
+        "crates",
+        "capabilities",
+        "hosts",
+        "infrastructure",
+        "sdk",
+        "frontends",
+    ] {
         assert!(
             !workspace_root().join(obsolete).exists(),
-            "the obsolete {obsolete} crate directory must not remain"
+            "obsolete production crate directory must not remain: {obsolete}"
         );
     }
     for kind in ["bin", "example"] {

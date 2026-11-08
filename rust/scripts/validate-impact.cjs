@@ -128,7 +128,8 @@ function commandResult(command, context, execute = spawnSync) {
   const result = execute(command.program, command.args, {
     cwd: command.cwd || path.join(context.root, 'rust'),
     env: {...process.env, PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1',
-      FAB_UPDATE_TEST_ROOT: context.artifacts, ...command.env},
+      FAB_UPDATE_TEST_ROOT: context.artifacts,
+      FAB_IDENTITY_TEST_ROOT: context.artifacts, ...command.env},
     encoding: 'utf8',
     timeout: Math.min(context.commandTimeout,
       Math.max(1, Math.min(context.deadline, command.deadline || context.deadline) - Date.now())),
@@ -136,8 +137,12 @@ function commandResult(command, context, execute = spawnSync) {
     windowsHide: true,
     shell: false,
   });
-  const prefix = `${String(context.results.length).padStart(3, '0')}-${command.id || 'contract'}`
-    .replace(/[^a-zA-Z0-9._-]/g, '_');
+  const commandId = String(command.id || 'contract');
+  const safeId = commandId.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const label = safeId.length > 64 ?
+    `${safeId.slice(0, 40)}-${crypto.createHash('sha256').update(commandId).digest('hex').slice(0, 16)}` :
+    safeId;
+  const prefix = `${String(context.results.length).padStart(3, '0')}-${label}`;
   const stdout = result.stdout || '';
   const stderr = result.stderr || '';
   const stdoutFile = path.join(context.artifacts, `${prefix}.stdout.log`);
