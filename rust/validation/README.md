@@ -100,7 +100,7 @@ for the complete test-target lists.
 
 ### Notebook and Spark examples
 
-A change to `rust/capabilities/deployment/fabric-deploy/src/notebook.rs` selects
+A change to `rust/engine/control-plane/deployment/src/notebook.rs` selects
 `deploy-notebook`, `transfer`, `cli-deployment`, `cli-get` and the shared
 `workspace-architecture` contract. Its declared test-target union is:
 
@@ -120,7 +120,7 @@ select CLI help/version smoke, and all mapped leaves select dependency feature
 and duplicate inspection without widening their runtime target set.
 
 A change to
-`rust/capabilities/deployment/fabric-deploy/src/workflow/families/environment.rs`
+`rust/engine/control-plane/deployment/src/workflow/families/environment.rs`
 instead selects `deploy-spark-environment`, `transfer`, `cli-deployment`,
 `cli-get` and `workspace-architecture`. Its `fabric-deploy` targets are `lib`, `test:workflow`,
 `test:publisher_source_contract`, `test:deployment_endpoint`, and

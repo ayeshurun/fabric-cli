@@ -35,8 +35,8 @@ No protected-store or certificate operation may invoke an implicit prompt.
 macOS no-UI process-global policy belongs only in an isolated helper, not the
 SDK process. Locked/missing stores, required interaction and uncertain cleanup
 must remain explicit errors; no plaintext cache or alternate credential is a
-fallback. See the [native certificate contract](../../infrastructure/identity/fabric-identity/native-certificates.md)
-and [identity guide](../../infrastructure/identity/fabric-identity/README.md).
+fallback. See the [native certificate contract](../../engine/core/auth/provider/native-certificates.md)
+and [identity guide](../../engine/core/auth/provider/README.md).
 
 Authentication/core changes still require Fabric CLI team review. Offline
 protocol/lifecycle tests, compiled feature flags and successful login metadata

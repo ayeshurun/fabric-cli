@@ -134,7 +134,7 @@ exception list and not silent adoption of newer ICU data.
 
 ## Implementation and exact integration requests
 
-`hosts/cli/fabric-cli-output/src/production_unicode.rs` supplies:
+`clients/cli/output/src/production_unicode.rs` supplies:
 
 - `ProductionUnicode::from_json(reviewed_embedded_data, UnicodeLimits)`:
   immutable, caller-injected data, strict version/shape checks, complete

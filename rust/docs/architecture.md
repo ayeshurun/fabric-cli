@@ -12,28 +12,47 @@ It is not a full port, release contract, or replacement for the Python product.
 
 ### Physical organization
 
-The workspace is capability-first. Related service clients and CLI adapters
-live together without merging their packages or changing their architectural
-layers:
+The workspace separates reusable engine libraries from application clients.
+Directory names describe responsibilities without repeating Cargo package
+prefixes. Every package retains its name, public API, features and architectural
+layer; moving a directory does not merge libraries or add dependency permission.
 
 | Location | Ownership |
 | --- | --- |
-| `capabilities/resources/` | Workspace, item, folder, capacity, catalog, access and explicit API clients; resource command adapters |
-| `capabilities/jobs/` | Job service clients and command adapters |
-| `capabilities/storage/` | OneLake models, HTTP adapter and file commands |
-| `capabilities/tables/` | Table service clients and command adapters |
-| `capabilities/deployment/` | Deployment workflows and definition transfer adapters |
-| `capabilities/local/` | Local configuration, navigation and platform commands |
-| `hosts/cli/` | Executable composition and CLI-specific context, query and presentation |
-| `hosts/repl/` | Removable shell loop and opt-in Reedline terminal adapter |
-| `hosts/update/` | Pinned-trust release verification and optional standalone updater |
-| `infrastructure/core/` | Shared contracts and ordered JSON encoding |
-| `infrastructure/identity/` | Credential selection and isolated Windows interop |
-| `infrastructure/http/` | Shared HTTP execution and optional native transport |
-| `infrastructure/execution/` | Shared paging and operation reconciliation |
-| `sdk/` | Public SDK facade |
+| `engine/control-plane/resources/` | Workspace, item, folder and capacity clients; generic resource metadata and lifecycle |
+| `engine/control-plane/jobs/` | Job submission, instances, schedules and cancellation |
+| `engine/control-plane/acl/` | Access-role and label requests |
+| `engine/control-plane/catalog/` | Catalog search and specialized metadata/read routes |
+| `engine/control-plane/deployment/` | Configuration, transforms, planning, publication and removal workflows |
+| `engine/data-plane/onelake/` | Storage models/client/mutations and separate HTTP adapter |
+| `engine/data-plane/tables/` | Lakehouse/Delta schema access, table loading and maintenance |
+| `engine/core/contracts/` | Shared request, endpoint, credential and error contracts |
+| `engine/core/json/` | Shared ordered JSON encoding |
+| `engine/core/auth/` | Optional credential implementations and isolated Windows interop |
+| `engine/core/http/` | Explicit REST requests, shared execution and optional native transport in separate crates |
+| `engine/core/lro/` | Bounded request, acceptance, polling and result reconciliation |
+| `engine/core/pagination/` | Shared continuation traversal |
+| `engine/sdk/` | Existing `fabric-sdk` convenience entry point; focused engine packages remain directly usable |
+| `clients/cli/app/` | Executable composition, argument dispatch and native host |
+| `clients/cli/state/`, `output/`, `query/` | Separate CLI context, presentation and query-projection packages |
+| `clients/cli/commands/` | Resource, mutation, job, storage, local, transfer and table adapters in separate packages |
+| `clients/cli/repl/` | Removable shell loop and opt-in Reedline terminal adapter |
+| `clients/cli/update/` | Pinned-trust release verification and optional standalone updater |
 
-Each directory contains existing named crates. There are no empty MCP or
+Control plane and data plane are capability/ownership groupings, not strict
+classifications of every request. The table package reads Delta metadata but
+also submits loading and maintenance operations through jobs and LRO. Deployment
+prepares local definitions to orchestrate resource publication; this is not
+business-data ingestion. These legitimate cross-group dependencies remain.
+`engine/core/` is a physical foundation grouping, not a declaration that its
+auth, HTTP, LRO or pagination packages have the architectural `core` layer.
+SDK consumers continue injecting credentials without depending on identity
+implementations. The convenience SDK retains its existing Notebook implementation;
+this layout does not claim that it is aggregation-only or covers every capability.
+
+Each leaf directory contains an existing named crate. The table records
+ownership boundaries, not assigned teams; `.github/CODEOWNERS` remains the
+authority for configured reviewers. There are no empty MCP or
 Azure DevOps task packages. Future front-ends should compose reusable APIs and
 provide their own input, confirmation and output adapters; they must not launch
 the CLI or depend on CLI-specific types simply to reuse service operations.
@@ -94,9 +113,14 @@ The same composition mounts cancellation and all three schedule mutations throug
 `Invocation::JobMutation`, with shared generic-operation reconciliation and
 explicit injected confirmation. Native non-forced removal remains unsupported,
 not an implicit yes or blocking library prompt.
-The initial five crates are not a fixed count or a maximum. Workspace membership
-uses `capabilities/*/*`, `hosts/*/*`, `infrastructure/*/*`, and `sdk/*`, so
-crates are discovered within their capability or shared ownership group.
+The initial five crates are not a fixed count or a maximum. The mixed-depth tree
+uses explicit paths in workspace `members`. Add each new package there and in
+the centralized dependencies as needed. Architecture tests recursively discover
+package manifests below `engine/` and `clients/` and compare them with Cargo
+metadata, so an unregistered package cannot silently escape validation.
+Discovery stops at a package boundary; do not hide new packages inside another
+package's source, tests or templates. Use sibling leaf directories when extracting
+additional implementations.
 Default members explicitly include safe crates and exclude the
 optional `fabric-identity-windows` native boundary. Add new safe crates to
 `default-members`. Each crate declares its architectural layer in its own manifest:
@@ -419,7 +443,7 @@ Notebook service requests. It accepts a caller-owned Azure `HttpClient` and
 asynchronous timer, with bounded streaming, deadlines, read-status retries and
 no mutation replay. It depends on the SDK facade, not the reverse, so focused
 SDK consumers remain free to inject other executors. See its
-[source mapping and compatibility limits](../infrastructure/http/fabric-sdk-http/README.md).
+[source mapping and compatibility limits](../engine/core/http/executor/README.md).
 It does not install a production HTTP/TLS backend or create a runtime.
 
 Libraries must not prompt implicitly, exit the process, initialize a global logger, create
@@ -434,7 +458,7 @@ STA thread is a WinRT/UI requirement, not an independent async runtime.
 
 `azure_core` default features remain disabled. Direct SDK consumers still
 exclude HTTP/TLS implementations. The optional
-[`fabric-sdk-transport`](../infrastructure/http/fabric-sdk-transport/README.md) SDK-layer crate
+[`fabric-sdk-transport`](../engine/core/http/transport/README.md) SDK-layer crate
 has no default backend; its `hyper-rustls` feature selects one pooled Hyper
 client, Rustls with a per-client ring provider, explicit platform/additional
 trust, a direct/static-HTTP-proxy policy and bounded decoded streaming.
