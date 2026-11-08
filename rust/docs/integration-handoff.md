@@ -17,7 +17,7 @@ than extending the historical merger chains below. At each stage, use distinct
 review perspectives and record actual evidence tied to the immutable subject.
 Source unions and old component checks do not prove a combined executable.
 
-The current package roots are `sdk/` for reusable libraries and
+The current package roots are `engine/` for reusable libraries and
 `clients/cli/` for CLI-specific packages. Package names, logical layers,
 credential injection and optional native boundaries remain unchanged.
 See [physical organization](architecture.md#physical-organization) for the
