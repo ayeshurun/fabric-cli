@@ -24,7 +24,7 @@ WAM's work-account picker. Successful login saves only the account, tenant and
 client ID; `fab-rs ls /` then reuses that selection with silent WAM credentials
 and native HTTPS transport. Explicit argument/environment selectors take
 precedence. Tokens stay in WAM. See the [selection and storage
-contract](../../../docs/native-read-host.md#selection-and-execution).
+contract](../../../authoring-docs/native-read-host.md#selection-and-execution).
 
 Authentication supports `--output_format text` and `--output_format json`.
 An explicit format overrides the saved `output_format`; without a saved value,
@@ -95,7 +95,7 @@ Unicode, and JSON does not require width lookup.
 | `repl` | Optional Reedline shell for terminal-only, no-argument invocation |
 | `self-update` | Optional signed-release checking and standalone update host |
 
-See [native host configuration](../../../docs/native-read-host.md) and
+See [native host configuration](../../../authoring-docs/native-read-host.md) and
 [Windows authentication](../../../README.md#windows-authentication) for selectors,
 platform limits and live-operation requirements.
 
@@ -109,7 +109,7 @@ selects a credential. Service commands acquire tokens lazily, without interactiv
 login. Service-principal identity labels are client IDs, not user UPNs or
 independently verified claims.
 
-See the exact [environment bindings and host contracts](../../../docs/native-read-host.md#headless-credentials).
+See the exact [environment bindings and host contracts](../../../authoring-docs/native-read-host.md#headless-credentials).
 Credentials are not command arguments or saved settings. The
 [identity API](../../../engine/core/auth/provider/README.md)
 documents renewal, redaction and unsupported providers. Offline tests do not

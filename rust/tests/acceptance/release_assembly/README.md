@@ -32,5 +32,5 @@ execution is part of this selector. A host that cannot create symbolic links
 records a skip; reparse-attribute refusal has a separate synthetic test. Native
 filesystem/reparse/ACL behavior still needs independent Windows acceptance.
 
-See [release assembly](../../../docs/release-assembly.md) for all closed input
+See [release assembly](../../../authoring-docs/release-assembly.md) for all closed input
 records, commands, signature gates, custody limits and publisher inputs.

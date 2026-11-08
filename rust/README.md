@@ -20,7 +20,7 @@ The SDK example uses synthetic credentials and performs no service requests.
 Default builds support local commands and argument validation without connecting
 to an account. Remote command execution requires an explicitly configured host.
 See the [CLI guide](clients/cli/app/README.md) for command composition and
-[native host configuration](docs/native-read-host.md) for service execution.
+[native host configuration](authoring-docs/native-read-host.md) for service execution.
 
 ## Workspace components
 
@@ -56,6 +56,7 @@ clients/cli/
   output/          Presentation and streams
   repl/            Optional terminal editor and shell loop
   update/          Pinned-trust release verification and updates
+authoring-docs/     Architecture, migration, compatibility and validation guides
 ```
 
 Each leaf crate retains its package name and dependency boundaries. Grouping
@@ -71,7 +72,7 @@ Control/data-plane groups describe capability ownership, not every network
 request: table capabilities also orchestrate load and maintenance jobs.
 `engine/sdk/` retains existing item-type implementations and is not a complete
 umbrella for every capability. Focused crates remain directly usable.
-See [architecture](docs/architecture.md#physical-organization) for directory
+See [architecture](authoring-docs/architecture.md#physical-organization) for directory
 responsibilities and unchanged dependency-layer rules.
 
 | Component | Responsibility |
@@ -92,8 +93,8 @@ access, catalog, tables and raw requests. Each crate documents its own public
 interface and supported operations.
 
 For current implementation boundaries, use the
-[command/resource acceptance inventory](docs/command-parity.md), not historical
-scaffold tables. [Coverage reporting](docs/test-coverage.md) distinguishes actual
+[command/resource acceptance inventory](authoring-docs/command-parity.md), not historical
+scaffold tables. [Coverage reporting](authoring-docs/test-coverage.md) distinguishes actual
 line/function/region measurements from registered commands and test counts.
 
 Service and deployment libraries do not discover credentials, prompt users, create a runtime, initialize
@@ -151,7 +152,7 @@ registration. The host uses silent Windows credentials; it does not select an
 arbitrary first account or fall back to another authentication tool.
 
 Optional settings cover the configuration root, command context and Fabric
-endpoint. Read the [native host guide](docs/native-read-host.md) before choosing
+endpoint. Read the [native host guide](authoring-docs/native-read-host.md) before choosing
 these settings. An accepted mutation is not necessarily complete, and stopping
 local waiting does not roll back remote or filesystem effects.
 
@@ -223,8 +224,8 @@ cargo run --locked -p fabric-cli --features windows-broker -- auth login --help
 cargo run --locked -p fabric-cli --features native-read -- deploy --help
 ```
 
-See [architecture and validation commands](docs/architecture.md) and
-[build validation](docs/build-validation.md) for platform checks, dependency
+See [architecture and validation commands](authoring-docs/architecture.md) and
+[build validation](authoring-docs/build-validation.md) for platform checks, dependency
 boundaries and shared-host execution limits.
 
 ## Support boundaries
@@ -243,12 +244,12 @@ operations fail rather than returning successful-looking results.
 ## Contributing
 
 - [Agent and contributor instructions](AGENTS.md)
-- [Architecture](docs/architecture.md)
-- [Delivery and review requirements](docs/agentic-delivery.md)
-- [Integration handoff](docs/integration-handoff.md)
-- [Authentication requirements](docs/identity-requirements.md)
-- [Deployment behavior and limits](docs/deployment-compatibility.md)
-- [Extension boundaries](docs/extensions-and-skills.md)
+- [Architecture](authoring-docs/architecture.md)
+- [Delivery and review requirements](authoring-docs/agentic-delivery.md)
+- [Integration handoff](authoring-docs/integration-handoff.md)
+- [Authentication requirements](authoring-docs/identity-requirements.md)
+- [Deployment behavior and limits](authoring-docs/deployment-compatibility.md)
+- [Extension boundaries](authoring-docs/extensions-and-skills.md)
 
 The repository's Microsoft copyright, MIT license and applicable attribution
 apply to this workspace and must be retained in redistributed artifacts.

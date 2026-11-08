@@ -19,7 +19,7 @@ The root object has `schema`, `components`, `profiles` and `checks`, plus the
 optional `copyright` string. Schema-1 parsers accept this copyright field as data,
 not a JSON comment; other undeclared fields remain errors. For planning,
 source-binding, execution and validation-mode usage, see
-[dependency validation](../docs/dependency-validation.md). This document records
+[dependency validation](../authoring-docs/dependency-validation.md). This document records
 the catalog API and its source-derived contract mapping.
 
 The shared executor retains each complete command ID and literal argv in

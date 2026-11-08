@@ -68,6 +68,6 @@ Existing source key-validation errors propagate unchanged.
 The scalar-only width trait does not enforce whole-table allocation budgets;
 the rendering caller must admit and budget its complete input.
 
-See the [Unicode contract](../../../../../docs/unicode-production-contract.md)
+See the [Unicode contract](../../../../../authoring-docs/unicode-production-contract.md)
 for provenance, dependency and license evidence, and compatibility decisions.
 Keep `THIRD_PARTY_NOTICES.txt` and generated `PYTHON-LICENSE.txt` with the data.

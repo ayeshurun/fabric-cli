@@ -36,9 +36,9 @@ const CI_FILES = [
   'rust/scripts/rust-fast-wheelhouse.py', 'rust/scripts/test_rust_fast_wheelhouse.py',
   'rust/scripts/pinned_python_source.py', 'rust/scripts/test_pinned_python_source.py',
   'rust/scripts/rust-fast-windows-constraints.txt',
-  'rust/docs/fast-check.md', 'rust/docs/build-validation.md',
+  'rust/authoring-docs/fast-check.md', 'rust/authoring-docs/build-validation.md',
   'rust/tests/performance/startup.py', 'rust/tests/performance/test_startup.py',
-  'rust/tests/performance/measurement-request.json', 'rust/docs/performance-baseline.md',
+  'rust/tests/performance/measurement-request.json', 'rust/authoring-docs/performance-baseline.md',
 ];
 const root = path.resolve(__dirname, '../..');
 const rust = path.join(root, 'rust');
@@ -760,7 +760,7 @@ function main(args) {
   if (action === 'argv-snapshot' && rest.length === 1) return argvSnapshot(rest[0]);
   if (action === 'publish') return publish(rest);
   if (action === 'full') return full(rest);
-  throw new Error('Use prepare, run <fmt|fetch|check|clippy|test|family>, finish, publish or full; see docs/fast-check.md');
+  throw new Error('Use prepare, run <fmt|fetch|check|clippy|test|family>, finish, publish or full; see authoring-docs/fast-check.md');
 }
 module.exports = {LANES, CI_FILES, sha, lane, runnerLane, laneBranch, metadataTargets, ciDelta, activeRunsArgs, select, plan, execute, options, requireFastPass, parallelCandidate, commandTimeout, verifyRequest015};
 if (require.main === module) {

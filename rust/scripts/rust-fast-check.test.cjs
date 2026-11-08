@@ -438,7 +438,7 @@ test('CI composition cannot modify product, old workflow, lock or oracle', () =>
   ciDelta(['.github/workflows/rust-fast-check.yml', 'rust/scripts/rust-fast-check.cjs',
     'rust/scripts/pinned_python_source.py', 'rust/scripts/test_pinned_python_source.py',
     'rust/tests/performance/startup.py', 'rust/tests/performance/test_startup.py',
-    'rust/tests/performance/measurement-request.json', 'rust/docs/performance-baseline.md']);
+    'rust/tests/performance/measurement-request.json', 'rust/authoring-docs/performance-baseline.md']);
   for (const file of ['rust/Cargo.lock', '.github/workflows/rust-ci.yml',
     'rust/clients/cli/app/src/main.rs', 'rust/tests/compatibility/jobs/reference.py']) {
     assert.throws(() => ciDelta([file]));

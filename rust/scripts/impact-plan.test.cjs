@@ -288,7 +288,8 @@ test('Workspace/root/any nested Cargo, toolchain, workflow and planner changes r
 
 test('Unknown source, fixtures, templates, scripts and even non-Rust shared inputs fail closed', () => {
   for (const file of ['rust/new-crate/src/lib.rs', 'rust/tests/new.rs', 'rust/fixtures/unknown.json',
-    'rust/templates/example.txt', 'rust/scripts/unknown.py', 'src/fabric_cli/new.py']) {
+    'rust/templates/example.txt', 'rust/scripts/unknown.py', 'src/fabric_cli/new.py',
+    'rust/authoring-docs/ledger.json']) {
     const result = select([file]);
     assert.equal(result.mode, 'full', file);
     assert.match(result.reason, /Unknown shared input/);
@@ -297,7 +298,15 @@ test('Unknown source, fixtures, templates, scripts and even non-Rust shared inpu
 
 test('Documentation-only changes produce no commands, profiles or checks', () => {
   const result = select(['README.md', 'AGENTS.md', 'rust/README.md', 'rust/AGENTS.md',
-    'rust/docs/architecture.md', 'rust/docs/decisions/new.md']);
+    'rust/authoring-docs/architecture.md', 'rust/authoring-docs/decisions/new.md']);
+  assert.equal(result.mode, 'none');
+  assert.deepEqual(result.packages, []);
+  assert.deepEqual(commands(result, 'win32'), {commands: [], checks: [], skipped: []});
+});
+
+test('Documentation directory renames classify both deleted and added Markdown paths', () => {
+  const result = select(['rust/docs/architecture.md', 'rust/docs/decisions/new.md',
+    'rust/authoring-docs/architecture.md', 'rust/authoring-docs/decisions/new.md']);
   assert.equal(result.mode, 'none');
   assert.deepEqual(result.packages, []);
   assert.deepEqual(commands(result, 'win32'), {commands: [], checks: [], skipped: []});

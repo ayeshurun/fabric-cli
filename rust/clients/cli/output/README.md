@@ -102,5 +102,5 @@ budget their complete inputs. JSON encoding and numeric domains are unchanged.
 
 See the [Unicode tests](tests/production_unicode/README.md) for validation
 commands and supported limits, and the
-[Unicode contract](../../../docs/unicode-production-contract.md) for provenance,
+[Unicode contract](../../../authoring-docs/unicode-production-contract.md) for provenance,
 licensing and compatibility decisions.

@@ -196,7 +196,7 @@ provider rollback or cancellation of a blocking filesystem operation.
 
 The CLI's separate `headless` feature supplies explicit environment selection and
 the native service-command host. See
-[native host configuration](../../../../docs/native-read-host.md#headless-credentials).
+[native host configuration](../../../../authoring-docs/native-read-host.md#headless-credentials).
 No interactive `auth login` is required for headless service commands.
 
 ### Support limits

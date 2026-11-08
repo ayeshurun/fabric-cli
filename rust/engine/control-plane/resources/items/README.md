@@ -67,7 +67,7 @@ supporting users, service principals and managed identities. Caller-supplied
 identity metadata is a capability check, not token-claim verification.
 Known-ID serving operations do not perform a user-only item lookup.
 
-See [MLModel binding and output boundaries](../../../../docs/ml-model-native.md)
+See [MLModel binding and output boundaries](../../../../authoring-docs/ml-model-native.md)
 for native API provenance, acceptance/completion semantics, and integration
 gates. These SDK primitives do not establish an executable v2 artifact facade
 or a working shared tabular-export host.

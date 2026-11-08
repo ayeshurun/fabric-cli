@@ -77,7 +77,7 @@ parts with source per-part errors, and optionally cleans existing first-part
 Notebook outputs. Its value tree preserves binary payloads, native Python JSON
 domains and payload types without turning them into export files. Conversion to
 finite serde JSON is explicit and fallible. See
-[GET definition values](../../../docs/get-definition-values.md) for the pinned
+[GET definition values](../../../authoring-docs/get-definition-values.md) for the pinned
 source contract, resource/domain limits and host integration boundary.
 
 The existing Notebook preparation/publication APIs remain available for focused

@@ -363,7 +363,7 @@ added to the manifests, selection follows those edges automatically.
 | CLI source or its contracts, with today's graph | `fabric-cli` only, including help/version checks |
 | Several crates, including cross-crate moves | Union of changed crates and all their transitive consumers |
 | Any Rust Cargo manifest/lockfile, toolchain, rustfmt configuration, workflow, shared fixture, or unclassified Rust build input | All workspace members, including the workspace architecture contract |
-| Markdown under `rust/docs/` or `rust/skills/`, root Rust README/AGENTS, or the fixture README only | No native build; no Cargo invocation in selection |
+| Markdown under `rust/authoring-docs/` or `rust/skills/`, root Rust README/AGENTS, or the fixture README only | No native build; no Cargo invocation in selection |
 | Changes outside Rust and this workflow only | No Rust native build |
 
 Crate-local Markdown is deliberately treated as a crate input: it might be

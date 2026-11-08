@@ -210,4 +210,4 @@ live Fabric and non-Windows native runs remain unexecuted.
 - `rust/clients/cli/app/tests/family_mounts.rs` (additive test registration only)
 - `rust/clients/cli/app/tests/family_support/import_parity.rs`
 - `rust/clients/cli/app/tests/family_support/import_roots.rs`
-- `rust/docs/import-command-parity.md`
+- `rust/authoring-docs/import-command-parity.md`
