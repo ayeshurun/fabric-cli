@@ -248,11 +248,13 @@ old fixtures remain untouched by this lane.
 
 At that first stage, the full sweep and Cargo selectors below were unrun.
 Their subsequently completed results are recorded in the final section:
+The runnable examples below use the current directory spelling; recorded results
+remain tied to their original revisions.
 
 ```powershell
 # From rust\, only after the controller grants the full-scalar CPU slot:
-python -B frontends\cli\output\tests\production_unicode\generate.py --generate --full-scalar-slot
-python -B frontends\cli\output\tests\production_unicode\generate.py --verify --full-scalar-slot
+python -B clients\cli\output\tests\production_unicode\generate.py --generate --full-scalar-slot
+python -B clients\cli\output\tests\production_unicode\generate.py --verify --full-scalar-slot
 
 # After approved dependency resolution and module export, within the serial build slot:
 cargo test --offline --locked -p fabric-cli-output production_unicode -- --test-threads=1 --nocapture

@@ -110,10 +110,11 @@ into the host or establish all item/command leaves or production GA.
 
 ## Offline validation
 
-From `rust/`, verify the newly added source receipt without replacing it:
+From `rust/`, use CPython 3.13.15, as recorded in the immutable receipt, to verify
+the source receipt without replacing it:
 
 ```text
-python -I -B sdk\deployment\tests\get_definition_value_reference.py
+python -I -B engine\control-plane\deployment\tests\get_definition_value_reference.py
 ```
 
 The helper executes complete selected functions directly from the pinned Git

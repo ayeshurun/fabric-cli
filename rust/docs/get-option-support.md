@@ -278,7 +278,7 @@ flattening it into this metadata-only result.
 From `rust/`, the isolated source helper is:
 
 ```text
-python -I -B frontends\cli\app\tests\test_get_options_source.py
+python -I -B clients\cli\app\tests\test_get_options_source.py
 ```
 
 It executes selected unchanged functions from the exact Git object with explicit
@@ -292,7 +292,7 @@ The end-to-end source helper additionally exercises projection before storage,
 single-suffix output, decoded payload types and terminal-location reconciliation:
 
 ```text
-python -I -B frontends\cli\app\tests\test_get_host_source.py
+python -I -B clients\cli\app\tests\test_get_host_source.py
 ```
 
 The Rust integration targets `fabric-cli --test get_options --test get_host` deny
